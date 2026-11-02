@@ -1,6 +1,8 @@
 package de.dennisguse.opentracks.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,15 +20,24 @@ import androidx.compose.ui.unit.sp
 import de.dennisguse.opentracks.ui.components.CarMapView
 import de.dennisguse.opentracks.ui.model.LiveCockpitData
 import de.dennisguse.opentracks.ui.theme.*
+import de.dennisguse.opentracks.util.FuelEfficiencyCalculator
 
 @Composable
 fun LiveCockpitScreen(
     liveData: LiveCockpitData,
+    speedLimitKmh: Int,
+    isSpeedAlertEnabled: Boolean,
+    onUpdateSpeedLimit: (Int) -> Unit,
     onStopTripClicked: () -> Unit,
     onMinimizeClicked: () -> Unit
 ) {
     var showConfirmStop by remember { mutableStateOf(false) }
+    var showLimitPicker by remember { mutableStateOf(false) }
     var isMapExpanded by remember { mutableStateOf(false) }
+
+    val isExceeded = remember(liveData.currentSpeedKmh, speedLimitKmh, isSpeedAlertEnabled) {
+        isSpeedAlertEnabled && speedLimitKmh > 0 && liveData.currentSpeedKmh > speedLimitKmh
+    }
 
     val hours = liveData.durationSec / 3600
     val minutes = (liveData.durationSec % 3600) / 60
@@ -35,6 +46,10 @@ fun LiveCockpitScreen(
         String.format(java.util.Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
     } else {
         String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds)
+    }
+
+    val currentKmL = remember(liveData.currentSpeedKmh) {
+        FuelEfficiencyCalculator.estimateTripKmL(liveData.currentSpeedKmh)
     }
 
     if (showConfirmStop) {
@@ -67,6 +82,50 @@ fun LiveCockpitScreen(
             dismissButton = {
                 TextButton(onClick = { showConfirmStop = false }) {
                     Text("Continuar Gravando", color = AppleBlue)
+                }
+            },
+            containerColor = AppleCardElevated
+        )
+    }
+
+    if (showLimitPicker) {
+        AlertDialog(
+            onDismissRequest = { showLimitPicker = false },
+            title = {
+                Text("Definir Limite de Velocidade da Via", fontWeight = FontWeight.Bold, color = TextPrimary)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val limits = listOf(40, 60, 80, 100, 110, 120, 0)
+                    limits.forEach { lim ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (lim == speedLimitKmh) AppleBlue.copy(alpha = 0.2f) else AppleCard)
+                                .clickable {
+                                    onUpdateSpeedLimit(lim)
+                                    showLimitPicker = false
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (lim > 0) "$lim km/h" else "Sem Limite (Desativado)",
+                                color = TextPrimary,
+                                fontWeight = if (lim == speedLimitKmh) FontWeight.Bold else FontWeight.Normal
+                            )
+                            if (lim == speedLimitKmh) {
+                                Icon(Icons.Default.Check, contentDescription = null, tint = AppleBlue)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLimitPicker = false }) {
+                    Text("Fechar", color = AppleBlue)
                 }
             },
             containerColor = AppleCardElevated
@@ -119,33 +178,57 @@ fun LiveCockpitScreen(
         }
 
         if (!isMapExpanded) {
-            // Huge Speedometer Display
-            Column(
+            // Huge Speedometer Display with Feature 5 Speed Limit Sign & Visual Warning
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "${liveData.currentSpeedKmh.toInt()}",
-                    color = TextPrimary,
-                    fontSize = 82.sp,
-                    fontWeight = FontWeight.Black,
-                    lineHeight = 84.sp
-                )
-                Text(
-                    text = "KM/H",
-                    color = AppleTeal,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = "${liveData.currentSpeedKmh.toInt()}",
+                        color = if (isExceeded) AppleRed else TextPrimary,
+                        fontSize = 82.sp,
+                        fontWeight = FontWeight.Black,
+                        lineHeight = 84.sp
+                    )
+                    Text(
+                        text = if (isExceeded) "⚠️ VELOCIDADE EXCESSIVA" else "KM/H",
+                        color = if (isExceeded) AppleRed else AppleTeal,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp
+                    )
+                }
+
+                // Feature 5: Regulatory Road Speed Limit Sign (Interactive)
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(6.dp, AppleRed, CircleShape)
+                        .clickable { showLimitPicker = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (speedLimitKmh > 0) "$speedLimitKmh" else "--",
+                        color = Color.Black,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 19.sp
+                    )
+                }
             }
 
-            // Telemetry Grid
+            // Telemetry Grid with Feature 3 Real-time estimated km/L
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 MetricCard(
                     title = "Distância",
@@ -166,6 +249,13 @@ fun LiveCockpitScreen(
                     value = "${liveData.maxSpeedKmh.toInt()} km/h",
                     icon = Icons.Default.TrendingUp,
                     tint = AppleRed,
+                    modifier = Modifier.weight(1f)
+                )
+                MetricCard(
+                    title = "Consumo",
+                    value = String.format(java.util.Locale.getDefault(), "%.1f km/L", currentKmL),
+                    icon = Icons.Default.LocalGasStation,
+                    tint = AppleGreen,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -216,20 +306,39 @@ fun LiveCockpitScreen(
 
             if (isMapExpanded) {
                 // Floating Speed Badge when map is fullscreen
-                Box(
+                Row(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(16.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(AppleCardElevated.copy(alpha = 0.92f))
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .background(AppleCardElevated.copy(alpha = 0.94f))
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
                         text = "${liveData.currentSpeedKmh.toInt()} km/h",
-                        color = TextPrimary,
-                        fontSize = 24.sp,
+                        color = if (isExceeded) AppleRed else TextPrimary,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     )
+                    if (speedLimitKmh > 0) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(Color.White)
+                                .border(3.dp, AppleRed, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "$speedLimitKmh",
+                                color = Color.Black,
+                                fontWeight = FontWeight.Black,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
                 }
             }
         }

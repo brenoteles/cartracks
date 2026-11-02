@@ -26,6 +26,7 @@ import de.dennisguse.opentracks.data.TrackListIterator
 import de.dennisguse.opentracks.data.TrackPointIterator
 import de.dennisguse.opentracks.data.models.Track
 import de.dennisguse.opentracks.data.models.TrackPoint
+import de.dennisguse.opentracks.io.TrackExportHelper
 import de.dennisguse.opentracks.services.RecordingData
 import de.dennisguse.opentracks.services.TrackRecordingService
 import de.dennisguse.opentracks.services.TrackRecordingServiceConnection
@@ -33,6 +34,8 @@ import de.dennisguse.opentracks.settings.SettingsActivity
 import de.dennisguse.opentracks.ui.model.*
 import de.dennisguse.opentracks.ui.screens.*
 import de.dennisguse.opentracks.ui.theme.*
+import de.dennisguse.opentracks.util.FuelEfficiencyCalculator
+import de.dennisguse.opentracks.util.SpeedAlertManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -44,6 +47,7 @@ class CarMainActivity : ComponentActivity() {
 
     private lateinit var providerUtils: ContentProviderUtils
     private lateinit var fuelDb: FuelDatabaseHelper
+    private lateinit var speedAlertManager: SpeedAlertManager
     private var serviceConnection: TrackRecordingServiceConnection? = null
 
     // Compose State Holders
@@ -53,6 +57,8 @@ class CarMainActivity : ComponentActivity() {
     private val homeLocationState = mutableStateOf(CustomLocation(-23.6015, -46.6900, "Casa", false))
     private val workLocationState = mutableStateOf(CustomLocation(-23.5615, -46.6559, "Trabalho", false))
     private val currentGpsState = mutableStateOf<Pair<Double, Double>?>(null)
+    private val speedLimitState = mutableStateOf(100)
+    private val speedAlertEnabledState = mutableStateOf(true)
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -70,7 +76,9 @@ class CarMainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         providerUtils = ContentProviderUtils(this)
         fuelDb = FuelDatabaseHelper.getInstance(this)
+        speedAlertManager = SpeedAlertManager(this)
 
+        loadPreferences()
         loadCustomLocations()
         loadTrips()
         loadFuelEntries()
@@ -105,6 +113,27 @@ class CarMainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         serviceConnection?.unbind(this)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        speedAlertManager.release()
+    }
+
+    private fun loadPreferences() {
+        val sp = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
+        speedLimitState.value = sp.getInt("speed_limit_kmh", 100)
+        speedAlertEnabledState.value = sp.getBoolean("speed_alert_enabled", true)
+    }
+
+    private fun saveSpeedLimit(limit: Int, enabled: Boolean) {
+        getSharedPreferences("CarTracksPrefs", MODE_PRIVATE).edit()
+            .putInt("speed_limit_kmh", limit)
+            .putBoolean("speed_alert_enabled", enabled)
+            .apply()
+        speedLimitState.value = limit
+        speedAlertEnabledState.value = enabled
+        Toast.makeText(this, "Alerta de velocidade atualizado: $limit km/h", Toast.LENGTH_SHORT).show()
     }
 
     private fun loadCustomLocations() {
@@ -164,7 +193,8 @@ class CarMainActivity : ComponentActivity() {
                             maxSpd = avgSpd * 1.35
                         }
 
-                        val fuel = km * 0.08
+                        val tripKmL = FuelEfficiencyCalculator.estimateTripKmL(avgSpd)
+                        val fuel = if (tripKmL > 0) km / tripKmL else km * 0.08
                         val cost = fuel * 5.89
 
                         // Compute Commute Badge if start/end matches Home or Work
@@ -337,6 +367,9 @@ class CarMainActivity : ComponentActivity() {
             }
         }
 
+        // Feature 5: Speed Alert Check & Trigger
+        speedAlertManager.checkSpeed(curSpd, speedLimitState.value, speedAlertEnabledState.value)
+
         val fuel = km * 0.08
         val cost = fuel * 5.89
 
@@ -422,6 +455,8 @@ class CarMainActivity : ComponentActivity() {
         val homeLoc by homeLocationState
         val workLoc by workLocationState
         val currentGps by currentGpsState
+        val speedLimit by speedLimitState
+        val isSpeedAlertEnabled by speedAlertEnabledState
 
         // Auto-open cockpit if user just started a trip
         LaunchedEffect(liveData.isRecording) {
@@ -434,6 +469,9 @@ class CarMainActivity : ComponentActivity() {
         if (isCockpitFullscreen && liveData.isRecording) {
             LiveCockpitScreen(
                 liveData = liveData,
+                speedLimitKmh = speedLimit,
+                isSpeedAlertEnabled = isSpeedAlertEnabled,
+                onUpdateSpeedLimit = { saveSpeedLimit(it, isSpeedAlertEnabled) },
                 onStopTripClicked = {
                     stopTrip()
                     isCockpitFullscreen = false
@@ -452,7 +490,13 @@ class CarMainActivity : ComponentActivity() {
             TripDetailScreen(
                 trip = activeDetailTrip!!,
                 points = points,
-                onBackClicked = { activeDetailTrip = null }
+                onBackClicked = { activeDetailTrip = null },
+                onExportGpx = {
+                    TrackExportHelper.exportAndShareGPX(this@CarMainActivity, activeDetailTrip!!, points)
+                },
+                onExportKml = {
+                    TrackExportHelper.exportAndShareKML(this@CarMainActivity, activeDetailTrip!!, points)
+                }
             )
             return
         }
@@ -583,8 +627,13 @@ class CarMainActivity : ComponentActivity() {
                         homeLoc = homeLoc,
                         workLoc = workLoc,
                         currentGps = currentGps,
+                        speedLimitKmh = speedLimit,
+                        isSpeedAlertEnabled = isSpeedAlertEnabled,
                         onSaveLocation = { key, lat, lon, label ->
                             saveCustomLocation(key, lat, lon, label)
+                        },
+                        onSaveSpeedAlert = { limit, enabled ->
+                            saveSpeedLimit(limit, enabled)
                         },
                         onOpenSystemSettings = {
                             startActivity(Intent(this@CarMainActivity, SettingsActivity::class.java))

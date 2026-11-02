@@ -1,8 +1,11 @@
 package de.dennisguse.opentracks.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -23,7 +26,10 @@ fun SettingsScreen(
     homeLoc: CustomLocation,
     workLoc: CustomLocation,
     currentGps: Pair<Double, Double>?,
+    speedLimitKmh: Int,
+    isSpeedAlertEnabled: Boolean,
     onSaveLocation: (key: String, lat: Double, lon: Double, label: String) -> Unit,
+    onSaveSpeedAlert: (limitKmh: Int, enabled: Boolean) -> Unit,
     onOpenSystemSettings: () -> Unit
 ) {
     var homeLat by remember(homeLoc) { mutableStateOf(homeLoc.lat.toString()) }
@@ -31,6 +37,9 @@ fun SettingsScreen(
 
     var workLat by remember(workLoc) { mutableStateOf(workLoc.lat.toString()) }
     var workLon by remember(workLoc) { mutableStateOf(workLoc.lon.toString()) }
+
+    var currentLimit by remember(speedLimitKmh) { mutableStateOf(speedLimitKmh) }
+    var alertEnabled by remember(isSpeedAlertEnabled) { mutableStateOf(isSpeedAlertEnabled) }
 
     LazyColumn(
         modifier = Modifier
@@ -50,10 +59,104 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Locais favoritos e preferências do veículo",
+                    text = "Alertas de velocidade, rotas e preferências do veículo",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
+            }
+        }
+
+        // Feature 5: Speed Limit Alert Settings Card
+        item {
+            Text(
+                text = "Alerta de Limite de Velocidade",
+                color = AppleBlue,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(AppleCard)
+                    .padding(16.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Aviso Sonoro e Visual",
+                                color = TextPrimary,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Beep suave e aviso ao ultrapassar a velocidade máxima",
+                                color = TextSecondary,
+                                fontSize = 12.sp
+                            )
+                        }
+                        Switch(
+                            checked = alertEnabled,
+                            onCheckedChange = {
+                                alertEnabled = it
+                                onSaveSpeedAlert(currentLimit, it)
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = AppleBlue
+                            )
+                        )
+                    }
+
+                    if (alertEnabled) {
+                        Text(
+                            text = "Limite Atual: $currentLimit km/h",
+                            color = AppleTeal,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        val presetLimits = listOf(60, 80, 100, 110, 120, 140)
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(presetLimits) { limit ->
+                                val isSelected = limit == currentLimit
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        currentLimit = limit
+                                        onSaveSpeedAlert(limit, alertEnabled)
+                                    },
+                                    label = {
+                                        Text(
+                                            text = "$limit km/h",
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 13.sp
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = AppleBlue,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = AppleCardElevated,
+                                        labelColor = TextSecondary
+                                    ),
+                                    border = null
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -163,12 +266,12 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Versão 1.0.2 (OpenTracks Fork) • Samsung Galaxy S24 Ultra Optimized",
+                        text = "Versão 1.0.4 • Samsung Galaxy S24 Ultra Optimized",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
                     Text(
-                        text = "OpenStreetMap Tile Provider Nativo • 100% Open Source",
+                        text = "Exportação GPX / KML • Alerta de Velocidade • Consumo Real km/L",
                         color = TextTertiary,
                         fontSize = 11.sp
                     )

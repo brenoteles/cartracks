@@ -20,15 +20,21 @@ import de.dennisguse.opentracks.ui.components.CarMapView
 import de.dennisguse.opentracks.ui.model.TripItem
 import de.dennisguse.opentracks.ui.model.TripPoint
 import de.dennisguse.opentracks.ui.theme.*
+import de.dennisguse.opentracks.util.FuelEfficiencyCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripDetailScreen(
     trip: TripItem,
     points: List<TripPoint>,
-    onBackClicked: () -> Unit
+    onBackClicked: () -> Unit,
+    onExportGpx: () -> Unit,
+    onExportKml: () -> Unit
 ) {
     var isMapMaximized by remember { mutableStateOf(false) }
+    val tripKmL = remember(trip.avgSpeedKmh) {
+        FuelEfficiencyCalculator.estimateTripKmL(trip.avgSpeedKmh)
+    }
 
     Scaffold(
         topBar = {
@@ -58,7 +64,13 @@ fun TripDetailScreen(
                     }
                 },
                 actions = {
-                    // Top Bar Toggle also available!
+                    IconButton(onClick = onExportGpx) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Exportar Trajeto",
+                            tint = AppleBlue
+                        )
+                    }
                     IconButton(onClick = { isMapMaximized = !isMapMaximized }) {
                         Icon(
                             imageVector = if (isMapMaximized) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
@@ -109,7 +121,7 @@ fun TripDetailScreen(
                 }
             }
         } else {
-            // Standard Mode: Map + Telemetry
+            // Standard Mode: Map + Telemetry + Exports
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -177,7 +189,7 @@ fun TripDetailScreen(
                     }
 
                     Text(
-                        text = "Telemetria do Trajeto",
+                        text = "Telemetria e Desempenho",
                         color = TextPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -224,24 +236,86 @@ fun TripDetailScreen(
                         )
                     }
 
+                    // Feature 3: Real & Estimated Fuel Efficiency
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         MetricCard(
-                            title = "Combustível",
-                            value = String.format(java.util.Locale.getDefault(), "%.2f L", trip.fuelLiters),
+                            title = "Consumo Real Est.",
+                            value = String.format(java.util.Locale.getDefault(), "%.1f km/L", tripKmL),
                             icon = Icons.Default.LocalGasStation,
-                            tint = AppleYellow,
-                            modifier = Modifier.weight(1f)
-                        )
-                        MetricCard(
-                            title = "Custo Estimado",
-                            value = String.format(java.util.Locale.getDefault(), "R$ %.2f", trip.fuelCost),
-                            icon = Icons.Default.AttachMoney,
                             tint = AppleGreen,
                             modifier = Modifier.weight(1f)
                         )
+                        MetricCard(
+                            title = "Gasto na Viagem",
+                            value = String.format(java.util.Locale.getDefault(), "R$ %.2f", trip.fuelCost),
+                            icon = Icons.Default.AttachMoney,
+                            tint = AppleYellow,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Feature 6: Route Export Buttons (GPX & KML)
+                    Text(
+                        text = "Exportar Trajeto",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = onExportGpx,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = null,
+                                tint = AppleBlue,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Exportar GPX",
+                                color = TextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
+
+                        Button(
+                            onClick = onExportKml,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Public,
+                                contentDescription = null,
+                                tint = AppleGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Google Earth (KML)",
+                                color = TextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
             }
