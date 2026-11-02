@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:title="@string/settings_ui_title">
+
+    <de.dennisguse.opentracks.settings.LocalePreference
+        android:key="@string/locale_key"
+        android:persistent="false"
+        android:title="@string/settings_locale_title"
+        app:useSimpleSummaryProvider="true" />
+
+    <ListPreference
+        android:defaultValue="@string/theme_default"
+        android:entries="@array/night_mode_options"
+        android:entryValues="@array/night_mode_values"
+        android:key="@string/theme_key"
+        android:title="@string/settings_night_mode_title"
+        app:useSimpleSummaryProvider="true" />
+
+    <PreferenceCategory app:title="@string/settings_recording_title">
+
+        <Preference
+            app:key="@string/stats_custom_layout_key"
+            app:title="@string/settings_recording_customize_layout_title" />
+
+        <de.dennisguse.opentracks.settings.ResetDialogPreference
+            android:dialogMessage="@string/settings_layout_reset_confirm_message"
+            android:dialogTitle="@string/settings_layout_reset_confirm_title"
+            android:key="@string/settings_layout_reset_key"
+            android:negativeButtonText="@android:string/cancel"
+            android:persistent="false"
+            android:positiveButtonText="@android:string/ok"
+            android:title="@string/settings_layout_reset" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="@bool/stats_show_on_lockscreen_while_recording_default"
+            android:key="@string/stats_show_on_lockscreen_while_recording_key"
+            android:summary="@string/settings_recording_show_on_lockscreen_while_recording_summary"
+            android:title="@string/settings_recording_show_on_lockscreen_while_recording_title" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="@bool/stats_keep_screen_on_while_recording_default"
+            android:key="@string/stats_keep_screen_on_while_recording_key"
+            android:summary="@string/settings_recording_keep_screen_on_while_recording_summary"
+            android:title="@string/settings_recording_keep_screen_on_while_recording_title" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="@bool/stats_fullscreen_while_recording_default"
+            android:key="@string/stats_fullscreen_while_recording_key"
+            android:summary="@string/settings_recording_fullscreen_on_while_recording_summary"
+            android:title="@string/settings_recording_fullscreen_on_while_recording_title" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="@bool/stats_show_gps_disabled_warnings_default"
+            android:key="@string/stats_show_gps_disabled_warnings_key"
+            android:summary="@string/settings_recording_show_gps_disabled_warning_summary"
+            android:title="@string/settings_recording_show_gps_disabled_warning_title" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/settings_charts_title">
+        <SwitchPreferenceCompat
+            android:icon="@drawable/ic_activity_climbing_24dp"
+            android:defaultValue="@bool/chart_display_elevation_default"
+            android:key="@string/chart_display_elevation_key"
+            android:title="@string/settings_chart_display_elevation_title" />
+
+        <SwitchPreferenceCompat
+            android:icon="@drawable/ic_activity_snowboarding_24dp"
+            android:defaultValue="@bool/chart_display_pace_or_speed_default"
+            android:key="@string/chart_display_pace_or_speed_key"
+            android:title="@string/settings_chart_display_pace_or_speed_title" />
+
+        <SwitchPreferenceCompat
+            android:icon="@drawable/ic_activity_workout_24dp"
+            android:defaultValue="@bool/chart_display_heart_rate_default"
+            android:key="@string/chart_display_heart_rate_key"
+            android:title="@string/settings_chart_display_heart_rate_title" />
+    </PreferenceCategory>
+</PreferenceScreen>

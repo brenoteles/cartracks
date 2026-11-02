@@ -1,0 +1,7 @@
+v3.7.1: OpenTracks
+
+Solución provisional:
+- Ocultar el botón de inicio del GPS
+
+Corrección de errores:
+- Se ha corregido un puntero nulo

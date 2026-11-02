@@ -1,0 +1,8 @@
+v3.2.6: OpenTracks
+
+Cambios:
+- Monitor de frecuencia cardíaca: escanear dispositivos disponibles
+- Eliminar acceso directo a los ajustes de Bluetooth
+
+Desarrollador:
+- Preferencias: se movieron los valores por defecto de las preferencias del código a XML

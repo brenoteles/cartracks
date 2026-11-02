@@ -1,0 +1,6 @@
+v4.29.0: OpenTracks
+
+Changes:
+- Removed "Export all (one file for all tracks)" functionality
+  For KML/KMZ, the markers are exported in such a way that on import OpenTracks cannot determine to which track a marker belonged.
+  Recommendation for backups: use KMZ with one track per file.

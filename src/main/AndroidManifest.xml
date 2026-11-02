@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+Copyright 2010 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:installLocation="auto">
+
+    <supports-screens
+        android:anyDensity="true"
+        android:largeScreens="true"
+        android:normalScreens="true"
+        android:smallScreens="true"
+        android:xlargeScreens="true" />
+
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.android.hardware.bluetooth_le"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.sensor.compass"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"
+        android:minSdkVersion="34" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE"
+        android:minSdkVersion="34" />
+
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<!--    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />-->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        android:minSdkVersion="31"
+        tools:targetApi="s" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"
+        android:minSdkVersion="31" />
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"
+        android:minSdkVersion="33" />
+
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
+    <uses-permission android:name="android.permission.health.WRITE_EXERCISE_ROUTE" />
+    <uses-permission android:name="android.permission.health.WRITE_DISTANCE" />
+    <uses-permission android:name="android.permission.health.WRITE_ELEVATION_GAINED" />
+    <uses-permission android:name="android.permission.health.WRITE_SPEED" />
+
+    <application android:usesCleartextTraffic="true"
+        android:name=".Startup"
+        android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules_30_lower"
+        android:dataExtractionRules="@xml/backup_rules_31_higher"
+        android:enableOnBackInvokedCallback="true"
+        android:hardwareAccelerated="true"
+        android:hasFragileUserData="false"
+        android:icon="@mipmap/ic_cartracks"
+        android:label="@string/launcher_name"
+        android:supportsRtl="true"
+        android:theme="@style/DayNightDynamicTheme"> <!-- Default for AppCompatActivities -->
+
+        <activity
+            android:name=".publicapi.StartRecording"
+            android:exported="true"
+            android:theme="@style/SplashTheme">
+            <intent-filter>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".publicapi.StopRecording"
+            android:exported="true"
+            android:theme="@style/SplashTheme">
+            <intent-filter>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".publicapi.CreateMarker"
+            android:exported="true"
+            android:theme="@style/SplashTheme">
+            <intent-filter>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- NOTE: the name of the MAIN/LAUNCHER is used by icon packs; if this is changed, icon packs break.-->
+        <activity
+            android:name=".introduction.IntroductionActivity"
+            android:exported="false"
+            android:enabled="false" />
+
+        <activity android:name=".AboutActivity" />
+
+        <!-- Permissions -->
+        <!-- until Android 13 -->
+        <activity
+            android:name=".HealthConnectPermissionsRationaleActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+        <!-- for Android 14 -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity=".HealthConnectPermissionsRationaleActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity android:name=".settings.HealthConnect$Settings" />
+        <activity android:name=".settings.HealthConnect$ConfigurePermissions" />
+        <activity android:name=".settings.HealthConnect$ExportAll" />
+
+        <activity android:name=".HelpActivity" />
+
+        <activity android:name=".io.file.importer.DirectoryChooserActivity$ImportDirectoryChooserActivity" />
+
+        <activity
+            android:name=".io.file.importer.ImportActivity"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/gpx+xml" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/gpx" />
+            </intent-filter>
+
+            <intent-filter
+                android:label="@string/app_name"
+                android:priority="50">
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:scheme="data" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.gpx" />
+            </intent-filter>
+
+            <intent-filter
+                android:label="@string/app_name"
+                android:priority="50">
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:scheme="data" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.gpx" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.google-earth.kmz" />
+            </intent-filter>
+
+            <intent-filter
+                android:label="@string/app_name"
+                android:priority="50">
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:scheme="data" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kmz" />
+            </intent-filter>
+
+            <intent-filter
+                android:label="@string/app_name"
+                android:priority="50">
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:scheme="data" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kmz" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kmz" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/vnd.google-earth.kml+xml" />
+            </intent-filter>
+
+            <intent-filter
+                android:label="@string/app_name"
+                android:priority="50">
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:scheme="data" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.kml" />
+                <data android:pathPattern=".*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kml" />
+            </intent-filter>
+
+            <intent-filter
+                android:label="@string/app_name"
+                android:priority="50">
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:scheme="data" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.kml" />
+                <data android:pathPattern=".*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kml" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kml" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".publicapi.ShowMarkerActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="de.dennisguse.opentracks.MarkerDetails" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".publicapi.CreateMarkerActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="de.dennisguse.opentracks.CreateMarker" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".ui.markers.MarkerDetailActivity" />
+        <activity android:name=".ui.markers.MarkerEditActivity" />
+        <activity android:name=".ui.markers.MarkerListActivity" />
+
+        <activity android:name=".TrackListActivity" />
+        <activity android:name=".TrackRecordedActivity" />
+        <activity android:name=".TrackStoppedActivity" />
+
+        <activity android:name=".TrackRecordingActivity" />
+
+        <activity android:name=".TrackEditActivity" />
+
+        <activity android:name=".ui.aggregatedStatistics.AggregatedStatisticsActivity" />
+
+        <activity android:name=".io.file.importer.DirectoryChooserActivity$ExportDirectoryChooserActivity" />
+        <activity android:name=".io.file.importer.DirectoryChooserActivity$ExportDirectoryChooserOneFileActivity" />
+        <activity android:name=".io.file.importer.DirectoryChooserActivity$DefaultTrackExportDirectoryChooserActivity" />
+
+        <activity android:name=".io.file.exporter.ExportActivity" />
+
+        <activity android:name=".settings.SettingsActivity" />
+        <activity android:name=".settings.SettingsCustomLayoutListActivity" />
+        <activity android:name=".settings.SettingsCustomLayoutEditActivity" />
+
+        <activity
+            android:name=".ShowErrorActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:finishOnTaskLaunch="true"
+            android:launchMode="singleInstance"
+            android:process=":crash" />
+
+        <provider
+            android:name=".data.ShareContentProvider"
+            android:authorities="${applicationId}.content"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <service
+            android:name=".services.TrackRecordingService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location|connectedDevice"
+            android:icon="@drawable/ic_logo_color_24dp"
+            android:label="@string/recording_service" />
+
+        <!--Necessary for SDK < 33 to (re-)store per app locale information-->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+            <receiver
+            android:name=".services.AutoTrackingReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
+                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_CONNECTED" />
+                <action android:name="android.bluetooth.device.action.ACL_DISCONNECTED" />
+            </intent-filter>
+        </receiver>
+            <activity
+            android:name=".CarMainActivity"
+            android:label="@string/app_name"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <package android:name="com.google.android.apps.healthdata" />
+    </queries>
+</manifest>

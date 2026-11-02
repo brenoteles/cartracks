@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<gpx version="1.1" creator="Cruiser" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:pwr="http://www.garmin.com/xmlschemas/PowerExtension/v1" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <trk>
+    <name>gpx with power</name>
+    <trkseg>
+      <trkpt lat="30.14185982" lon="-40.3863038">
+        <ele>-5</ele>
+        <time>2021-09-07T22:10:19Z</time>
+        <hdop>4</hdop>
+        <extensions>
+          <pwr:PowerInWatts>100</pwr:PowerInWatts>
+        </extensions>
+      </trkpt>
+      <trkpt lat="30.14184657" lon="-40.38670089">
+        <ele>-5</ele>
+        <time>2021-09-07T22:11:07Z</time>
+        <hdop>4</hdop>
+        <extensions>
+          <pwr:PowerInWatts>110</pwr:PowerInWatts>
+        </extensions>
+      </trkpt>
+      <trkpt lat="30.14185982" lon="-40.3863038">
+        <ele>-5</ele>
+        <time>2021-09-07T22:12:00Z</time>
+        <hdop>4</hdop>
+        <extensions>
+          <pwr:PowerInWatts>150</pwr:PowerInWatts>
+        </extensions>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

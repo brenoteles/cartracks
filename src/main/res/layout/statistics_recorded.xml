@@ -1,0 +1,677 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:scrollbarStyle="outsideOverlay">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- Guidelines -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline_top"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_begin="16dp" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            app:layout_constraintGuide_begin="8dp" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline2"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.5" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline3"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            app:layout_constraintGuide_end="8dp" />
+
+        <!-- Activity information: icon, name, description and start datetime -->
+        <ImageView
+            android:id="@+id/stats_activity_type_icon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintTop_toTopOf="@id/guideline_top"
+            tools:src="@drawable/ic_activity_bike_24dp" />
+
+        <TextView
+            android:id="@+id/stats_name_value"
+            style="?attr/textAppearanceHeadline6"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintStart_toEndOf="@id/stats_activity_type_icon"
+            app:layout_constraintTop_toTopOf="@id/guideline_top"
+            tools:text="Name of the activity" />
+
+        <TextView
+            android:id="@+id/stats_description_value"
+            style="?attr/textAppearanceBody1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintStart_toStartOf="@id/stats_name_value"
+            app:layout_constraintTop_toBottomOf="@id/stats_name_value"
+            tools:text="Here will be a description that could be really long and it would show completely without problems." />
+
+        <TextView
+            android:id="@+id/stats_start_datetime_value"
+            style="?attr/textAppearanceBody2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="end"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintStart_toStartOf="@id/guideline"
+            app:layout_constraintTop_toBottomOf="@id/stats_description_barrier"
+            tools:text="Saturday 6th, 16:44" />
+
+        <!-- Barrier -->
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/stats_description_barrier"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="stats_activity_type_icon,stats_name_value,stats_description_value" />
+
+        <!-- Horizontal line -->
+        <View
+            android:id="@+id/stats_information_horizontal_line"
+            style="@style/HorizontalLine"
+            android:layout_margin="8dp"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_start_datetime_value" />
+
+        <!-- Distance -->
+        <TextView
+            android:id="@+id/stats_distance_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stats_distance"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline2"
+            app:layout_constraintTop_toBottomOf="@id/stats_information_horizontal_line" />
+
+        <TextView
+            android:id="@+id/stats_distance_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/stats_distance_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_distance_label"
+            tools:text="100" />
+
+        <TextView
+            android:id="@+id/stats_distance_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@id/stats_distance_value"
+            app:layout_constraintStart_toEndOf="@id/stats_distance_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline2"
+            tools:text="km" />
+
+        <!-- Moving time -->
+        <TextView
+            android:id="@+id/stats_moving_time_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stats_moving_time"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_information_horizontal_line" />
+
+        <TextView
+            android:id="@+id/stats_moving_time_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_moving_time_label"
+            tools:text="00:00:00" />
+
+        <!-- Total time -->
+        <TextView
+            android:id="@+id/stats_total_time_label"
+            style="@style/TextAppearance.OpenTracks.SecondaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stats_total_time"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_moving_time_value" />
+
+        <TextView
+            android:id="@+id/stats_total_time_value"
+            style="@style/TextAppearance.OpenTracks.SecondaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_total_time_label"
+            tools:text="00:00:00" />
+
+        <!-- Barrier -->
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/stats_time_barrier"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="stats_total_time_value,stats_moving_time_value" />
+
+        <!-- Horizontal line -->
+        <View
+            android:id="@+id/stats_speed_horizontal_line"
+            style="@style/HorizontalLine"
+            android:layout_margin="8dp"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_time_barrier" />
+
+        <!-- Speed/Pace max -->
+        <TextView
+            android:id="@+id/stats_max_speed_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline2"
+            app:layout_constraintTop_toBottomOf="@id/stats_speed_horizontal_line"
+            tools:text="Max. Speed" />
+
+        <TextView
+            android:id="@+id/stats_max_speed_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/stats_max_speed_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_max_speed_label"
+            tools:text="30.00" />
+
+        <TextView
+            android:id="@+id/stats_max_speed_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@id/stats_max_speed_value"
+            app:layout_constraintStart_toEndOf="@id/stats_max_speed_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline2"
+            tools:text="km/h" />
+
+        <!-- Avg. moving speed/pace -->
+        <TextView
+            android:id="@+id/stats_moving_speed_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_speed_horizontal_line"
+            tools:text="Avg. Moving Speed" />
+
+        <TextView
+            android:id="@+id/stats_moving_speed_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/stats_moving_speed_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_moving_speed_label"
+            tools:text="30.00" />
+
+        <TextView
+            android:id="@+id/stats_moving_speed_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@id/stats_moving_speed_value"
+            app:layout_constraintStart_toEndOf="@id/stats_moving_speed_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            tools:text="km/h" />
+
+        <!-- Average speed/pace -->
+        <TextView
+            android:id="@+id/stats_average_speed_label"
+            style="@style/TextAppearance.OpenTracks.SecondaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_moving_speed_value"
+            tools:text="Avg. Speed" />
+
+        <TextView
+            android:id="@+id/stats_average_speed_value"
+            style="@style/TextAppearance.OpenTracks.SecondaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/stats_average_speed_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_average_speed_label"
+            tools:text="30.00" />
+
+        <TextView
+            android:id="@+id/stats_average_speed_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@id/stats_average_speed_value"
+            app:layout_constraintStart_toEndOf="@id/stats_average_speed_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            tools:text="km/h" />
+
+        <!-- Barrier -->
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/stats_speed_barrier"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="stats_max_speed_value,stats_moving_speed_value,stats_average_speed_value" />
+
+        <!-- Horizontal line -->
+        <View
+            android:id="@+id/stats_altitude_horizontal_line"
+            style="@style/HorizontalLine"
+            android:layout_margin="8dp"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_speed_barrier" />
+
+        <!-- Altitude gain and loss -->
+        <androidx.constraintlayout.widget.Group
+            android:id="@+id/stats_altitude_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:constraint_referenced_ids="stats_altitude_horizontal_line,stats_altitude_gain_label,stats_altitude_gain_value,stats_altitude_gain_unit,stats_altitude_loss_label,stats_altitude_loss_value,stats_altitude_loss_unit" />
+
+        <TextView
+            android:id="@+id/stats_altitude_gain_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stats_gain"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline2"
+            app:layout_constraintTop_toBottomOf="@id/stats_altitude_horizontal_line" />
+
+        <TextView
+            android:id="@+id/stats_altitude_gain_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/stats_altitude_gain_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_altitude_gain_label"
+            tools:text="100" />
+
+        <TextView
+            android:id="@+id/stats_altitude_gain_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@id/stats_altitude_gain_value"
+            app:layout_constraintStart_toEndOf="@id/stats_altitude_gain_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline2"
+            tools:text="m" />
+
+        <TextView
+            android:id="@+id/stats_altitude_loss_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stats_loss"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_altitude_horizontal_line" />
+
+        <TextView
+            android:id="@+id/stats_altitude_loss_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/stats_altitude_loss_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_altitude_loss_label"
+            tools:text="100" />
+
+        <TextView
+            android:id="@+id/stats_altitude_loss_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@id/stats_altitude_loss_value"
+            app:layout_constraintStart_toEndOf="@id/stats_altitude_loss_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            tools:text="m" />
+
+        <!-- Barrier -->
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/stats_altitude_barrier"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="stats_altitude_gain_value,stats_altitude_loss_value" />
+
+        <!-- Heart Rate -->
+        <View
+            android:id="@+id/stats_heart_rate_horizontal_line"
+            style="@style/HorizontalLine"
+            android:layout_margin="8dp"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_altitude_barrier" />
+
+        <androidx.constraintlayout.widget.Group
+            android:id="@+id/stats_heart_rate_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:constraint_referenced_ids="stats_heart_rate_horizontal_line,stats_max_heart_rate_label,stats_max_heart_rate_value,stats_max_heart_rate_unit,stats_avg_heart_rate_label,stats_avg_heart_rate_value,stats_avg_heart_rate_unit" />
+
+        <TextView
+            android:id="@+id/stats_max_heart_rate_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_heart_rate_max"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline2"
+            app:layout_constraintTop_toBottomOf="@id/stats_heart_rate_horizontal_line" />
+
+        <TextView
+            android:id="@+id/stats_max_heart_rate_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/stats_max_heart_rate_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_max_heart_rate_label"
+            tools:text="100" />
+
+        <TextView
+            android:id="@+id/stats_max_heart_rate_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_heart_rate_unit"
+            app:layout_constraintBottom_toBottomOf="@id/stats_max_heart_rate_value"
+            app:layout_constraintStart_toEndOf="@id/stats_max_heart_rate_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline2" />
+
+        <TextView
+            android:id="@+id/stats_avg_heart_rate_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_heart_rate_avg"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toEndOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_heart_rate_horizontal_line" />
+
+        <TextView
+            android:id="@+id/stats_avg_heart_rate_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/stats_avg_heart_rate_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_avg_heart_rate_label"
+            tools:text="100" />
+
+        <TextView
+            android:id="@+id/stats_avg_heart_rate_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_heart_rate_unit"
+            app:layout_constraintBottom_toBottomOf="@id/stats_avg_heart_rate_value"
+            app:layout_constraintStart_toEndOf="@id/stats_avg_heart_rate_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline3" />
+
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/stats_heart_rate_barrier"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="stats_max_heart_rate_value,stats_avg_heart_rate_value" />
+
+        <!-- Cadence -->
+        <View
+            android:id="@+id/stats_cadence_horizontal_line"
+            style="@style/HorizontalLine"
+            android:layout_margin="8dp"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_heart_rate_barrier" />
+
+        <androidx.constraintlayout.widget.Group
+            android:id="@+id/stats_cadence_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:constraint_referenced_ids="stats_cadence_horizontal_line,stats_max_cadence_label,stats_max_cadence_value,stats_max_cadence_unit,stats_avg_cadence_label,stats_avg_cadence_value,stats_avg_cadence_unit" />
+
+        <TextView
+            android:id="@+id/stats_max_cadence_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_cadence_max"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline2"
+            app:layout_constraintTop_toBottomOf="@id/stats_cadence_horizontal_line" />
+
+        <TextView
+            android:id="@+id/stats_max_cadence_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/stats_max_cadence_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_max_cadence_label"
+            tools:text="100" />
+
+        <TextView
+            android:id="@+id/stats_max_cadence_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_cadence_unit"
+            app:layout_constraintBottom_toBottomOf="@id/stats_max_cadence_value"
+            app:layout_constraintStart_toEndOf="@id/stats_max_cadence_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline2" />
+
+        <TextView
+            android:id="@+id/stats_avg_cadence_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_cadence_avg"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toEndOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_cadence_horizontal_line" />
+
+        <TextView
+            android:id="@+id/stats_avg_cadence_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/stats_avg_cadence_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_avg_cadence_label"
+            tools:text="100" />
+
+        <TextView
+            android:id="@+id/stats_avg_cadence_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_cadence_unit"
+            app:layout_constraintBottom_toBottomOf="@id/stats_avg_cadence_value"
+            app:layout_constraintStart_toEndOf="@id/stats_avg_cadence_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline3" />
+
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/stats_cadence_barrier"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="stats_max_cadence_value,stats_avg_cadence_value" />
+
+        <!-- Power -->
+        <View
+            android:id="@+id/stats_power_horizontal_line"
+            style="@style/HorizontalLine"
+            android:layout_margin="8dp"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_cadence_barrier" />
+
+        <androidx.constraintlayout.widget.Group
+            android:id="@+id/stats_power_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:constraint_referenced_ids="stats_power_horizontal_line,stats_max_power_label,stats_max_power_value,stats_max_power_unit,stats_avg_power_label,stats_avg_power_value,stats_avg_power_unit" />
+
+        <TextView
+            android:id="@+id/stats_max_power_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_power_max"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline2"
+            app:layout_constraintTop_toBottomOf="@id/stats_power_horizontal_line" />
+
+        <TextView
+            android:id="@+id/stats_max_power_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/stats_max_power_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_max_power_label"
+            tools:text="100" />
+
+        <TextView
+            android:id="@+id/stats_max_power_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_power_unit"
+            app:layout_constraintBottom_toBottomOf="@id/stats_max_power_value"
+            app:layout_constraintStart_toEndOf="@id/stats_max_power_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline2" />
+
+        <TextView
+            android:id="@+id/stats_avg_power_label"
+            style="@style/TextAppearance.OpenTracks.PrimaryHeader"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_power_avg"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toEndOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_power_horizontal_line" />
+
+        <TextView
+            android:id="@+id/stats_avg_power_value"
+            style="@style/TextAppearance.OpenTracks.PrimaryValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:value="@string/value_unknown"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/guideline2"
+            app:layout_constraintEnd_toStartOf="@id/stats_avg_power_unit"
+            app:layout_constraintTop_toBottomOf="@id/stats_avg_power_label"
+            tools:text="100" />
+
+        <TextView
+            android:id="@+id/stats_avg_power_unit"
+            style="@style/TextAppearance.OpenTracks.PrimaryUnit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/sensor_state_power_unit"
+            app:layout_constraintBottom_toBottomOf="@id/stats_avg_power_value"
+            app:layout_constraintStart_toEndOf="@id/stats_avg_power_value"
+            app:layout_constraintEnd_toStartOf="@id/guideline3" />
+
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/stats_power_barrier"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="bottom"
+            app:constraint_referenced_ids="stats_max_power_value,stats_avg_power_value" />
+
+        <!-- Horizontal Line -->
+        <View
+            android:id="@+id/stats_end_horizontal_line"
+            style="@style/HorizontalLine"
+            android:layout_margin="8dp"
+            app:layout_constraintStart_toEndOf="@id/guideline"
+            app:layout_constraintEnd_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/stats_power_barrier" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>

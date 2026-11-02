@@ -1,0 +1,15 @@
+v3.0.0: OpenTracks
+
+Rilisan pertama OpenTracks (fork keras dari MyTracks)
+
+Perubahan:
+- Perubahan merek MyTracks ke OpenTracks
+- Menambahkan sensor detak jantung Bluetooth LE
+- Menghapus semua fitur yang memerlukan koneksi internet
+- Menghapus integrasi Google Maps
+- Menghapus penggunaan layanan Google Play
+- Menghapus sensor ANT+
+- Menghapus sensor klasik Bluetooth
+- Menghapus Protobuf
+- Menghapus estimasi kalori dan aktivitas
+- Menghapus API MyTracks Service (dengan kata lain, tidak ada integrasi dengan aplikasi lain)

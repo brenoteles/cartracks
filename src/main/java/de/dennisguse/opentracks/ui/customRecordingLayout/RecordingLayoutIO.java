@@ -1,0 +1,66 @@
+package de.dennisguse.opentracks.ui.customRecordingLayout;
+
+import android.content.res.Resources;
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import de.dennisguse.opentracks.R;
+import de.dennisguse.opentracks.settings.PreferencesUtils;
+
+//TODO Migrate to DataStore.
+public class RecordingLayoutIO {
+
+    private static final String TAG = RecordingLayout.class.getSimpleName();
+
+    private static final String YES_VALUE = "1";
+    private static final String NOT_VALUE = "0";
+
+    public static List<RecordingLayout> fromCsv(@NonNull String csv, @NonNull Resources resources) {
+        return CsvLayoutUtils.getCsvLines(csv).stream()
+                .map(line -> RecordingLayoutIO.fromCsvLine(line, resources))
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public static RecordingLayout fromCsvLine(@NonNull String csvLine, @NonNull Resources resources) {
+        List<String> csvParts = CsvLayoutUtils.getCsvLineParts(csvLine);
+        if (csvParts == null) {
+            Log.e(TAG, "Invalid CSV layout. It shouldn't happen: " + csvLine);
+            return PreferencesUtils.getDefaultLayout();
+        }
+
+        RecordingLayout recordingLayout = new RecordingLayout(csvParts.get(0), Integer.parseInt(csvParts.get(1)));
+        for (int i = 2; i < csvParts.size(); i++) {
+            String[] fieldParts = CsvLayoutUtils.getCsvFieldParts(csvParts.get(i));
+            if (fieldParts == null) {
+                Log.e(TAG, "Invalid CSV layout. It shouldn't happen: " + csvLine);
+                return recordingLayout;
+            }
+            recordingLayout.addField(fromCSV(fieldParts, resources));
+        }
+        return recordingLayout;
+    }
+
+    public static String toCSV(List<RecordingLayout> recordingLayouts) {
+        return recordingLayouts.stream().map(RecordingLayout::toCsv).collect(Collectors.joining(CsvLayoutUtils.LINE_SEPARATOR));
+    }
+
+    private static DataField fromCSV(String[] fieldParts, @NonNull Resources resources) {
+        return new DataField(
+                fieldParts[0],
+                YES_VALUE.equals(fieldParts[1]),
+                YES_VALUE.equals(fieldParts[2]),
+                fieldParts[0].equals(resources.getString(R.string.stats_custom_layout_coordinates_key)));
+    }
+
+    static String toCsv(DataField datafield) {
+        String visible = datafield.isVisible() ? YES_VALUE : NOT_VALUE;
+        String primary = datafield.isPrimary() ? YES_VALUE : NOT_VALUE;
+        String wide = datafield.isWide() ? YES_VALUE : NOT_VALUE;
+        return datafield.getKey() + CsvLayoutUtils.PROPERTY_SEPARATOR + visible + CsvLayoutUtils.PROPERTY_SEPARATOR + primary + CsvLayoutUtils.PROPERTY_SEPARATOR + wide;
+    }
+}

@@ -1,0 +1,14 @@
+v3.1.0: OpenTracks
+
+Änderungen:
+- Anzeige der Strecke in Karten-Apps hinzugefügt (getestet mit OsmAnd und Maps.ME)
+- Während der Verfolgung werden Streckenstatistiken angezeigt, ohne das Gerät entsperren zu müssen
+- Querformat für die Detailansicht der Strecke entfernt (war fehlerhaft)
+- Verlauf der Suchvorschläge entfernt
+
+Fehlerbehebung:
+- Speicherberechtigung für „Alle importieren/Alle exportieren” anfordern
+
+Entwickler:
+- Upgrade auf Gradle 5.6
+- Release-Builds nicht minimieren

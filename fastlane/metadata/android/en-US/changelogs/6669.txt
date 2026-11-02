@@ -1,0 +1,11 @@
+v4.27.1: OpenTracks
+
+Changes:
+- Support for Bosch Smart System eBikes (cadence, human power) 
+- Add activity "gravel biking"
+
+Bugfix:
+- While recording: TrackRecordingService would not restart correctly if killed by Android
+
+Developer:
+- TargetSDK 37

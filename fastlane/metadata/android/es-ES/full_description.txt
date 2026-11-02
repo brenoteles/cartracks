@@ -1,0 +1,22 @@
+Un compañero de seguimiento deportivo que respeta tu privacidad.
+
+El deporte y las actividades al aire libre aportan felicidad, destreza y confianza.
+
+Cuida tu salud llevando un registro de tu entrenamiento.
+Registra tus sesiones de carrera o caminata, y te ofrece un ciclocomputador con una pantalla más grande para el ciclismo.
+Marca lugares interesantes a lo largo de tu recorrido con fotos.
+Guarda estadísticas detalladas para su análisis.
+Comparte solo los datos que quieras que vean los demás.
+
+* Avisos de voz.
+* Compatible con sensores Bluetooth LE: frecuencia cardíaca, velocidad y distancia (ciclismo), cadencia (ciclismo) y medidor de potencia (ciclismo).
+* Desnivel positivo y negativo: mediante sensor barométrico.
+* Altitud mostrada en EGM2008 (por encima del nivel medio del mar); exportada como WGS84.
+* Exporta los datos como rutas en formato KMZ (incluidas fotos), KML o GPX.
+* No requiere acceso a Internet ni permisos adicionales.
+* Temas oscuro y claro, respetando la configuración del sistema.
+* Sin anuncios.
+
+Software libre / Software gratuito / Código abierto,
+lo que significa que puedes utilizar, estudiar, modificar y compartir el código fuente.
+Licencia Apache 2.0

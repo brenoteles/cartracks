@@ -1,0 +1,14 @@
+v3.9.0: OpenTracks
+
+Cambios:
+- Exportación de rutas con su UUID
+- Se evita la importación de rutas ya existentes por su UUID (configurable; por defecto, activado)
+- Ahora hay que mantener pulsado el botón de pausa/parada
+- El preinicio del GPS muestra el estado de la señal
+- Se han añadido nuevos iconos de actividad
+- Sensor de velocidad: ahora se puede configurar el tamaño de la rueda en milímetros
+
+Correcciones de errores:
+- Se han corregido algunos fallos poco frecuentes (NPE)
+- Se ha corregido el formato del ritmo
+- Se ha cambiado la posición del icono de la aplicación en el lanzador

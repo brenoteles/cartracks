@@ -1,0 +1,10 @@
+v4.28.0: OpenTracks
+
+Changes:
+- Support for exporting to Health Connect
+
+Bugfix:
+- Dashboard API: when sharing multiple tracks, the currently recorded one wasn't updated
+- Configuration setting for announcement of lap power wasn't stored correctly (only some languages affected)
+
+

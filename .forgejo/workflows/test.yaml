@@ -1,0 +1,36 @@
+name: Android Test
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    name: Android Lint
+    runs-on: docker
+    container:
+      image: 'ubuntu:android-24.04' # See https://codeberg.org/pstorch/ansible-storchp-de/src/branch/main/roles/runner/files/Dockerfile
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Lint
+        shell: bash
+        run: ./gradlew lint
+
+  android-check:
+    runs-on: docker
+    container:
+      image: 'ubuntu:android-24.04' # See https://codeberg.org/pstorch/ansible-storchp-de/src/branch/main/roles/runner/files/Dockerfile
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Test
+        shell: bash
+        run: ./gradlew testNightlyDebugUnitTest --stacktrace

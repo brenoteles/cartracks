@@ -1,0 +1,8 @@
+v3.8.1: OpenTracks
+
+Cambios:
+- Durante la grabación: se ha añadido la opción de pantalla completa
+- El panel de control se inicia en la misma tarea
+
+Correcciones de errores:
+- Los filtros de intención para importar archivos eran demasiado optimistas

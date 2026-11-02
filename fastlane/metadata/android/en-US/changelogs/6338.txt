@@ -1,0 +1,10 @@
+v4.23.0: OpenTracks
+
+Changes:
+- UI: added average pace of current segment
+  (currently only available in new layouts)
+- Clicking on notification opens actual recording UI
+
+Developer:
+- Deprecated JobIntentService replaced with WorkManager
+- Use .isEmpty() except for CharSequence and Stream.toList()

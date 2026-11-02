@@ -1,0 +1,8 @@
+v4.7.1: OpenTracks
+
+Arranxos:
+- Android 14: fallo ao inicio da gravación (por falta de permisos)
+- Android 14: fallo ao eliminar unha ruta (sen razóns para ForegroundService)
+
+Desenvolvemento:
+- agora AggregatedStats é unha RecyclerView

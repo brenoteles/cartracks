@@ -1,0 +1,12 @@
+v3.4.0: OpenTracks
+
+Cambios:
+- API Dashboard: múltiples pistas
+- Ayuda actualizada
+
+Corrección de errores:
+- Se corrigió el cierre inesperado al recrear fragmentos
+- En pausa: evita que la app se detenga
+
+Desarrollador:
+- Pruebas habilitadas vía CI (Github Actions y TravisCI)

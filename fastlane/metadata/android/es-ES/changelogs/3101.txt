@@ -1,0 +1,14 @@
+v3.2.3: OpenTracks
+
+Cambios:
+- Compartir: usar Android Sharesheet
+- Compartir: compartir múltiples pistas como archivos individuales
+- Usar Android ShareSheet
+- Sensor de frecuencia cardíaca (Bluetooth LE): reconexión automática
+
+Corrección de errores:
+- Sensor de frecuencia cardíaca (Bluetooth LE): desconexión correcta
+- La frecuencia cardíaca no siempre se mostraba durante la grabación
+
+Desarrollador:
+- Se habilitaron las pruebas de instrumentación en TravisCI

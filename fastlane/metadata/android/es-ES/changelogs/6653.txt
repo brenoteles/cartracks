@@ -1,0 +1,14 @@
+v4.27.0: OpenTracks
+
+Cambios:
+- Sensor: potencia de la bicicleta eléctrica Bosch
+- Sensores: se incluyen los dispositivos Bluetooth ya emparejados (como la bicicleta eléctrica Bosch)
+- Barómetro: se aplica la frecuencia de muestreo
+
+Corrección de errores:
+- API del panel de control: no se proporcionaba la actualización
+- No se podía activar el GPS con el Bluetooth desactivado
+
+Desarrollador:
+- Se ha eliminado Mockito
+- Pruebas de la interfaz de usuario: menos inestables

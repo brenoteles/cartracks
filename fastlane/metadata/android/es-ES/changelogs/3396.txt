@@ -1,0 +1,12 @@
+v3.7.4: OpenTracks
+
+Cambios:
+- Formato de compartir/exportar configurable
+
+Corrección de errores:
+- El diámetro de la rueda no se almacenaba correctamente (para el sensor de velocidad)
+- Ayuda: los enlaces son clicables
+
+Desarrollador:
+- Se ha dividido TrackDetailActivity
+- El sucesor de StatsFragment utiliza ConstraintLayout

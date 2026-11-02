@@ -1,0 +1,10 @@
+v4.23.2: OpenTracks
+
+Cambios:
+- a volta predictiva funciona
+
+Arranxo:
+- do fallo que daba relacionado co nome do ficheiro nos axustes
+
+Desenvolvemento:
+- Engádese data class para as Estatísticas

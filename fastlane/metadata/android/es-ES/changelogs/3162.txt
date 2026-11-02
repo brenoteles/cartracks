@@ -1,0 +1,10 @@
+v3.2.8: OpenTracks
+
+Cambios:
+- Gráfico: zoom mediante gestos
+
+Corrección de errores:
+- La exportación a través de KMZ no exportaba correctamente los nombres de archivo de las imágenes
+- Compartir múltiples pistas no incluía los archivos KMZ
+- No se mostraba la interfaz de usuario de MarkerDetailActivity
+- Los ajustes se cerraban inesperadamente si la preferencia de frecuencia cardíaca no estaba inicializada

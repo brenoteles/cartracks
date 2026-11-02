@@ -1,0 +1,4 @@
+v4.22.0: OpenTracks 
+
+மாற்றங்கள்: 
+- https://codeberg.org/OpenTracksApp/OpenTracks க்கு இடம்பெயர்தல்

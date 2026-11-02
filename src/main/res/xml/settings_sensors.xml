@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:title="@string/settings_sensors_title">
+
+    <PreferenceCategory android:title="@string/settings_gps_sensor">
+        <ListPreference
+            android:defaultValue="@string/sensor_type_value_internal"
+            android:entryValues="@array/sensor_type_no_bluetooth_entryValues"
+            android:entries="@array/sensor_type_no_bluetooth_entries"
+            android:key="@string/settings_sensor_gps_key"
+            android:title="@string/settings_gps_sensor"
+            app:useSimpleSummaryProvider="true" />
+        <ListPreference
+            android:defaultValue="@string/min_sampling_interval_default"
+            android:entryValues="@array/min_sampling_interval_values"
+            android:key="@string/min_sampling_interval_key"
+            android:title="@string/settings_recording_min_sampling_interval_title" />
+        <ListPreference
+            android:defaultValue="@string/recording_gps_accuracy_default"
+            android:entryValues="@array/recording_gps_accuracy_values"
+            android:key="@string/recording_gps_accuracy_key"
+            android:title="@string/settings_recording_min_required_accuracy_title" />
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/settings_generic_sensor">
+        
+        
+        <de.dennisguse.opentracks.settings.bluetooth.BluetoothLeTemperaturePreference
+            android:defaultValue="@string/sensor_type_value_none"
+            android:key="@string/settings_sensor_bluetooth_temperature_key"
+            android:title="@string/sensor_state_temperature" />
+        <de.dennisguse.opentracks.settings.bluetooth.BluetoothLePressurePreference
+            android:defaultValue="@string/sensor_type_value_none"
+            android:key="@string/settings_sensor_bluetooth_pressure_key"
+            android:title="@string/sensor_state_pressure" />
+    </PreferenceCategory>
+
+    
+
+    
+
+    <PreferenceCategory android:title="@string/settings_advanced">
+        <SwitchPreferenceCompat
+            android:defaultValue="@bool/settings_sensor_bluetooth_service_filter_enabled_default"
+            android:key="@string/settings_sensor_bluetooth_service_filter_enabled_key"
+            android:summaryOff="@string/settings_sensor_bluetooth_service_filter_off"
+            android:summaryOn="@string/settings_sensor_bluetooth_service_filter_on"
+            android:title="@string/settings_sensor_bluetooth_service_filter_title" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

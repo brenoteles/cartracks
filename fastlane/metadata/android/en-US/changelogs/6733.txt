@@ -1,0 +1,10 @@
+v4.28.1: OpenTracks
+
+Changes:
+- HealthConnect: sending total distance, speed and elevation gain
+
+Bugfix:
+- Gravel activity was not selectable
+
+Developer:
+- Cleanup ContentProvider URLs

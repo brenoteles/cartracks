@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:navigationIcon="@drawable/ic_help_24dp"
+            app:title="@string/menu_help" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="?attr/actionBarSize"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                style="?attr/textAppearanceHeadline6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/help_feature_title" />
+
+            <TextView
+                style="?attr/textAppearanceBody1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/help_feature_content" />
+
+            <TextView
+                style="?attr/textAppearanceHeadline6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/help_track_map_title" />
+
+            <TextView
+                style="?attr/textAppearanceBody1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:linksClickable="true"
+                android:text="@string/help_track_map_content" />
+
+            <TextView
+                style="?attr/textAppearanceHeadline6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/help_recording_title" />
+
+            <TextView
+                style="?attr/textAppearanceBody1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/help_recording_content" />
+
+            <TextView
+                style="?attr/textAppearanceHeadline6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/help_storage_pictures_title" />
+
+            <TextView
+                style="?attr/textAppearanceBody1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/help_storage_pictures_content" />
+
+            <TextView
+                style="?attr/textAppearanceHeadline6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/help_track_export_title" />
+
+            <TextView
+                style="?attr/textAppearanceBody1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/help_track_export_content" />
+
+            <TextView
+                style="?attr/textAppearanceHeadline6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/help_data_google_play_services_title" />
+
+            <TextView
+                style="?attr/textAppearanceBody1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/help_data_google_play_services_content" />
+
+            <TextView
+                style="?attr/textAppearanceHeadline6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/help_data_storage_title" />
+
+            <TextView
+                style="?attr/textAppearanceBody1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/help_data_storage_content" />
+
+            <TextView
+                style="?attr/textAppearanceHeadline6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/help_gps_troubleshooting_title" />
+
+            <TextView
+                style="?attr/textAppearanceBody1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:linksClickable="true"
+                android:text="@string/help_gps_troubleshooting_content" />
+
+            <TextView
+                style="?attr/textAppearanceHeadline6"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/help_support_title" />
+
+            <TextView
+                style="?attr/textAppearanceBody1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:linksClickable="true"
+                android:text="@string/help_support_content" />
+        </LinearLayout>
+    </ScrollView>
+
+    <include
+        android:id="@+id/bottom_app_bar_layout"
+        layout="@layout/bottomappbar" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

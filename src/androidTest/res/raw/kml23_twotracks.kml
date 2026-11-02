@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<kml xmlns="http://www.opengis.net/kml/2.3"
+    xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:opentracks="http://opentracksapp.com/xmlschemas/v1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.opengis.net/kml/2.3 http://schemas.opengis.net/kml/2.3/ogckml23.xsd
+                        http://opentracksapp.com/xmlschemas/v1 http://opentracksapp.com/xmlschemas/OpenTracks_v1.xsd">
+
+<Document>
+<open>1</open>
+<visibility>1</visibility>
+<name><![CDATA[2020-02-02T03:02+01]]></name>
+<atom:generator><![CDATA[OpenTracks]]></atom:generator>
+<Style id="track">
+<LineStyle><color>7f0000ff</color><width>4</width></LineStyle>
+<IconStyle>
+<scale>1.3</scale>
+<Icon />
+</IconStyle>
+</Style>
+<Style id="waypoint"><IconStyle>
+<Icon />
+</IconStyle></Style>
+<Schema id="schema">
+<SimpleArrayField name="speed" type="float">
+<displayName><![CDATA[Speed (m/s)]]></displayName>
+</SimpleArrayField>
+<SimpleArrayField name="power" type="float">
+<displayName><![CDATA[Power (W)]]></displayName>
+</SimpleArrayField>
+<SimpleArrayField name="cadence" type="float">
+<displayName><![CDATA[Cadence (rpm)]]></displayName>
+</SimpleArrayField>
+<SimpleArrayField name="heartrate" type="float">
+<displayName><![CDATA[Heart rate (bpm)]]></displayName>
+</SimpleArrayField>
+<SimpleArrayField name="temperature" type="float">
+<displayName><![CDATA[Temperature (Celsius)]]></displayName>
+</SimpleArrayField>
+</Schema>
+<Folder>
+<name><![CDATA[2020-02-02T03:02+01 Markers]]></name>
+<open>1</open>
+<Placemark>
+<name><![CDATA[Marker 1]]></name>
+<description><![CDATA[Marker 1 desc]]></description>
+<TimeStamp><when>2020-02-02T03:02:03+01:00</when></TimeStamp>
+<styleUrl>#waypoint</styleUrl>
+<ExtendedData>
+<Data name="type"><value><![CDATA[Marker 1 typeLocalized]]></value></Data>
+</ExtendedData>
+<Point>
+<coordinates>14.001456,3.123456,1020.25</coordinates>
+</Point>
+</Placemark>
+</Folder>
+<Folder>
+<name><![CDATA[2022-02-02T03:02+01 Markers]]></name>
+<open>1</open>
+<Placemark>
+<name><![CDATA[Marker 2]]></name>
+<description><![CDATA[Marker 2 desc]]></description>
+<TimeStamp><when>2022-02-02T03:02:03+01:00</when></TimeStamp>
+<styleUrl>#waypoint</styleUrl>
+<ExtendedData>
+<Data name="type"><value><![CDATA[Marker 2 typeLocalized]]></value></Data>
+</ExtendedData>
+<Point>
+<coordinates>14.001456,3.123456,1020.25</coordinates>
+</Point>
+</Placemark>
+</Folder>
+<Folder id="tracks">
+<name>Tracks</name>
+<open>1</open>
+<Placemark>
+<name><![CDATA[2020-02-02T03:02+01]]></name>
+<description><![CDATA[]]></description>
+<opentracks:trackid>ece162fb-d614-4431-9d33-eb20f8ee8e1d</opentracks:trackid>
+<styleUrl>#track</styleUrl>
+<ExtendedData>
+<Data name="activityType"><value><![CDATA[unknown]]></value></Data>
+</ExtendedData>
+<ExtendedData>
+<Data name="type"><value><![CDATA[unknown]]></value></Data>
+</ExtendedData>
+<MultiTrack>
+<altitudeMode>absolute</altitudeMode>
+<interpolate>1</interpolate>
+<Track>
+<when>2020-02-02T03:02:02+01:00</when>
+<coord/>
+<when>2020-02-02T03:02:03+01:00</when>
+<coord>14.001456 3.123456 1020.25</coord>
+<when>2020-02-02T03:02:03+01:00</when>
+<coord/>
+<ExtendedData>
+<SchemaData schemaUrl="#schema">
+<SimpleArrayData name="trackpoint_type">
+<value>SEGMENT_START_MANUAL</value>
+<value>TRACKPOINT</value>
+<value>SEGMENT_END_MANUAL</value>
+</SimpleArrayData>
+<SimpleArrayData name="speed">
+<value />
+<value>15</value>
+<value />
+</SimpleArrayData>
+<SimpleArrayData name="elevation_gain">
+<value />
+<value>1</value>
+<value>1</value>
+</SimpleArrayData>
+<SimpleArrayData name="elevation_loss">
+<value />
+<value>1</value>
+<value>1</value>
+</SimpleArrayData>
+<SimpleArrayData name="accuracy_horizontal">
+<value />
+<value>10</value>
+<value />
+</SimpleArrayData>
+</SchemaData>
+</ExtendedData>
+</Track>
+</MultiTrack>
+</Placemark>
+<Placemark>
+<name><![CDATA[2022-02-02T03:02+01]]></name>
+<description><![CDATA[]]></description>
+<opentracks:trackid>6712f4ca-3456-4739-841a-9e62760cc447</opentracks:trackid>
+<styleUrl>#track</styleUrl>
+<ExtendedData>
+<Data name="activityType"><value><![CDATA[unknown]]></value></Data>
+</ExtendedData>
+<ExtendedData>
+<Data name="type"><value><![CDATA[unknown]]></value></Data>
+</ExtendedData>
+<MultiTrack>
+<altitudeMode>absolute</altitudeMode>
+<interpolate>1</interpolate>
+<Track>
+<when>2022-02-02T03:02:02+01:00</when>
+<coord/>
+<when>2022-02-02T03:02:03+01:00</when>
+<coord>14.001456 3.123456 1020.25</coord>
+<when>2022-02-02T03:02:03+01:00</when>
+<coord/>
+<ExtendedData>
+<SchemaData schemaUrl="#schema">
+<SimpleArrayData name="trackpoint_type">
+<value>SEGMENT_START_MANUAL</value>
+<value>TRACKPOINT</value>
+<value>SEGMENT_END_MANUAL</value>
+</SimpleArrayData>
+<SimpleArrayData name="speed">
+<value />
+<value>15</value>
+<value />
+</SimpleArrayData>
+<SimpleArrayData name="elevation_gain">
+<value />
+<value>1</value>
+<value>1</value>
+</SimpleArrayData>
+<SimpleArrayData name="elevation_loss">
+<value />
+<value>1</value>
+<value>1</value>
+</SimpleArrayData>
+<SimpleArrayData name="accuracy_horizontal">
+<value />
+<value>10</value>
+<value />
+</SimpleArrayData>
+</SchemaData>
+</ExtendedData>
+</Track>
+</MultiTrack>
+</Placemark>
+</Folder>
+</Document>
+</kml>

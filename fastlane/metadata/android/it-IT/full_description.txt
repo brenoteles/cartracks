@@ -1,0 +1,22 @@
+Un tracker sportivo che rispetta la tua privacy.
+
+Sport e attività all'aria aperta portano a felicità, allenamento e fiducia
+
+Valorizza la tua salute tenendo traccia dei tuoi progressi.
+Registra quando stai correndo o passeggiando e regalati un monitor più grande quando fai ciclismo.
+Segna con fotografie i posti interessanti incrociati durante il tragitto.
+Tieni traccia delle statistiche in dettaglio per analizzarle.
+Condividi solo i dati che vuoi.
+
+* Annunci vocali.
+* Supporto a sensori Bluetooth LE: battito cardiaco, velocità e distanza (ciclismo), cadenza (ciclismo), rilevamento potenza (ciclismo).
+* Altitudine positiva o negativa tramite sensore barometrico. 
+* Altitudine mostrata in EGM2008 (sopra il livello del mare) ed esportata come WGS84.
+* Esporta tracce come KMZ (con foto incluse), KML o GPX.
+* Non richiede accesso a internet o altri permessi.
+* Temi chiaro e scuro, o seguendo la impostazioni di sistema.
+* Nessuna pubblicità.
+
+Libre software / Free Software / Open Source
+cioè puoi usare, studiare, cambiare e condividere il codice sorgente.
+Licenza: Apache 2.0

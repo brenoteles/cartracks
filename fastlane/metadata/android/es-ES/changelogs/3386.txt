@@ -1,0 +1,7 @@
+v3.7.3: OpenTracks
+
+Corrección de errores:
+- Se ha corregido el cálculo de la cadencia y la velocidad (mediante el sensor Bluetooth LE)
+
+Desarrollador:
+- Se han eliminado las traducciones que no se utilizaban

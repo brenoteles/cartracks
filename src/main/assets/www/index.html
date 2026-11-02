@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>CarTracks</title>
+  <link rel="stylesheet" href="framework7.min.css">
+  <link rel="stylesheet" href="leaflet.css">
+  <style>
+    :root, .theme-dark, body {
+      --f7-theme-color: #0288D1;
+      --f7-theme-color-rgb: 2, 136, 209;
+      --f7-bars-bg-color: #0d1824 !important;
+      --f7-bars-bg-color-rgb: 13, 24, 36 !important;
+      --f7-bars-text-color: #ffffff !important;
+      --f7-navbar-bg-color: #0d1824 !important;
+      --f7-navbar-text-color: #ffffff !important;
+      --f7-navbar-link-color: #38bdf8 !important;
+      --f7-bars-link-color: #38bdf8 !important;
+      --f7-page-bg-color: #070c12 !important;
+      --f7-card-bg-color: #101c28 !important;
+      --f7-text-color: #f8fafc !important;
+      --f7-md-surface-1: #0d1824 !important;
+      --f7-md-surface-2: #0d1824 !important;
+      --f7-md-on-surface: #ffffff !important;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #070c12 !important;
+      color: #f1f5f9;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Cores de Alto Contraste para Navbar e Cabeçalhos */
+    .navbar,
+    .navbar-bg,
+    .navbars,
+    .subnavbar {
+      background-color: #0d1824 !important;
+      background: #0d1824 !important;
+      border-bottom: 2px solid #0288D1 !important;
+    }
+    .navbar-inner {
+      background: transparent !important;
+    }
+    .navbar .title,
+    .navbar .title b,
+    .navbar a,
+    .navbar span,
+    .navbar .left,
+    .navbar .right {
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    .navbar .title {
+      font-size: 18px !important;
+      letter-spacing: 0.3px;
+    }
+
+    /* Tabbar Inferior */
+    .toolbar-bottom,
+    .toolbar-bottom .toolbar-bg {
+      background-color: #0d1824 !important;
+      background: #0d1824 !important;
+      border-top: 1px solid #1e3245 !important;
+    }
+    .tabbar a {
+      color: #94a3b8 !important;
+      font-weight: 600;
+    }
+    .tabbar a.tab-link-active {
+      color: #38bdf8 !important;
+      border-top: 2px solid #38bdf8;
+    }
+
+    /* Cartão Principal de Estatísticas da Garagem */
+    .car-stat-card {
+      background: linear-gradient(145deg, #0f1e2c 0%, #152737 100%);
+      border: 1px solid #233e57;
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 18px;
+      margin: 14px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    }
+    .car-badge {
+      background: #0288D1;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 12px;
+      display: inline-block;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .car-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .car-stat-box {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 10px 6px;
+      text-align: center;
+    }
+    .car-stat-val {
+      font-size: 16px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+    .car-stat-lbl {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    /* Card de Viagem */
+    .trip-item-card {
+      background: #111d28 !important;
+      border: 1px solid #1e3448;
+      border-radius: 14px;
+      margin: 10px 14px;
+      padding: 16px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .trip-item-card:active {
+      transform: scale(0.98);
+      border-color: #38bdf8;
+    }
+    .trip-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .trip-distance {
+      color: #10b981;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .trip-meta {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+    .trip-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .badge-pill {
+      background: #192735;
+      color: #cbd5e1;
+      border: 1px solid #283e54;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 8px;
+    }
+    .badge-speed-avg {
+      color: #38bdf8;
+      border-color: #0288D1;
+    }
+    .badge-speed-max {
+      color: #f87171;
+      border-color: #dc2626;
+    }
+
+    /* Modal / Popup do Mapa da Viagem */
+    #detail-map {
+      height: 350px;
+      width: 100%;
+      border-radius: 14px;
+      border: 2px solid #233e57;
+      background: #0f172a;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    .speed-legend {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      background: #111d28;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #1e3448;
+      font-size: 11.5px;
+      margin: 12px 0;
+      color: #cbd5e1;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Marcador de velocidade máxima no mapa */
+    .fastest-point-badge {
+      background: #dc2626;
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 12px;
+      white-space: nowrap;
+      box-shadow: 0 3px 10px rgba(220, 38, 38, 0.7);
+      text-align: center;
+    }
+
+    /* Barra de progresso de velocidade */
+    .speed-bar-container {
+      display: flex;
+      height: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 8px 0;
+      background: #1e293b;
+    }
+    .speed-bar-slow { background: #10b981; }
+    .speed-bar-mid { background: #f59e0b; }
+    .speed-bar-fast { background: #ef4444; }
+
+    /* Aba de Abastecimento */
+    .fuel-card {
+      background: #111d28;
+      border: 1px solid #1e3448;
+      border-left: 5px solid #10b981;
+      border-radius: 12px;
+      margin: 10px 14px;
+      padding: 14px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    }
+
+    /* Estilo de inputs no modal de abastecimento */
+    .fuel-sheet input {
+      color: #ffffff !important;
+      font-size: 16px !important;
+      border-bottom: 1px solid #334155 !important;
+    }
+  </style>
+</head>
+<body class="theme-dark">
+  <div id="app">
+    <div class="views tabs safe-areas">
+
+      <!-- TAB 1: GARAGEM / HOME -->
+      <div id="view-home" class="view view-main tab tab-active">
+        <div class="page" data-name="home" style="background-color: #070c12;">
+          <div class="navbar">
+            <div class="navbar-bg"></div>
+            <div class="navbar-inner">
+              <div class="title">🚗 CarTracks Garagem</div>
+              <div class="right">
+                <a href="#" class="link" onclick="AndroidBridge.openSettings()" style="font-size: 18px; padding-right: 12px;">⚙️</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="page-content" style="padding-bottom: 80px;">
+            <!-- Cartão Principal de Resumo -->
+            <div class="car-stat-card">
+              <div class="car-badge">🚘 Painel da Garagem</div>
+              <div style="font-size: 24px; font-weight: 800; color: #ffffff; margin-top: 8px;" id="dash-km-total">Carregando km...</div>
+              <div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Telemetria consolidada de viagens</div>
+
+              <div class="car-stat-grid">
+                <div class="car-stat-box">
+                  <div class="car-stat-val" id="dash-fuel-spent">0 L</div>
+                  <div class="car-stat-lbl">Combustível Est.</div>
+                </div>
+                <div class="car-stat-box">
+                  <div class="car-stat-val" id="dash-cost-spent">R$ 0,00</div>
+                  <div class="car-stat-lbl">Custo Est.</div>
+                </div>
+                <div class="car-stat-box">
+                  <div class="car-stat-val" id="dash-avg-kml">12.5 km/L</div>
+                  <div class="car-stat-lbl">Consumo Médio</div>
+                </div>
+              </div>
+
+              <div style="margin-top: 14px; font-size: 13px; background: rgba(0,0,0,0.4); padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);">
+                <div id="dash-dest-fav" style="color: #f1f5f9;">📍 <b>Destino frequente:</b> Carregando...</div>
+                <div style="margin-top: 6px; color: #f1f5f9;" id="dash-station-fav">⛽ <b>Posto frequente:</b> Carregando...</div>
+              </div>
+            </div>
+
+            <!-- Botão Gravar Viagem -->
+            <div class="block" style="margin: 0 14px 14px 14px;">
+              <button class="button button-fill button-large button-raised" onclick="AndroidBridge.startNewTrip()" style="background: #10b981; font-weight: 800; font-size: 16px; border-radius: 12px; height: 50px;">
+                ▶️ Iniciar Nova Viagem (GPS)
+              </button>
+            </div>
+
+            <!-- Lista de Viagens -->
+            <div class="block-title" style="color: #ffffff; font-weight: 800; font-size: 16px; margin: 18px 14px 8px 14px;">
+              Viagens Registradas (Toque para ver o mapa e velocidades)
+            </div>
+            <div id="trips-container">
+              <!-- Renderizado via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ABASTECIMENTO -->
+      <div id="view-fuel" class="view tab">
+        <div class="page" data-name="fuel" style="background-color: #070c12;">
+          <div class="navbar">
+            <div class="navbar-bg"></div>
+            <div class="navbar-inner">
+              <div class="title">⛽ Abastecimento & Despesas</div>
+              <div class="right">
+                <a href="#" class="link" onclick="openFuelSheet()" style="font-weight: 800; color: #38bdf8; font-size: 15px; padding-right: 12px;">+ Registrar</a>
+              </div>
+            </div>
+          </div>
+          <div class="page-content" style="padding-bottom: 80px;">
+            <div class="block" style="margin: 14px;">
+              <button class="button button-fill button-large button-raised" onclick="openFuelSheet()" style="background: #0288D1; font-weight: 800; font-size: 16px; border-radius: 12px; height: 50px;">
+                ⛽ Registrar Novo Abastecimento
+              </button>
+            </div>
+
+            <div class="block-title" style="color: #ffffff; font-weight: 800; font-size: 16px; margin-left: 14px;">Histórico de Abastecimentos</div>
+            <div id="fuel-history-container">
+              <!-- Renderizado via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TABBAR INFERIOR -->
+      <div class="toolbar toolbar-bottom tabbar tabbar-icons">
+        <div class="toolbar-bg"></div>
+        <div class="toolbar-inner">
+          <a href="#view-home" class="tab-link tab-link-active">
+            <span class="tabbar-label" style="font-size: 14px;">🚗 Minhas Viagens</span>
+          </a>
+          <a href="#view-fuel" class="tab-link">
+            <span class="tabbar-label" style="font-size: 14px;">⛽ Abastecimentos</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- POPUP DETALHE DA VIAGEM COM MAPA OSM E GRADIENTE DE VELOCIDADE -->
+    <div class="popup popup-trip-detail" style="background: #070c12;">
+      <div class="page" style="background: #070c12;">
+        <div class="navbar">
+          <div class="navbar-bg"></div>
+          <div class="navbar-inner">
+            <div class="title" id="popup-trip-title" style="color: #ffffff !important; font-weight: 800;">Detalhes do Trajeto</div>
+            <div class="right">
+              <a class="link popup-close" href="#" style="color: #38bdf8 !important; font-weight: 800; font-size: 16px; padding-right: 12px;">Fechar</a>
+            </div>
+          </div>
+        </div>
+        <div class="page-content" style="padding: 14px; padding-bottom: 40px;">
+          <!-- Mapa Interativo -->
+          <div id="detail-map"></div>
+
+          <!-- Legenda de Velocidades no Mapa -->
+          <div class="speed-legend">
+            <div class="legend-item"><div class="color-dot" style="background: #10b981;"></div><span>Urbano (&lt; 40 km/h)</span></div>
+            <div class="legend-item"><div class="color-dot" style="background: #f59e0b;"></div><span>Fluido (40-80 km/h)</span></div>
+            <div class="legend-item"><div class="color-dot" style="background: #ef4444;"></div><span>Rápido (&gt; 80 km/h)</span></div>
+          </div>
+
+          <!-- Estatísticas Detalhadas da Viagem Selecionada -->
+          <div class="car-stat-card" style="margin: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <div style="font-size: 18px; font-weight: 800; color: #fff;" id="modal-trip-name">Nome da Viagem</div>
+                <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;" id="modal-trip-meta">Data e hora</div>
+              </div>
+              <div id="modal-fastest-badge" style="background: #dc2626; color: #fff; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 800;">
+                ⚡ Pico: 0 km/h
+              </div>
+            </div>
+
+            <div class="car-stat-grid" style="margin-top: 14px;">
+              <div class="car-stat-box">
+                <div class="car-stat-val" id="modal-trip-dist" style="color: #10b981;">0 km</div>
+                <div class="car-stat-lbl">Distância</div>
+              </div>
+              <div class="car-stat-box">
+                <div class="car-stat-val" id="modal-trip-avg-speed" style="color: #38bdf8;">0 km/h</div>
+                <div class="car-stat-lbl">Vel. Média</div>
+              </div>
+              <div class="car-stat-box">
+                <div class="car-stat-val" id="modal-trip-max-speed" style="color: #ef4444;">0 km/h</div>
+                <div class="car-stat-lbl">Vel. Máxima</div>
+              </div>
+            </div>
+
+            <!-- Perfil de Velocidade -->
+            <div style="margin-top: 14px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; font-weight: 600;">
+                <span>Perfil de Velocidade do Trajeto</span>
+                <span id="modal-speed-ratio">--</span>
+              </div>
+              <div class="speed-bar-container">
+                <div id="speed-bar-s" class="speed-bar-slow" style="width: 33%;"></div>
+                <div id="speed-bar-m" class="speed-bar-mid" style="width: 33%;"></div>
+                <div id="speed-bar-f" class="speed-bar-fast" style="width: 34%;"></div>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px; font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.35); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);" id="modal-trip-desc">
+              Descrição do percurso
+            </div>
+
+            <div style="margin-top: 10px; font-size: 12.5px; color: #38bdf8;" id="modal-trip-fuel">
+              ⛽ Estimativa de combustível: 0 L (R$ 0,00)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHEET REGISTRO DE ABASTECIMENTO -->
+    <div class="sheet-modal fuel-sheet" style="background: #0d1824; height: auto;">
+      <div class="toolbar" style="background: #152737; border-bottom: 1px solid #1e3448;">
+        <div class="toolbar-inner">
+          <div class="left"><b style="margin-left: 16px; color: #ffffff; font-size: 16px;">Registrar Abastecimento</b></div>
+          <div class="right"><a class="link sheet-close" href="#" style="color: #38bdf8; font-weight: 800; font-size: 15px; padding-right: 14px;">Cancelar</a></div>
+        </div>
+      </div>
+      <div class="sheet-modal-inner">
+        <div class="page-content" style="padding: 14px 14px 28px 14px;">
+          <div class="list no-hairlines-md" style="margin: 0; background: transparent;">
+            <ul>
+              <li class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label" style="color: #94a3b8; font-weight: 600;">Posto / Estabelecimento</div>
+                  <div class="item-input-wrap">
+                    <input type="text" id="input-station" value="Posto Shell Jardins">
+                  </div>
+                </div>
+              </li>
+              <li class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label" style="color: #94a3b8; font-weight: 600;">Litros Abastecidos</div>
+                  <div class="item-input-wrap">
+                    <input type="number" id="input-liters" value="40.0" oninput="calcFuelTotal()">
+                  </div>
+                </div>
+              </li>
+              <li class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label" style="color: #94a3b8; font-weight: 600;">Preço por Litro (R$)</div>
+                  <div class="item-input-wrap">
+                    <input type="number" id="input-price" value="5.89" oninput="calcFuelTotal()">
+                  </div>
+                </div>
+              </li>
+              <li class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label" style="color: #94a3b8; font-weight: 600;">Valor Total (R$)</div>
+                  <div class="item-input-wrap">
+                    <input type="number" id="input-total" style="color: #38bdf8 !important; font-weight: 800;" value="235.60">
+                  </div>
+                </div>
+              </li>
+              <li class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label" style="color: #94a3b8; font-weight: 600;">Hodômetro Atual (km)</div>
+                  <div class="item-input-wrap">
+                    <input type="number" id="input-odometer" value="45600">
+                  </div>
+                </div>
+              </li>
+              <li class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label" style="color: #94a3b8; font-weight: 600;">Observações / Combustível</div>
+                  <div class="item-input-wrap">
+                    <input type="text" id="input-notes" value="Gasolina V-Power / Tanque cheio">
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="block" style="margin-top: 18px;">
+            <button class="button button-fill button-large button-raised" onclick="saveFuelEntry()" style="background: #10b981; font-weight: 800; font-size: 16px; border-radius: 12px; height: 48px;">
+              💾 Salvar Registro
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="framework7.min.js"></script>
+  <script src="leaflet.js"></script>
+  <script>
+    var app = new Framework7({
+      el: '#app',
+      theme: 'md',
+      darkMode: true,
+    });
+
+    var map = null;
+    var polylinesGroup = null;
+    var markersGroup = null;
+
+    function initMap() {
+      if (map) {
+        map.invalidateSize();
+        return;
+      }
+      map = L.map('detail-map', {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([-23.5615, -46.6559], 13);
+
+      // Camada Oficial e 100% Gratuita OpenStreetMap (SEM necessidade de chave de API)
+      var osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      });
+
+      // Camada de contingência OpenStreetMap France / Humanitarian (sem chaves)
+      var osmFrLayer = L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c'],
+        attribution: '&copy; OpenStreetMap France'
+      });
+
+      osmLayer.on('tileerror', function() {
+        if (!map.hasLayer(osmFrLayer)) {
+          osmFrLayer.addTo(map);
+        }
+      });
+
+      osmLayer.addTo(map);
+
+      polylinesGroup = L.featureGroup().addTo(map);
+      markersGroup = L.layerGroup().addTo(map);
+    }
+
+    app.on('popupOpened', function (popup) {
+      if (popup && popup.el && popup.el.classList.contains('popup-trip-detail')) {
+        setTimeout(function() {
+          initMap();
+          if (map) {
+            map.invalidateSize();
+            if (polylinesGroup && polylinesGroup.getLayers().length > 0) {
+              map.fitBounds(polylinesGroup.getBounds(), { padding: [35, 35] });
+            }
+          }
+        }, 150);
+      }
+    });
+
+    function calcFuelTotal() {
+      var liters = parseFloat(document.getElementById('input-liters').value) || 0;
+      var price = parseFloat(document.getElementById('input-price').value) || 0;
+      document.getElementById('input-total').value = (liters * price).toFixed(2);
+    }
+
+    function openFuelSheet() {
+      app.sheet.open('.fuel-sheet');
+    }
+
+    function saveFuelEntry() {
+      var station = document.getElementById('input-station').value || 'Posto de Gasolina';
+      var liters = parseFloat(document.getElementById('input-liters').value) || 0;
+      var price = parseFloat(document.getElementById('input-price').value) || 0;
+      var total = parseFloat(document.getElementById('input-total').value) || (liters * price);
+      var odo = parseFloat(document.getElementById('input-odometer').value) || 0;
+      var notes = document.getElementById('input-notes').value || '';
+
+      if (window.AndroidBridge && AndroidBridge.saveFuel) {
+        AndroidBridge.saveFuel(station, liters, price, total, odo, notes);
+      }
+      app.sheet.close('.fuel-sheet');
+      app.toast.create({ text: 'Abastecimento registrado com sucesso!', closeTimeout: 2000 }).open();
+      loadDataFromAndroid();
+    }
+
+    function renderTrips(trips) {
+      var container = document.getElementById('trips-container');
+      if (!trips || trips.length === 0) {
+        container.innerHTML = '<div class="block" style="color: #94a3b8; text-align: center;">Nenhuma viagem registrada ainda.</div>';
+        return;
+      }
+
+      var html = '';
+      trips.forEach(function(t) {
+        var avgSpd = t.avgSpeed || '45 km/h';
+        var maxSpd = t.maxSpeed || '85 km/h';
+        var estFuel = t.estFuel || '2.1 L';
+        var estCost = t.estCost || 'R$ 12,30';
+
+        html += '<div class="trip-item-card" onclick="openTripDetail(' + t.id + ', \'' + escapeQuotes(t.name) + '\', \'' + t.distance + '\', \'' + t.duration + '\', \'' + avgSpd + '\', \'' + maxSpd + '\', \'' + escapeQuotes(t.desc) + '\', \'' + t.date + '\', \'' + estFuel + '\', \'' + estCost + '\')">' +
+          '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+            '<div class="trip-title">🚗 ' + t.name + '</div>' +
+            '<div class="trip-distance">' + t.distance + '</div>' +
+          '</div>' +
+          '<div class="trip-meta">' + t.date + ' • Duração: ' + t.duration + '</div>' +
+          '<div class="trip-badges">' +
+            '<span class="badge-pill badge-speed-avg">Média: ' + avgSpd + '</span>' +
+            '<span class="badge-pill badge-speed-max">Máx: ' + maxSpd + '</span>' +
+            '<span class="badge-pill">⛽ ' + estFuel + ' (' + estCost + ')</span>' +
+            '<span class="badge-pill" style="color: #38bdf8;">Ver Mapa 🗺️</span>' +
+          '</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function escapeQuotes(str) {
+      return (str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
+    function openTripDetail(trackId, name, dist, duration, avgSpeed, maxSpeed, desc, date, estFuel, estCost) {
+      document.getElementById('popup-trip-title').innerText = name;
+      document.getElementById('modal-trip-name').innerText = name;
+      document.getElementById('modal-trip-meta').innerText = date + ' • ' + duration;
+      document.getElementById('modal-trip-dist').innerText = dist;
+      document.getElementById('modal-trip-avg-speed').innerText = avgSpeed;
+      document.getElementById('modal-trip-max-speed').innerText = maxSpeed;
+      document.getElementById('modal-fastest-badge').innerText = '⚡ Pico: ' + maxSpeed;
+      document.getElementById('modal-trip-desc').innerText = desc || 'Trajeto veicular gravado.';
+      document.getElementById('modal-trip-fuel').innerText = '⛽ Estimativa de combustível: ' + estFuel + ' (' + estCost + ')';
+
+      app.popup.open('.popup-trip-detail');
+
+      setTimeout(function() {
+        initMap();
+        map.invalidateSize();
+        if (window.AndroidBridge && AndroidBridge.getTripPointsJson) {
+          var pointsJson = AndroidBridge.getTripPointsJson(trackId);
+          drawTripMapWithSpeedGradient(pointsJson, name);
+        }
+      }, 300);
+    }
+
+    function drawTripMapWithSpeedGradient(jsonStr, title) {
+      initMap();
+      polylinesGroup.clearLayers();
+      markersGroup.clearLayers();
+
+      try {
+        var points = JSON.parse(jsonStr);
+        if (!points || points.length === 0) return;
+
+        var countSlow = 0;
+        var countMid = 0;
+        var countFast = 0;
+
+        var maxSpeedObserved = 0;
+        var fastestPoint = points[0];
+
+        // Desenha segmentos com gradiente de cor por velocidade
+        for (var i = 0; i < points.length - 1; i++) {
+          var p1 = points[i];
+          var p2 = points[i + 1];
+          var spd = p1.speed || 0;
+
+          if (spd > maxSpeedObserved) {
+            maxSpeedObserved = spd;
+            fastestPoint = p1;
+          }
+
+          var color = '#10b981'; // < 40 km/h (Verde - Tráfego urbano)
+          if (spd >= 40 && spd < 80) {
+            color = '#f59e0b'; // 40 - 80 km/h (Âmbar/Laranja - Velocidade moderada)
+            countMid++;
+          } else if (spd >= 80) {
+            color = '#ef4444'; // > 80 km/h (Vermelho - Alta velocidade / Rodovia)
+            countFast++;
+          } else {
+            countSlow++;
+          }
+
+          var segment = L.polyline([[p1.lat, p1.lon], [p2.lat, p2.lon]], {
+            color: color,
+            weight: 7,
+            opacity: 0.95,
+            lineJoin: 'round'
+          }).addTo(polylinesGroup);
+
+          segment.bindTooltip('<b>' + spd.toFixed(0) + ' km/h</b>', { sticky: true });
+        }
+
+        // Atualiza a barra de distribuição de velocidade
+        var totalSegments = Math.max(1, (points.length - 1));
+        var pctSlow = Math.round((countSlow / totalSegments) * 100);
+        var pctMid = Math.round((countMid / totalSegments) * 100);
+        var pctFast = 100 - pctSlow - pctMid;
+        if (pctFast < 0) pctFast = 0;
+
+        document.getElementById('speed-bar-s').style.width = pctSlow + '%';
+        document.getElementById('speed-bar-m').style.width = pctMid + '%';
+        document.getElementById('speed-bar-f').style.width = pctFast + '%';
+        document.getElementById('modal-speed-ratio').innerText = pctSlow + '% Urbano | ' + pctMid + '% Fluido | ' + pctFast + '% Rápido';
+
+        // Marcador de Partida (Origem)
+        var startPt = [points[0].lat, points[0].lon];
+        L.circleMarker(startPt, { color: '#ffffff', fillColor: '#10b981', fillOpacity: 1, radius: 10, weight: 3 })
+          .addTo(markersGroup)
+          .bindPopup('<b>🚩 Partida</b><br>' + title);
+
+        // Marcador de Chegada (Destino)
+        var endPt = [points[points.length - 1].lat, points[points.length - 1].lon];
+        L.circleMarker(endPt, { color: '#ffffff', fillColor: '#38bdf8', fillOpacity: 1, radius: 10, weight: 3 })
+          .addTo(markersGroup)
+          .bindPopup('<b>🏁 Destino</b><br>' + title);
+
+        // Marcador Especial: Ponto Onde o Carro Estava Mais Rápido
+        if (fastestPoint && maxSpeedObserved > 0) {
+          var fastIcon = L.divIcon({
+            className: 'fastest-marker-container',
+            html: '<div class="fastest-point-badge">⚡ ' + maxSpeedObserved.toFixed(0) + ' km/h (Máxima)</div>',
+            iconSize: [120, 26],
+            iconAnchor: [60, 30]
+          });
+
+          var fastMarker = L.marker([fastestPoint.lat, fastestPoint.lon], { icon: fastIcon }).addTo(markersGroup);
+          fastMarker.bindPopup('<b>⚡ Trecho de Maior Velocidade</b><br>Velocidade atingida: <b>' + maxSpeedObserved.toFixed(0) + ' km/h</b>').openPopup();
+        }
+
+        map.fitBounds(polylinesGroup.getBounds(), { padding: [40, 40] });
+      } catch(e) {
+        console.error(e);
+      }
+    }
+
+    function renderFuelHistory(entries) {
+      var container = document.getElementById('fuel-history-container');
+      if (!entries || entries.length === 0) {
+        container.innerHTML = '<div class="block" style="color: #94a3b8; text-align: center;">Nenhum abastecimento registrado.</div>';
+        return;
+      }
+
+      var html = '';
+      entries.forEach(function(e) {
+        html += '<div class="fuel-card">' +
+          '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+            '<div style="font-weight: 800; font-size: 16px; color: #ffffff;">⛽ ' + e.station + '</div>' +
+            '<div style="font-weight: 800; font-size: 16px; color: #10b981;">R$ ' + e.total.toFixed(2) + '</div>' +
+          '</div>' +
+          '<div style="color: #cbd5e1; font-size: 13.5px; margin-top: 5px;">' + e.liters.toFixed(1) + ' Litros • R$ ' + e.price.toFixed(2) + '/L</div>' +
+          '<div style="color: #94a3b8; font-size: 12px; margin-top: 3px;">Hodômetro: ' + e.odometer + ' km • ' + e.date + ' (' + (e.notes || 'Abastecido') + ')</div>' +
+        '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    function loadDataFromAndroid() {
+      if (window.AndroidBridge) {
+        try {
+          var tripsJson = AndroidBridge.getTripsJson();
+          var fuelJson = AndroidBridge.getFuelJson();
+          var statsJson = AndroidBridge.getGarageStatsJson();
+
+          renderTrips(JSON.parse(tripsJson));
+          renderFuelHistory(JSON.parse(fuelJson));
+
+          var stats = JSON.parse(statsJson);
+          if (stats) {
+            document.getElementById('dash-km-total').innerText = stats.totalKm + ' km rodados';
+            document.getElementById('dash-fuel-spent').innerText = stats.fuelLiters + ' L';
+            document.getElementById('dash-cost-spent').innerText = 'R$ ' + stats.fuelCost;
+            document.getElementById('dash-avg-kml').innerText = stats.avgKmL + ' km/L';
+            document.getElementById('dash-dest-fav').innerHTML = '📍 <b>Destino frequente:</b> ' + stats.favDest;
+            document.getElementById('dash-station-fav').innerHTML = '⛽ <b>Posto frequente:</b> ' + stats.favStation;
+          }
+        } catch(e) {
+          console.error(e);
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      loadDataFromAndroid();
+    });
+  </script>
+</body>
+</html>

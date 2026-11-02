@@ -1,0 +1,6 @@
+v4.24.1: OpenTracks
+
+Bugfix:
+- Restore compatibility with OSM Dashboard v6.4.1 and earlier (introduced in v4.24.0) 
+- Crash when using default track name by number (introduced in v4.24.0)
+

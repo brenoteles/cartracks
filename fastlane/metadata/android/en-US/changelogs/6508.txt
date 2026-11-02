@@ -1,0 +1,15 @@
+v4.24.0: OpenTracks
+
+Changes:
+- PublicAPI: start track only sets field if data is present
+- Marker photos can be shared again
+- Removed KMZ without photos
+- Heart rate of 0.0 is treated as invalid (except for SensorStatistics)
+- Removed import workaround for special coordinates (100/200)
+  (was used by MyTracks to export/import special trackpoints)
+
+Developer:
+- Track and Marker are records
+- AggregatedStatistics are computed in database
+- Split into TrackStatisticsUpdater and SegmentStatisticUpdater
+- Introduced Iterator classes (instead of passing Cursor or List)

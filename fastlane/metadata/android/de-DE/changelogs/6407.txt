@@ -1,0 +1,10 @@
+v4.23.2: OpenTracks
+
+Änderungen:
+- Vorausschauende Rückwärtsfunktion funktioniert vollständig
+
+Fehlerbehebung:
+- Absturz im Zusammenhang mit dem Dateinamen der Strecke in den Einstellungen behoben
+
+Entwickler:
+- Datenklasse für Statistiken eingeführt

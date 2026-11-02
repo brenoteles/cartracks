@@ -1,0 +1,14 @@
+v3.5.0: OpenTracks
+
+Cambios:
+- Marcador: seleccionar imágenes de la galería
+- Marcador: compartir imagen
+- Utilizar el nombre de la ruta como nombre de archivo al compartir
+- Se han eliminado los valores mínimos y máximos de altitud (eran imprecisos)
+
+Corrección de errores:
+- Los gráficos utilizan las unidades y la escala preferidas
+
+Desarrollador:
+- Base de datos: eliminar columnas en desuso
+- Base de datos: añadir índices

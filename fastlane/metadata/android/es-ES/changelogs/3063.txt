@@ -1,0 +1,7 @@
+v3.2.1: OpenTracks
+
+Cambios:
+- Los ajustes ahora están en una sola página
+
+Desarrollo:
+-Los ajustes se migraron a Androidx compat (usa fragments)

@@ -1,0 +1,15 @@
+v3.2.5: OpenTracks
+
+Cambios:
+- Deshabilitar el cambio de actividad
+- Añadir permiso para Android 10: grabación de datos de ubicación
+
+Corrección de errores:
+- Corregir el restablecimiento de los ajustes
+
+Desarrollador:
+- Preferencias
+  - si no se pueden cargar los Ajustes, restablecer todas las preferencias
+  - se movió el acceso a las preferencias a PreferencesUtil
+  - se movieron los valores por defecto de las preferencias del código a XML
+  - usar SummaryProvider

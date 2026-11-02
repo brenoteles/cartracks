@@ -1,0 +1,5 @@
+v4.26.2: OpenTracks
+
+Arranxos:
+- (aínda) non hai compatibilidade co GPS vía Bluetooth
+- non se mostraba a altitude tipo (EGM2008)

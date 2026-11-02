@@ -1,0 +1,17 @@
+v3.0.1: OpenTracks
+
+Perubahan:
+- Bagikan penanda
+- Perubahan struktur pengaturan
+- Menghapus tombol kembali di bilah aksi
+- Ekspor: menghapus pilihan pengaturan ukuran foto
+- Ekspor: KML sebagai format sekarang dapat dipilih
+
+Perbaikan Bug:
+- direktori ekspor sekarang di /OpenTracks/
+- mode lanskap tidak akan mogok
+- memperbaiki ekspor KML/KMZ
+
+Pengembang:
+- Tes dapat dieksekusi (namun banyak yang gagal)
+- Mengaktifkan integrasi terus menerus dengan TravisCI (tanpa tes)

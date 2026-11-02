@@ -1,0 +1,14 @@
+v3.1.0: OpenTracks
+
+Cambios:
+- Se ha añadido la opción de mostrar el recorrido en aplicaciones de mapas (probado con OsmAnd y Maps.ME)
+- Se ha añadido la opción de mostrar las estadísticas del recorrido sin desbloquear el dispositivo mientras se realiza el seguimiento
+- Se ha eliminado el modo horizontal para la vista detallada del recorrido (presentaba errores)
+- Se ha eliminado el historial de sugerencias de búsqueda
+
+Corrección de errores:
+- Se solicita permiso de almacenamiento para «Importar todo»/«Exportar todo»
+
+Desarrollador:
+- Actualización a Gradle 5.6
+- No se minimizan las compilaciones de lanzamiento

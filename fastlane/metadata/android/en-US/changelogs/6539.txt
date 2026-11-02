@@ -1,0 +1,13 @@
+v4.25.0: OpenTracks
+
+Changes:
+- Record button is centered
+- Support for BLE thermometer (Environmental Sensing)
+
+Bugfix:
+- On import: get type from filename (not URI)
+
+Developer:
+- TrackPoint is a record
+- Update to Android Gradle Plugin 9.0
+

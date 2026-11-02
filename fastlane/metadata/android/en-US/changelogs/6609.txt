@@ -1,0 +1,6 @@
+v4.26.1: OpenTracks
+
+Bugfix:
+- Crash when deleting a UI layout
+- Crash when heartrate sensor data could not be decoded
+- Crash when exporting zero tracks

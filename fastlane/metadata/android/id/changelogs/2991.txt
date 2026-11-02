@@ -1,0 +1,14 @@
+v3.1.0: OpenTracks
+
+Perubahan:
+- Menambahkan opsi tampilan jalur salju di peta aplikasi (telah diuji dengan OsmAnd dan Maps.ME)
+- Menambahkan ketika melacak, akan menampilkan statistik jalur tanpa perlu membuka kunci perangkat
+- Menghapus mode landkap untuk tampilan detail jalur (tidak stabil)
+- Menghapus riwayat saran penelusuran
+
+Perbaikan Bug:
+- Permintaan izin penyimpanan untuk impor/ekspor semua 
+
+Pengembang:
+- Pembaruan ke Gradle 5.6
+- Jangan mengecilkan (minify) rilisan build

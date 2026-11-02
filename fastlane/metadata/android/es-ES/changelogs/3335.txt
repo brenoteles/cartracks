@@ -1,0 +1,4 @@
+v3.6.2: OpenTracks
+
+Corrección de errores:
+- Los gráficos no se mostraban correctamente (problema introducido en la v3.6.0)

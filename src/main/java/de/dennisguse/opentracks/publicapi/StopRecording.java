@@ -1,0 +1,28 @@
+package de.dennisguse.opentracks.publicapi;
+
+import de.dennisguse.opentracks.data.models.Track;
+import de.dennisguse.opentracks.io.file.exporter.ExportUtils;
+import de.dennisguse.opentracks.services.RecordingData;
+import de.dennisguse.opentracks.services.TrackRecordingService;
+
+public class StopRecording extends AbstractAPIActivity {
+
+    protected void execute(TrackRecordingService service) {
+        RecordingData recordingData = service.getRecordingDataObservable().getValue();
+        Track.Id trackId = null;
+        if (recordingData != null && recordingData.track() != null) {
+            trackId = recordingData.track().id();
+        }
+
+        service.endCurrentTrack();
+
+        if (trackId != null) {
+            ExportUtils.postWorkoutExport(this, trackId);
+        }
+    }
+
+    @Override
+    protected boolean isPostExecuteStopService() {
+        return true;
+    }
+}

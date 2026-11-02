@@ -1,0 +1,10 @@
+v3.2.9: OpenTracks
+
+Cambios:
+- Opción de mantener la pantalla encendida durante la grabación
+- Marcadores: se eliminaron por completo los marcadores de división (split markers)
+- Los anuncios de voz ahora funcionan sin el permiso READ_PHONE_STATE
+
+Corrección de errores:
+- Estadísticas: no se mostraba la frecuencia cardíaca
+- Estadísticas: el tiempo se restablecía brevemente a 0s

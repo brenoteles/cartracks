@@ -1,0 +1,10 @@
+v3.2.7: OpenTracks
+
+Cambios:
+- La notificación muestra la precisión del GPS
+- Mostrar notificación emergente (heads-up) si la precisión del GPS cae por debajo del umbral
+- Mostrar siempre el gráfico tanto por tiempo como por distancia
+- Se añadió ayuda (en Ajustes)
+
+Corrección de errores:
+- TrackDetailActivity: se deshabilitó el modo horizontal que no funcionaba (temporal)

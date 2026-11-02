@@ -1,0 +1,7 @@
+v4.25.1: OpenTracks
+
+Bugfix:
+- Since v4.24.0, the API for transferring data to OSM Dashboard was broken.
+  Sadly, the changes in OpenTracks could not be reverted.
+  Thus, the protocol version was bumped to 3.
+  This requires updating OSM Dashboard to a version AFTER v6.5.7.

@@ -1,0 +1,22 @@
+Spordijälgija, mis austab teie privaatsust.
+
+Sport ja välitegevused garanteerivad õnnelikkuse, vilumuse ja kindlustunde.
+
+Väärtusta oma tervist, jälgides on treeninguid.
+Salvestab kui lähed jooksma või jalutama ja annab teile jalgrattasõiduks suurema ekraani.
+Märgi huvitavad asukohad oma teel, koos piltidega.
+Hoia salvestatud statistika analüüsimiseks.
+Jaga ainult neid andmeid, mida soovid, et teised näeksid.
+
+* Häälteated.
+* Toetab Bluetooth LE andureid: pulss, kiirus, distants (jalgrattasõit), rütm (jalgrattasõit) ja jõumõõtja (jalgrattasõit).
+* Kõrguse tõus ja langus: baromeetrilise anduri abil.
+* Kõrgus näitab EGM2008 (üle keskmise merepinna); eksporditakse WGS84-na.
+* Ekspordit teekond kas KMZ- (koos fotodega), KML- või GPX-vormingus.
+* Ei vaja internetile ligipääsu ega lisalubasid.
+* Tume ja hele teema, austab süsteemi sätteid.
+* Reklaamivaba.
+
+Vabavara / Avatud Lähtekoodiga Tarkvara
+mis tähendab, et võite lähtekoodi kasutada, uurida, muuta ja jagada.
+Litsentsitud Apache 2.0

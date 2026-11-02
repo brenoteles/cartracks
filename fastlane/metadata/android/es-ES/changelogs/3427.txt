@@ -1,0 +1,11 @@
+v3.7.5: OpenTracks
+
+Cambios:
+- Se ha añadido un resumen de estadísticas agregadas (desde el menú de la pantalla principal)
+- API del panel de control: se pasan los ajustes «mostrar en la pantalla de bloqueo» y «mantener la pantalla encendida»
+- Se han actualizado las traducciones
+- Importación: se ha flexibilizado el formato de fecha ISO 8601
+- Mostrar ruta en el mapa: se puede seleccionar el formato de archivo y la apertura del panel de control funciona en Android R (API 30+)
+
+Corrección de errores:
+- El icono de la aplicación ahora se muestra correctamente

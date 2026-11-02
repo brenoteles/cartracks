@@ -1,0 +1,6 @@
+v3.7.2: OpenTracks
+
+Corrección de errores:
+- Se ha vuelto a añadir el botón «Iniciar GPS»
+- El nombre de la ruta ya no se sobrescribe al final de una grabación
+- Marcadores: al eliminar una foto, también se borra el archivo

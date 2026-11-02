@@ -1,0 +1,4 @@
+v4.24.2: OpenTracks
+
+Bugfix:
+- Crash when select all (introduced in v4.24.0)

@@ -1,0 +1,14 @@
+v4.27.0: OpenTracks
+
+Changes:
+- Sensor: power from Bosch eBike
+- Sensors: include already bonded Bluetooth devices (like Bosch eBike)
+- Barometer: enforce sampling frequency
+
+Bugfix:
+- Dashboard API: did not provide update
+- GPS could not be enabled with Bluetooth disabled
+
+Developer:
+- Removed Mockito
+- UI tests: less flacky

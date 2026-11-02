@@ -1,0 +1,8 @@
+v4.25.2: OpenTracks
+
+Changes:
+- Restored compatibility with OSMDashboard (Dashboard API protocol version 2)
+
+Bugfix:
+- Update UI immediately after resuming a track
+

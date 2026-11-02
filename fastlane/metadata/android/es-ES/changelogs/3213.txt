@@ -1,0 +1,12 @@
+v3.2.11: OpenTracks
+
+Error:
+- La velocidad máxima es idéntica a la velocidad promedio
+
+Corrección de errores:
+- Cierre inesperado (crash) al seleccionar el sensor de frecuencia cardíaca
+
+Desarrollador:
+- Se reemplazó TabHost por TabsLayout
+- Se eliminó el primer punto de ruta (waypoint) especial
+- Se eliminaron las traducciones duplicadas

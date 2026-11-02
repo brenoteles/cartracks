@@ -1,0 +1,10 @@
+v3.6.0: OpenTracks
+
+Cambios:
+- Ahora se pueden reanudar las rutas que se habían detenido
+
+Corrección de errores:
+- La importación de archivos KMZ no procesaba correctamente la URL de las fotos
+
+Desarrollador:
+- Se ha simplificado el procesamiento de datos

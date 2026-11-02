@@ -1,0 +1,13 @@
+v3.7.0: OpenTracks
+
+Cambios:
+- Informe de velocidad/ritmo por tipo de actividad
+- Se ha añadido una solución provisional para el cambio de semana del GPS
+- (Experimental) Compatibilidad con sensores de ciclismo Bluetooth LE (cadencia y velocidad)
+- Se ha mejorado la importación de KMZ/KML
+
+Corrección de errores:
+- Importación de KMZ: solo se importan las imágenes utilizadas
+
+Desarrollador:
+- Se ha refactorizado TrackRecordingService

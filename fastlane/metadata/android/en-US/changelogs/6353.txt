@@ -1,0 +1,7 @@
+v4.23.1: OpenTracks
+
+Changes:
+- New UI component to show elapsed time in the current segment
+
+Bugfix:
+- Instant post-workout export crashed (introduced in v4.23.0)

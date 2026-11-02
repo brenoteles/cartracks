@@ -1,0 +1,10 @@
+v4.28.3: OpenTracks
+
+Changes:
+- Settings: allow to disable segment creation (max recording distance)
+- Importer: match activity type case-insensitive
+- GPX: export moving speed in summary
+
+Bugfix:
+- GPX: importer must respect namespace prefixes 
+

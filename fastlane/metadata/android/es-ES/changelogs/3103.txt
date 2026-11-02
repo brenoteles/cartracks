@@ -1,0 +1,5 @@
+v3.2.4: OpenTracks
+
+Corrección de errores:
+- Caída/cierre inesperado (crash) en la actividad de ajustes
+  Se eliminó la posibilidad de cambiar la frecuencia de voz/fracción desde el menú contextual

@@ -1,0 +1,11 @@
+v3.3.2: OpenTracks
+
+Cambios:
+- Exportación: ahora sobrescribe los archivos
+
+Corrección de errores:
+- Se elimina siempre la notificación de grabación
+
+Desarrollador:
+- En API 26+ se usa java.time para analizar y escribir fechas
+- Refactorización de TrackRecordingService

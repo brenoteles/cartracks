@@ -1,0 +1,5 @@
+v4.27.2: OpenTracks
+
+Bugfix:
+- Not all valid timezone offsets could be set
+- Fixed race condition for IDLE trackpoints

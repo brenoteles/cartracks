@@ -1,0 +1,16 @@
+v3.8.0: OpenTracks
+
+Cambio importante:
+- Importación/exportación de GPX de velocidad, cadencia y frecuencia cardíaca a través de TrackPointExtension/v2
+
+Cambios:
+- API del panel de control: permite acceder a los marcadores (incluida una llamada de retorno para mostrarlos en OpenTracks)
+- Nuevo icono de marcador (chincheta naranja, SVG)
+- Los archivos que se van a importar se pueden seleccionar a través del gestor de archivos
+
+Correcciones de errores:
+- La interfaz de usuario de estadísticas agregadas respeta la frecuencia preferida
+- Fallaba la edición de un marcador al cambiar la orientación
+
+Desarrollador:
+- Se ha refactorizado TrackRecordingService

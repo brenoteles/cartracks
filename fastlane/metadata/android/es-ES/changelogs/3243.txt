@@ -1,0 +1,13 @@
+v3.3.0: OpenTracks
+
+Cambios importantes:
+- Fotos en almacenamiento privado (ocultas para otras apps)
+  NOTA: No se verán fotos de versiones anteriores
+- Español (Latinoamérica) requiere Android 7.0 o superior
+
+Cambios:
+- Importar/exportar vía Storage Access Framework (sin permisos de almacenamiento)
+
+Desarrollador:
+- Limpieza de estructuras de datos internas
+- Icono/nombre distintos para versión debug

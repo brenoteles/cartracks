@@ -1,0 +1,610 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright 2010 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--><resources>
+    <string name="about_preference_title">Om OpenTracks</string>
+    <string name="about_description"><i> OpenTracks </i> er en sportstracker, der fuldt ud respekterer dit privatliv.</string>
+    <string name="about_url">Projektets hjemmeside: <a href="%1$s">%1$s</a></string>
+    <string name="about_version_name">Versionsnavn: %1$s</string>
+    <string name="about_version_code">Versionskode: %1$d</string>
+    <string name="about_history">OpenTracks er en forgrening fra <a href="https://code.google.com/archive/p/mytracks/"> <i> Googles MyTracks </i> </a> (afviklet i 2016).</string>
+    <string name="about_libraries">Biblioteker</string>
+    <!-- Help -->
+    <string name="help_feature_title">OpenTracks har følgende funktioner:</string>
+    <string name="help_feature_content">* opret GPS-spor
+\n* brug en pulssensor (kun Bluetooth LE)
+\n* stemmemeddelelser (efter tid eller afstand)
+\n* opret markører (inkl. billeder)
+\n* fungerer helt offline
+\n* vis spor på et kort (se nedenfor)</string>
+    <string name="help_track_map_title">Hvordan viser man et spor på et kort?</string>
+    <string name="help_track_map_content"> Brug det lille kortikon.
+\na) (liveopdateringer) Installer <a href="https://codeberg.org/OpenTracksApp/OSMDashboard">OSMDashboard</a>. Den tilbyder online eller offline kort via <a href="https://www.openstreetmap.org">OpenStreetMap</a>.
+\nFaktisk er OSMDashboard en separat app, der kun (midlertidigt) kan få adgang til dataene for de(t) spor, der vises.
+\nb) Via et normalt kortprogram (f.eks. <a href="http://osmand.net/">OsmAnd</a> og <a href="https://maps.me/">MAPS.ME</a>). Disse programmer skal understøtte KMZ-filformatet (kun lokaliteter og tidsstempler). Faktisk skal en app understøtte <i>ACTION_VIEW</i> med MIME <i>application/vnd.google-earth.kmz</i>. </string>
+    <string name="help_storage_pictures_title">Hvordan gemmer OpenTracks billeder, der blev taget som markører?</string>
+    <string name="help_storage_pictures_content">Disse gemmes i appens interne lager (dvs. kun tilgængelige i OpenTracks).</string>
+    <string name="help_track_export_title">Hvordan kan jeg eksportere/dele registrerede spor\?</string>
+    <string name="help_track_export_content"> Spor kan eksporteres fra indstillinger som KMZ, KML eller GPX. KMZ / KML – alle data; GPX – kun placeringer. Spor der deles via <i>delingsikonet</i> deles som KMZ. </string>
+    <string name="help_data_google_play_services_title">Gør OpenTracks brug af Google Play Services\?</string>
+    <string name="help_recording_title">Hvordan registrerer OpenTracks data?</string>
+    <string name="help_recording_content">OpenTracks bruger enhedens GPS-sensor til at registrere placeringen kontinuerligt. Hvis GPS-enheden rapporterer unøjagtige data (f.eks. placering, hastighed, højde), kan OpenTracks ikke gøre noget ved det.</string>
+    <string name="help_data_storage_title">Hvordan gemmer OpenTracks sensordata?</string>
+    <string name="help_data_storage_content"> Sensordata gemmes per registrerede placering. For en pulssensor betyder det, at der kun er <i> en </i> måling af hjertefrekvensen lagret per Placering. Hvis du står stille eller er indendørs, registreres ingen sensordata (men de vil blive vist). </string>
+    <string name="help_gps_troubleshooting_title">Registrerer OpenTracks ikke placering\?</string>
+    <string name="help_gps_troubleshooting_content"> Hvad du kan gøre:
+\na) kontroller om GPS er aktiveret,
+\nb) gør GPS-modtagelse bedre (gå f.eks. udendørs),
+\nc) kontroller, om du har appen <a href="https://f-droid.org/en/packages/com.android.gpstest.osmdroid/"> GPSTest </a> og
+\nd) deaktiver strømbesparelse
+\n
+\nHvis intet af ovenstående hjælper, skal du rapportere det som en fejl. </string>
+    <string name="help_support_title">Hvordan kan jeg støtte OpenTracks?</string>
+    <string name="help_support_content"> Du kan:
+\na) fortælle andre om OpenTracks,
+\nb) <a href="https://codeberg.org/OpenTracksApp/OpenTracks/issues"> foreslå funktioner </a>,
+\nc) <a href="https://codeberg.org/OpenTracksApp/OpenTracks/issues"> rapportere om fejl </a>,
+\nd) hjælpe med udvikling af appen,
+\ne) købe appen i <a href="https://play.google.com/store/apps/details?id=de.dennisguse.opentracks.playstore"> Google Play Store </a>,
+\nf) donere, og
+\ng) gøre alt andent, som du synes hjælper OpenTracks. </string>
+    <!-- Activity Type -->
+    <string name="activity_type_airplane">fly</string>
+    <string name="activity_type_atv">Terrængående køretøj</string>
+    <string name="activity_type_biking">cykling</string>
+    <string name="activity_type_blimp">luftskib</string>
+    <string name="activity_type_boat">båd</string>
+    <string name="activity_type_climbing">klatring</string>
+    <string name="activity_type_commercial_airplane">rutefly</string>
+    <string name="activity_type_cross_country_skiing">langrend</string>
+    <string name="activity_type_cycling">cykling</string>
+    <string name="activity_type_dirt_bike">motocross</string>
+    <string name="activity_type_donkey_back_riding">æselridning</string>
+    <string name="activity_type_driving">kørsel</string>
+    <string name="activity_type_driving_bus">buskørsel</string>
+    <string name="activity_type_driving_car">bilkørsel</string>
+    <string name="activity_type_ferry">færge</string>
+    <string name="activity_type_frisbee">disckastning</string>
+    <string name="activity_type_gliding">svæveflyvning</string>
+    <string name="activity_type_hang_gliding">drageflyvning</string>
+    <string name="activity_type_helicopter">helikopter</string>
+    <string name="activity_type_hiking">vandring</string>
+    <string name="activity_type_horse_back_riding">hesteridning</string>
+    <string name="activity_type_hot_air_balloon">luftballon</string>
+    <string name="activity_type_ice_sailing">issejlads</string>
+    <string name="activity_type_inline_skating">rulleskøjteløb</string>
+    <string name="activity_type_kayaking">kajakroning</string>
+    <string name="activity_type_kite_surfing">kitesurfing</string>
+    <string name="activity_type_land_sailing">landsejlads</string>
+    <string name="activity_type_mixed_type">blandet type</string>
+    <string name="activity_type_motor_bike">motorcykel</string>
+    <string name="activity_type_motor_boating">motorbåd</string>
+    <string name="activity_type_mountain_biking">mountainbiking</string>
+    <string name="activity_type_off_trail_hiking">vandring i terræn</string>
+    <string name="activity_type_other">andet</string>
+    <string name="activity_type_paddling">padling</string>
+    <string name="activity_type_para_gliding">paragliding</string>
+    <string name="activity_type_rc_airplane">fjernstyret fly</string>
+    <string name="activity_type_rc_boat">fjernstyret båd</string>
+    <string name="activity_type_rc_helicopter">fjernstyret helikopter</string>
+    <string name="activity_type_riding">ridning</string>
+    <string name="activity_type_road_biking">landevejscykling</string>
+    <string name="activity_type_roller_skiing">rulleski</string>
+    <string name="activity_type_rowing">roning</string>
+    <string name="activity_type_running">løb</string>
+    <string name="activity_type_sailing">sejlads</string>
+    <string name="activity_type_seaplane">vandfly</string>
+    <string name="activity_type_skate_boarding">skateboarding</string>
+    <string name="activity_type_skating">skøjtning</string>
+    <string name="activity_type_skiing">skiløb</string>
+    <string name="activity_type_sky_jumping">faldskærmsudspring</string>
+    <string name="activity_type_sled">slædekørsel</string>
+    <string name="activity_type_snow_boarding">snowboarding</string>
+    <string name="activity_type_snow_shoeing">vandring i snesko</string>
+    <string name="activity_type_speed_walking">kapgang</string>
+    <string name="activity_type_street_running">gadeløb</string>
+    <string name="activity_type_surfing">surfing</string>
+    <string name="activity_type_track_cycling">banecykling</string>
+    <string name="activity_type_track_running">baneløb</string>
+    <string name="activity_type_trail_hiking">vandring på sti</string>
+    <string name="activity_type_trail_running">løb på sti</string>
+    <string name="activity_type_train">togkørsel</string>
+    <string name="activity_type_ultimate_frisbee">ultimate (disc)</string>
+    <string name="activity_type_unknown">ukendt</string>
+    <string name="activity_type_wakeboarding">wakeboarding</string>
+    <string name="activity_type_walking">gang</string>
+    <string name="activity_type_water_skiing">vandski</string>
+    <string name="activity_type_wind_surfing">windsurfing</string>
+    <!-- Description -->
+    <string name="description_activity_type">Aktivitetstype: %1$s</string>
+    <string name="description_average_moving_pace_in_minute">Gennemsnitstempo i bevægelse: %1$s min./km (%2$s min./mil)</string>
+    <string name="description_average_moving_speed">Gennemsnitlig bevægelseshastighed: %1$.2f km/t (%2$.1f mil/t)</string>
+    <string name="description_average_pace_in_minute">Gennemsnitstempo: %1$s min./km (%2$s min./mil)</string>
+    <string name="description_average_speed">Gennemsnitshastighed: %1$.2f km/t (%2$.1f mil/t)</string>
+    <string name="description_altitude_gain">Stigning: %1$d m (%2$d fod)</string>
+    <string name="description_altitude_imperial">Højde (ft)</string>
+    <string name="description_altitude_metric">Højde (m)</string>
+    <string name="description_fastest_pace_in_minute">Højeste tempo: %1$s min./km (%2$s min./mil)</string>
+    <string name="description_max_altitude">Maks. højde: %1$d m (%2$d fod)</string>
+    <string name="description_max_speed">Maks. hastighed: %1$.2f km/t (%2$.1f mil/t)</string>
+    <string name="description_min_altitude">Min. højde: %1$d m (%2$d fod)</string>
+    <string name="description_moving_time">Tid i bevægelse: %1$s</string>
+    <string name="description_pace_imperial">Tempo (min./mil)</string>
+    <string name="description_pace_metric">Tempo (min./km)</string>
+    <string name="description_recorded_time">Registreret: %1$s</string>
+    <string name="description_speed_ms">Hastighed (m/s)</string>
+    <string name="description_sensor_cadence">Kadence (omdr./min.)</string>
+    <string name="description_sensor_heart_rate">Puls (slag/min.)</string>
+    <string name="description_sensor_power">Effekt (W)</string>
+    <string name="description_default_speed_or_pace">Efter aktivitetstype</string>
+    <string name="description_speed_imperial">Hastighed (mil/t)</string>
+    <string name="description_speed_metric">Hastighed (km/t)</string>
+    <string name="description_time">Tid</string>
+    <string name="description_total_distance">Samlet afstand: %1$.2f km (%2$.1f mil)</string>
+    <string name="description_total_time">Samlet tid: %1$s</string>
+    <!-- Export -->
+    <string name="export_with_photos">med fotos</string>
+    <string name="export_without_photos">uden fotos</string>
+    <string name="export_progress_message">Eksporterer til %1$s…</string>
+    <!-- External Storage -->
+    <!-- Generic -->
+    <string name="generic_add">Tilføj</string>
+    <string name="generic_delete_selected_confirm_title">Slet valgte\?</string>
+    <string name="generic_description">Beskrivelse</string>
+    <string name="generic_description_line">Beskrivelse: %1$s</string>
+    <string name="generic_name">Navn</string>
+    <string name="generic_name_line">Navn: %1$s</string>
+    <string name="generic_recording">Registrerer…</string>
+    <string name="generic_save">Gem</string>
+    <string name="generic_tracks">Spor</string>
+    <!-- Gps -->
+    <string name="gps_starting">Starter GPS</string>
+    <string name="gps_wait_for_better_signal">Venter på et bedre GPS-signal</string>
+    <string name="gps_wait_for_signal">Venter på GPS-signal</string>
+    <!-- Image -->
+    <string name="image_marker_count">Antal markører</string>
+    <string name="image_photo_marker">Billedmarkør</string>
+    <string name="image_record">Registrer</string>
+    <string name="image_stop">Stop</string>
+    <string name="image_track">Spor</string>
+    <!-- Import -->
+    <string name="import_progress_message">Importerer fra %1$s…</string>
+    <!-- Marker -->
+    <string name="marker_add_error">Markør kan ikke indsættes. Intet GPS-signal. Prøv igen.</string>
+    <string name="marker_add_success">Markør placeret</string>
+    <string name="marker_add_canceled">Annulleret, ingen markør placeret</string>
+    <string name="marker_add_photo_canceled">Annulleret, ingen fotomarkør placeret</string>
+    <string name="marker_delete_one_confirm_message">Markøren slettes permanent fra enheden</string>
+    <string name="marker_delete_one_confirm_title">Slet markøren\?</string>
+    <string name="marker_delete_multiple_confirm_message">De valgte markører slettes permanent fra enheden</string>
+    <string name="marker_name_format">Markør %1$d</string>
+    <!-- Marker Detail -->
+    <!-- Marker Edit -->
+    <string name="marker_edit_marker_type">Markørtype (f.eks. vandfald)</string>
+    <!-- Marker List -->
+    <string name="marker_list_empty_message">Du har ingen markører</string>
+    <!-- Menu -->
+    <string name="menu_aggregated_statistics">Samlet statistik</string>
+    <string name="menu_delete">Slet</string>
+    <string name="menu_edit">Rediger</string>
+    <string name="menu_export_all">Eksportér alle (en fil per spor)</string>
+    <string name="menu_help">Hjælp</string>
+    <string name="menu_import_all">Importér alle</string>
+    <string name="menu_insert_marker">Indsæt markør</string>
+    <string name="menu_insert_photo">Indsæt billede</string>
+    <string name="menu_insert_gallery_img">Indsæt galleribillede</string>
+    <string name="menu_markers">Markører</string>
+    <string name="menu_search">Søg</string>
+    <string name="menu_select_all">Vælg alle</string>
+    <string name="menu_settings">Indstillinger</string>
+    <string name="menu_share">Del</string>
+    <string name="menu_show_on_map">Vis på kort</string>
+    <string name="menu_resume_track">Genoptag sporet</string>
+    <!-- OpenTracks -->
+    <string name="recording_service">Registreringstjeneste</string>
+    <!-- Permission -->
+    <string name="permission_gps_failed">OpenTracks kræver tilladelse til at bruge GPS.</string>
+    <!-- Search -->
+    <!-- Sensor State -->
+    <string name="sensor_state_heart_rate">Puls</string>
+    <string name="sensor_state_heart_rate_value">%1$d slag/min.</string>
+    <string name="sensor_state_power">Effekt</string>
+    <string name="sensor_could_not_scan">Kunne ikke scanne efter Bluetooth-enheder (fejl %1$i).</string>
+    <string name="bluetooth_disabled">Aktivér venligst Bluetooth.</string>
+    <!-- Settings Advanced -->
+    <string name="settings_advanced">Avanceret</string>
+    <!-- Settings Chart -->
+    <string name="settings_chart_by_distance">Efter afstand</string>
+    <string name="settings_chart_by_time">Efter tid</string>
+    <!-- Settings Recording -->
+    <string name="settings_recording_show_on_lockscreen_while_recording_title">Vis statistik på låseskærm</string>
+    <string name="settings_recording_show_on_lockscreen_while_recording_summary">Vis statistik, mens du optager, uden at låse enheden op.</string>
+    <string name="settings_recording_keep_screen_on_while_recording_title">Hold skærmen tændt</string>
+    <string name="settings_recording_keep_screen_on_while_recording_summary">Hold skærmen tændt, mens du optager.</string>
+    <string name="settings_recording_default_activity_title">Standardaktivitetstype</string>
+    <string name="settings_recording_location_frequency_summary">%1$s mellem registrerede placeringer</string>
+    <string name="settings_recording_max_recording_distance_summary">Et nyt segment oprettes, hvis afstanden mellem to placeringer er større end %1$s</string>
+    <string name="settings_recording_max_recording_distance_title">Maks. afstand</string>
+    <string name="settings_recording_min_recording_distance_title">Reg. af afstandsinterval</string>
+    <string name="settings_recording_min_recording_interval_title">Reg. af tidsinterval</string>
+    <string name="settings_recording_min_required_accuracy_title">GPS-nøjagtighed</string>
+    <string name="settings_recording_track_name_date_iso_8601_option">Dato (ISO 8601)</string>
+    <string name="settings_recording_track_name_date_local_option">Dato (lokal)</string>
+    <string name="settings_recording_track_name_number_option">Nummer</string>
+    <string name="settings_recording_track_name_title">Standardnavn på spor</string>
+    <!-- Settings Reset -->
+    <string name="settings_reset_confirm_message">Alle indstillinger vil blive ændret til standardværdierne..</string>
+    <string name="settings_reset_confirm_title">Vil du nulstille nu?</string>
+    <string name="settings_reset_done">Alle indstillinger er blevet gendannet til standardværdierne</string>
+    <!-- Settings Sensor -->
+    <!-- Settings Stats -->
+    <string name="settings_stats_rate_title">Foretrukken fartenhed</string>
+    <string name="settings_stats_units_imperial">Britisk (mil, ft)</string>
+    <string name="settings_stats_units_metric">Metrisk (km, m)</string>
+    <string name="settings_stats_units_title">Foretrukne enheder</string>
+    <!-- Share Track -->
+    <string name="share_track_share_file_body">Jeg tror, du måske er interesseret i dette spor.
+\n
+\n%1$s</string>
+    <string name="share_track_subject">Jeg vil gerne dele et spor med dig</string>
+    <!-- Stats -->
+    <string name="stats_average_moving_pace">Gns. bevægelsestempo</string>
+    <string name="stats_average_moving_speed">Gns. bevægelseshastighed</string>
+    <string name="stats_average_pace">Gns. tempo</string>
+    <string name="stats_average_speed">Gns. hastighed</string>
+    <string name="stats_altitude">Højde</string>
+    <string name="stats_fastest_pace">Hurtigste tempo</string>
+    <string name="stats_gain">Stigning</string>
+    <string name="stats_max_speed">Maks. hastighed</string>
+    <string name="stats_moving_time">Bevægelsestid</string>
+    <string name="stats_pace">Tempo</string>
+    <string name="stats_speed">Hastighed</string>
+    <string name="stats_distance">Afstand</string>
+    <string name="stats_total_time">Samlet tid</string>
+    <!-- Track -->
+    <string name="track_name_format">Spor %1$d</string>
+    <string name="track_recording_notification_accuracy">Lokationsnøjagtighed: %1$s</string>
+    <string name="track_markers">Markører på %1$s</string>
+    <!-- Track Delete -->
+    <string name="track_delete_one_confirm_message">Ruten og de tilhørende markører slettes permanent fra enheden.</string>
+    <string name="track_delete_one_confirm_title">Slet ruten\?</string>
+    <string name="track_delete_multiple_confirm_message">De valgte ruter og tilhørende markører slettes permanent fra enheden.</string>
+    <string name="track_delete_progress_message">Sletter…</string>
+    <!-- Track Detail -->
+    <string name="track_detail_stats_tab">Statistik</string>
+    <!-- Track Edit -->
+    <string name="track_edit_activity_type">Aktivitetstype (f.eks. vandretur)</string>
+    <string name="track_edit_activity_type_hint">Aktivitetstype</string>
+    <!-- Track List -->
+    <string name="track_list_empty_message">Her kan du gå i gang med at registrere dit næste eventyr</string>
+    <!-- Track Widget -->
+    <!-- Tracks -->
+    <!-- Unit -->
+    <string name="unit_feet">fod</string>
+    <string name="unit_kilometer">km</string>
+    <string name="unit_kilometer_per_hour">km/t</string>
+    <string name="unit_meter">m</string>
+    <string name="unit_mile">mil</string>
+    <string name="unit_mile_per_hour">mph</string>
+    <string name="unit_minute_per_kilometer">min./km</string>
+    <string name="unit_minute_per_mile">min./mil</string>
+    <!-- Value -->
+    <string name="value_integer_feet_excellent_gps">%1$d fod (fremragende GPS)</string>
+    <string name="value_integer_feet_recommended">%1$d fod (anbefales)</string>
+    <string name="value_integer_kilometer_hour">%1$d km/t</string>
+    <string name="value_integer_meter_excellent_gps">%1$d m (fremragende GPS)</string>
+    <string name="value_integer_meter_poor_gps">%1$d m (dårlig GPS)</string>
+    <string name="value_integer_meter_recommended">%1$d m (anbefalet)</string>
+    <string name="value_integer_mile_hour">%1$d mil/t</string>
+    <string name="value_integer_minute">%1$d min</string>
+    <string name="value_integer_second">%1$d sek</string>
+    <string name="value_none">Ingen</string>
+    <string name="value_off">Fra</string>
+    <string name="value_smallest_recommended">Mindst (anbefalet)</string>
+    <!-- Waypoint Type -->
+    <string name="waypoint_type_atm">Pengeautomat</string>
+    <string name="waypoint_type_bank">bank</string>
+    <string name="waypoint_type_bar">bar</string>
+    <string name="waypoint_type_barbecue">grillplads</string>
+    <string name="waypoint_type_building">bygning</string>
+    <string name="waypoint_type_bus_stop">busstoppested</string>
+    <string name="waypoint_type_cafe">café</string>
+    <string name="waypoint_type_campfire">lejrbål</string>
+    <string name="waypoint_type_campground">campingplads</string>
+    <string name="waypoint_type_church">kirke</string>
+    <string name="waypoint_type_coffee_house">kaffebar</string>
+    <string name="waypoint_type_convenience_store">døgnkiosk</string>
+    <string name="waypoint_type_drinking_water">drikkevand</string>
+    <string name="waypoint_type_falling_rocks">nedfaldende sten</string>
+    <string name="waypoint_type_ferry">færge</string>
+    <string name="waypoint_type_fire_place">bålplads</string>
+    <string name="waypoint_type_fire_station">brandstation</string>
+    <string name="waypoint_type_fishing">fiskeri</string>
+    <string name="waypoint_type_gas_station">tankstation</string>
+    <string name="waypoint_type_golf_course">golfbane</string>
+    <string name="waypoint_type_grocery_store">købmandsbutik</string>
+    <string name="waypoint_type_hair_dresser">frisør</string>
+    <string name="waypoint_type_harbor">havn</string>
+    <string name="waypoint_type_hiking_path">vandresti</string>
+    <string name="waypoint_type_hotel">hotel</string>
+    <string name="waypoint_type_house">hus</string>
+    <string name="waypoint_type_information">oplysninger</string>
+    <string name="waypoint_type_intersection">vejkryds</string>
+    <string name="waypoint_type_mail_box">postkasse</string>
+    <string name="waypoint_type_market">marked</string>
+    <string name="waypoint_type_meeting_point">mødested</string>
+    <string name="waypoint_type_opera">opera</string>
+    <string name="waypoint_type_parking">parkering</string>
+    <string name="waypoint_type_police_station">politistation</string>
+    <string name="waypoint_type_post_office">postkontor</string>
+    <string name="waypoint_type_pothole">hul i vejen</string>
+    <string name="waypoint_type_railway_crossing">jernbaneoverskæring</string>
+    <string name="waypoint_type_restaurant">restaurant</string>
+    <string name="waypoint_type_shopping">handle ind</string>
+    <string name="waypoint_type_sight">udsigt</string>
+    <string name="waypoint_type_store">butik</string>
+    <string name="waypoint_type_swimming_pool">swimmingpool</string>
+    <string name="waypoint_type_telephone">telefon</string>
+    <string name="waypoint_type_theater">teater</string>
+    <string name="waypoint_type_toilet">toilette</string>
+    <string name="waypoint_type_tourist_information">turistinformation</string>
+    <string name="waypoint_type_tree">træ</string>
+    <string name="waypoint_type_tunnel">kanal</string>
+    <string name="waypoint_type_waterfall">vandfald</string>
+    <string name="waypoint_type_water_fountain">springvand</string>
+    <string name="waypoint_type_waypoint">vejpunkt</string>
+    <!-- Share image -->
+    <string name="share_image_subject">Jeg vil gerne dele et billede med dig</string>
+    <string name="share_image_body">Jeg tror, du måske er interesseret i dette billede.</string>
+    <string name="activity_type_escooter">elløbehjulskørsel</string>
+    <string name="generic_click_twice_cancel">Stryg tilbage igen for at annullere</string>
+    <string name="import_unable_to_import_file">Kunne ikke importere filen:%1$s</string>
+    <string name="import_prevent_reimport">Du har slået genimport af spor fra</string>
+    <string name="settings_default_export_uri_title">Spor eksportmappe</string>
+    <string name="instant_export_enabled_summary">Eksporter spor til lagring, når optagelsen er færdig</string>
+    <string name="export_progress_summary_new_msg">Nye filer eksporteret</string>
+    <string name="instant_export_enabled_title">Øjeblikkelig eksport efter træning</string>
+    <string name="generic_separator_done_total">/</string>
+    <string name="generic_skip">Spring over</string>
+    <string name="description_altitude_loss">Fald: %1$d m (%2$d ft)</string>
+    <string name="export_error_post_workout">Eksport efter træning mislykkedes. Kontroller venligst om eksportmappen er opsat rigtigt.</string>
+    <string name="export_track_already_exists_msg">Filen %1$s findes allerede i destinationsmappen.</string>
+    <string name="export_all_do_it_for_all">gør for alle konflikter</string>
+    <string name="export_track_errors">Filer ikke eksporteret</string>
+    <string name="gps_disabled_msg">GPS deaktiveret</string>
+    <string name="gps_fixed_and_ready">GPS fastsat og klar</string>
+    <string name="import_no_kml_file_found">Ingen kml-fil fundet i KMZ</string>
+    <string name="sensor_state_cadence_avg">Gns. kadence</string>
+    <string name="sensor_state_cadence_max">Maks. kadence</string>
+    <string name="sensor_state_heart_rate_avg">Gns. Puls</string>
+    <string name="sensor_state_heart_rate_max">Maks. Puls</string>
+    <string name="sensor_state_power_avg">Gennemsnitlig effekt</string>
+    <string name="settings_default_trackfileformat">Eksport/del filformat</string>
+    <string name="settings_recording_fullscreen_on_while_recording_title">Fuld skærm</string>
+    <string name="settings_recording_fullscreen_on_while_recording_summary">Vis på fuld skærm under optagelse.</string>
+    <string name="settings_night_mode_title">Brugergrænsefladens tema</string>
+    <string name="settings_night_mode_option_system">System</string>
+    <string name="settings_night_mode_option_day">Dag</string>
+    <string name="settings_night_mode_option_night">Nat</string>
+    <string name="settings_sensor_wheel_circumference">Hjulomkreds (mm)</string>
+    <string name="stats_split_interval">Del interval</string>
+    <string name="interval_list_empty_message">Der er ikke noget interval endnu</string>
+    <string name="aggregated_stats_empty_message">Optag dit første spor for at se aggregerede statistikker</string>
+    <string name="track_detail_intervals_tab">Intervaller</string>
+    <string name="hold_to_stop">Hold for at stoppe</string>
+    <string name="settings_prevent_reimport_tracks_title">Forhindr genimport af spor</string>
+    <plurals name="generic_completed_with_errors">
+        <item quantity="one">Afsluttet med en fejl</item>
+        <item quantity="other">Afsluttet med %1$d fejl</item>
+    </plurals>
+    <string name="stats_loss">Fald</string>
+    <string name="export_progress_summary_overwrite_msg">Filer overskrevet</string>
+    <string name="export_progress_summary_skip_msg">Filer sprunget over</string>
+    <string name="export_progress_summary_errors_msg">Fejl</string>
+    <string name="generic_open_track">Åbn spor</string>
+    <string name="generic_completed">Afsluttet</string>
+    <string name="import_thread_interrupted">Tråden afbrudt</string>
+    <string name="import_unsupported_format">Ikke-understøttet filformat</string>
+    <string name="import_parser_error">Parserfejl:%1$s</string>
+    <string name="import_error_list_dialog_title">Filer ikke importeret</string>
+    <string name="import_progress_summary_ok_msg">Importerede filer</string>
+    <string name="import_progress_summary_exists_msg">Eksisterer allerede</string>
+    <string name="import_progress_summary_errors_msg">Fejl</string>
+    <string name="import_file_imported">Filen %1$s er importeret</string>
+    <string name="import_error_info">%1$s: %2$s</string>
+    <string name="generic_show_errors">Vis fejl</string>
+    <string name="generic_overwrite">Overskriv</string>
+    <string name="track_pace_notification">Fart: %1$s</string>
+    <string name="track_distance_notification">Afstand: %1$s</string>
+    <string name="track_speed_notification">Hastighed: %1$s</string>
+    <string name="about_third_party_data">Data fra tredjeparter</string>
+    <string name="menu_voice_rate">Stemmehastighed</string>
+    <string name="track_delete_not_recording">Dette spor kan ikke slettes, da det er registreret i øjeblikket.</string>
+    <string name="settings_sensor_cycling_distance_speed">Afstand og hastighed</string>
+    <string name="settings_sensor_cycling_cadence">Kadence</string>
+    <string name="settings_sensor_running_speed_and_cadence">Afstand, hastighed og kadence</string>
+    <string name="generic_today">I dag</string>
+    <string name="generic_yesterday">I går</string>
+    <string name="menu_filter">Filter</string>
+    <string name="settings_defaults_title">Standardenheder og aktivitet</string>
+    <string name="settings_defaults_summary">Foretrukne enheder, standardaktivitet, standardspornavn</string>
+    <string name="settings_gps_summary">Tidsinterval, distanceinterval, maksimal afstand, nøjagtighed</string>
+    <string name="settings_sensors_summary">Cykelsensorer, hjulomkreds, løbesensorer</string>
+    <string name="settings_announcements_statistics_title">Stemmemeddelelser</string>
+    <string name="settings_announcements_summary">Tid, afstand, stemmehastighed</string>
+    <string name="settings_import_export_title">Import/eksport</string>
+    <string name="settings_import_export_summary">Import, eksport, automatisk eksport</string>
+    <string name="settings_reset_summary">Nulstil indstillingerne til standardværdierne</string>
+    <string name="settings_recording_customize_layout_title">Tilpas dit registreringslayout</string>
+    <string name="settings_recording_customize_layout_select_columns">Datafelter pr. række</string>
+    <string name="settings_announcements_totaltime_frequency">Tidsinterval</string>
+    <string name="settings_announcements_distance_frequency">Afstandsinterval</string>
+    <string name="custom_layout_list_title">Opsætning</string>
+    <string name="custom_layout_list_edit_already_exists">Opsætningens navn findes allerede</string>
+    <string name="custom_layout_list_layout_removed">Opsæting blev fjernet</string>
+    <string name="settings_layout_reset">Nulstil brugerdefineret layout</string>
+    <string name="settings_layout_reset_confirm_title">Nulstil dine opsætninger\?</string>
+    <string name="stats_sensors_power">Strøm</string>
+    <string name="stats_sensors_cadence">Kadence</string>
+    <string name="stats_coordinates">Breddegrad/længdegrad</string>
+    <string name="field_remove_from_layout">Fjern</string>
+    <string name="field_set_secondary">Sekundær</string>
+    <string name="export_cannot_write_to_dir">Kan ikke skrive til eksportmappen.</string>
+    <string name="export_dir_not_writable">" (ikke skrivbar!)"</string>
+    <string name="menu_add_custom_layout">Nyt layout</string>
+    <string name="settings_sensors_title">Sensorer</string>
+    <string name="stats_custom_layout_default_layout">Standardlayout</string>
+    <string name="custom_layout_select_layout">Vælg layout</string>
+    <string name="settings_running_sensor">Kører</string>
+    <string name="settings_import_section">Importere</string>
+    <string name="settings_export_as_file_section">Eksport</string>
+    <string name="stats_clock">Ur</string>
+    <string name="value_float_mile_hour_recommended">%1$.1f mi/h (anbefalet)</string>
+    <string name="value_float_mile_hour">%1$.1f mi/h</string>
+    <string name="generic_to">Til</string>
+    <string name="generic_from">Fra</string>
+    <string name="settings_ui_title">Brugergrænseflade</string>
+    <string name="settings_gps_sensor">GPS</string>
+    <string name="settings_activity_defaults_category">Aktivitetens standardværdier</string>
+    <string name="settings_units_category">Enheder</string>
+    <string name="settings_layout_reset_done">Alle opsætningsindstillinger er blevet tilbageført til standardværdierne</string>
+    <string name="value_float_kilometer_hour_recommended">%1$.1f km/t (anbefalet)</string>
+    <string name="field_set_primary">Primært</string>
+    <string name="generic_choose_an_option">Vælg en mulighed</string>
+    <string name="settings_cycling_sensor">Cykling</string>
+    <string name="settings_generic_sensor">Generisk</string>
+    <string name="permission_bluetooth_failed">OpenTracks kræver tilladelse til at bruge Bluetooth.</string>
+    <string name="permission_bluetooth_failed_rejected">Du skal manuelt give OpenTracks adgang til Nearby Devices i systemindstillingerne.</string>
+    <string name="stats_sensors_heart_rate">Puls</string>
+    <string name="settings_sensor_bluetooth_service_filter_on">Vis kun Bluetooth-enheder, der annoncerer de krævede tjenester</string>
+    <string name="aggregated_stats_filter_no_results">Der er ingen aktiviteter for det angivne filter</string>
+    <string name="value_float_kilometer_hour">%1$.1f km/h</string>
+    <string name="generic_undo">Fortryd</string>
+    <string name="menu_select_layout">Vælg layout</string>
+    <string name="settings_ui_summary">Udseende, registreringslayout, tema</string>
+    <string name="description_speed_source_gps">GPS</string>
+    <string name="generic_filter">Filter</string>
+    <string name="custom_layout_list_edit_name">Skriv navnet på den opsætning, der skal tilføjes</string>
+    <string name="settings_layout_reset_confirm_message">Alle opsætningsindstillinger vil blive tilbageført til standardværdierne. Dette vil ikke slette registrede spor på enheden.</string>
+    <string name="settings_all_reset">Nulstil</string>
+    <string name="no_compatible_file_manager_installed">Ingen kompatibel filhåndtering installeret</string>
+    <string name="unit_minute_per_nautical_mile">min/NM</string>
+    <string name="activity_type_workout">kropstræning</string>
+    <string name="value_integer_knots">%1$d knob</string>
+    <string name="help_data_google_play_services_content">Nej</string>
+    <string name="menu_export_all_one_file">Eksporter alle (en fil for alle spor)</string>
+    <string name="track_delete_number_of_tracks">%1$d spor</string>
+    <string name="settings_public_api_package_title">Pakkenavn for den offentlige API</string>
+    <string name="settings_announcements_idle_category_title">Meddelelser om stilstand</string>
+    <string name="settings_stats_units_imperial_meter">Imperial (mi, m)</string>
+    <string name="settings_public_api_disabled_toast">OpenTracks offentlig API er slået fra; den kan slåes til i indstillingerne.</string>
+    <string name="image_discard">Kassér</string>
+    <string name="settings_public_api_enabled_summary_on">Andre installerede apps kan starte og stoppe registreringen.</string>
+    <string name="settings_ui_dynamic_colors_title">Dynamiske farver</string>
+    <string name="description_speed_nautical">Hastighed (knob)</string>
+    <string name="settings_sensor_heart_rate_max">Zoner: Maksimum puls (bpm)</string>
+    <string name="settings_announcements_average_heart_rate">Gennemsnitlig puls</string>
+    <string name="settings_recording_title">Registrering</string>
+    <string name="settings_ui_dynamic_colors_summary">Brug brugerdefinerede dynamiske farver (kun Android 12+; kræver manuel genstart)</string>
+    <string name="description_pace_nautical">Tempo (min./NN)</string>
+    <string name="settings_public_api_dashboard_enabled_summary_off">Registreret data vil ikke blive delt automatisk med andre apps.</string>
+    <string name="settings_stats_units_nautical">Maritimt (NM, ft)</string>
+    <string name="activity_type_swimming_open">svømning i åbent vand</string>
+    <string name="sensor_state_power_max">Maks. effekt</string>
+    <string name="settings_announcements_lap_heart_rate">Rundens puls</string>
+    <string name="activity_type_kickscooter">knallertkørsel</string>
+    <string name="settings_public_api_dashboard_enabled_title">Automatisk dataoverførsel</string>
+    <string name="settings_api_summary">Fjernkontrol og -statisik API til andre apps</string>
+    <string name="settings_sensor_bluetooth_service_filter_off">Vis alle synlige Bluetooth-enheder</string>
+    <string name="settings_api_title">Offentlig API</string>
+    <string name="unit_nautical_mile">sømil</string>
+    <string name="settings_announcements_lap_speed_pace">Rundens hastighed/tempo</string>
+    <string name="track_discarding">Kasserer Spor</string>
+    <string name="settings_public_api_enabled_title">Offentlig API</string>
+    <string name="settings_public_api_enabled_summary_off">Kun OpenTracks kan starte og stoppe registreringen.</string>
+    <string name="voiceIdle">Går til stilstand.</string>
+    <string name="generic_dismiss">Afvis</string>
+    <string name="settings_export_filename_title">Format på filnavnet</string>
+    <string name="value_float_knots">%1$.1f knob</string>
+    <string name="settings_public_api_dashboard_enabled_summary_on">En app der startede en registrering kan også tilgå de registrede data.</string>
+    <string name="settings_announcements_idle_title">Stillestående</string>
+    <string name="unit_knots">knob</string>
+    <string name="settings_recording_idle_timeout_title">Tid før stilstand aktiveres</string>
+    <string name="settings_announcements_average_speed_pace">Gennemsnitshastighed/tempo</string>
+    <string name="value_float_knots_recommended">%1$.1f knob (anbefalet)</string>
+    <string name="activity_type_swimming">svømning</string>
+    <string name="settings_recording_min_required_accuracy_summary">Placering ignoreres hvis nøjagtigheden er større end %1$s</string>
+    <string name="gps_recording_without_signal">OpenTracks optager uden GPS-data</string>
+    <string name="value_int_seconds">%1$d s (anbefalet)</string>
+    <string name="settings_sensor_bluetooth_service_filter_title">Filtrer Bluetooth-enheder</string>
+    <string name="settings_recording_show_gps_disabled_warning_summary">Viser en advarsel under registrering hvis GPS er deaktiveret.</string>
+    <string name="settings_locale_title">Sprog</string>
+    <string name="stats_gain_loss">Vundet &amp; Tabt</string>
+    <string name="voiceHoursPlural">{n, plural, =1 {1 time} other {{n,number} timer} }</string>
+    <string name="show_on_dashboard_not_installed">Ingen applikation der understøtter OpenTracks Dashboard API installeret.</string>
+    <string name="permission_recording_failed">OpenTracks kræver adgang til din lokation såvel som enheder i nærheden.</string>
+    <string name="create_marker_error">Markør kan ikke oprettes. Prøv igen.</string>
+    <string name="settings_recording_min_sampling_interval_title">Tidsinterval mellem samplinger</string>
+    <string name="settings_night_mode_option_day_dynamic">Dag (DynamicColor)</string>
+    <string name="voiceSpeedKilometersPerHourPlural">{n, plural, =1 {1 kilometer i timen} other {{n,number,#.0} kilometre i timen} }</string>
+    <string name="settings_chart_display_elevation_title">Vis højde</string>
+    <string name="settings_chart_display_pace_or_speed_title">Vis tempo eller hastighed</string>
+    <string name="settings_chart_display_heart_rate_title">Vis puls</string>
+    <string name="settings_charts_title">Grafer</string>
+    <string name="settings_theme_switch_restart">Tema-ændringer kræver muligvis en manuel genstart.</string>
+    <string name="settings_recording_show_gps_disabled_warning_title">Advar om deaktiveret GPS</string>
+    <string name="settings_locale_system_default">Systemstandard</string>
+    <string name="settings_night_mode_option_night_dynamic">Nat (DynamicColor)</string>
+    <string name="settings_night_mode_option_night_oled">OLED-venlig</string>
+    <string name="settings_night_mode_option_night_oled_dynamic">OLED-venlig (DynamicColor)</string>
+    <string name="settings_announcements_unit">Distance/hastigheds-enhed</string>
+    <string name="track_edit_time_offset">Tidszone-forskydning</string>
+    <string name="value_internal_sensor">Intern sensor</string>
+    <string name="voiceMinutesPlural">{n, plural, =1 {1 minut} other {{n,number} minutter} }</string>
+    <string name="voiceSecondsPlural">{n, plural, =1 {1 sekund} other {{n,number} sekunder} }</string>
+    <string name="voiceSpeedMilesPerHourPlural">{n, plural, =1 {1 mil i timer} other {{n,number,#.0} mil i timen} }</string>
+    <string name="voiceSpeedMKnotsPlural">{n, plural, =1 {1 knob} other {{n,number,#.0} knob} }</string>
+    <string name="voice_on_device_speaker_title">Brug enhedens højttaler</string>
+    <string name="voice_per_mile">per mil</string>
+    <string name="voice_per_nautical_mile">per sømil</string>
+    <string name="lap_time">Omgangstid</string>
+    <string name="pace">Tempo</string>
+    <string name="lap_speed">Omgangshastighed</string>
+    <string name="speed">Gennemsnitlig bevægelseshastighed</string>
+    <string name="total_distance">Samlet distance</string>
+    <string name="voiceDistanceMilesPlural">{n, plural, =1 {1 mil} other {{n,number,#.0} mil} }</string>
+    <string name="voiceDistanceNauticalMilesPlural">{n, plural, =1 {1 sømil} other {{n,number,#.0} sømil} }</string>
+    <string name="average_heart_rate">Gennemsnitspuls</string>
+    <string name="current_heart_rate">Aktuel puls</string>
+    <string name="lap_heart_rate">Omgangspuls</string>
+    <string name="no_compatible_camera_installed">Ingen kompatibel kameraapplikation installeret</string>
+    <string name="no_compatible_gallery_installed">Ingen kompatibel billedgalleriapplikation installeret</string>
+    <string name="error_crash_title">%1$s gik ned</string>
+    <string name="share_crash_report">Del fejlrapport</string>
+    <string name="report_bug">Rapporter fejl</string>
+    <string name="introduction_osm_dashboard">OpenTracks indeholder ikke selv et kort. Installer venligst OSMDashboard for at se registreringer på et kort.</string>
+    <string name="settings_recording_location_distance_summary">%1$s mellem registrerede lokationer</string>
+    <string name="settings_announcements_lap_power">Omgangseffekt</string>
+    <string name="power_x_watt">Power {x, plural, =1 {1 watt} other {# watt} }</string>
+    <string name="power">Effekt</string>
+    <string name="marker_detail_title">%1$d af %2$d: %3$s</string>
+    <string name="sensor_state_temperature">Termometer</string>
+    <string name="stats_sensors_temperature">Temperatur</string>
+    <string name="sensor_state_cadence_unit">o/m</string>
+    <string name="sensor_state_heart_rate_unit">slag/min.</string>
+    <string name="settings_announcements_segment_average_speed_pace">Gennemsnitshastighed/tempo (segment)</string>
+    <string name="stats_average_segment_pace">Gns. segment-tempo</string>
+    <string name="stats_elapsed_segment_time">Forløbet segmentid</string>
+</resources>

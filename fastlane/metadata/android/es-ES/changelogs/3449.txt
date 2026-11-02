@@ -1,0 +1,11 @@
+v3.7.6: OpenTracks
+
+Cambios:
+- Modo horizontal
+- La interfaz de usuario para borrar rutas ahora es solo un indicador giratorio
+- La velocidad se exporta e importa (GPX/KML/KMZ)
+- El formato de exportación predeterminado es KMZ, incluyendo todos los datos y las imágenes
+
+Desarrollador:
+- Se han sustituido las AsyncTasks por hilos
+- Sincronización: se genera un UUID por cada ruta (aún no se exporta)

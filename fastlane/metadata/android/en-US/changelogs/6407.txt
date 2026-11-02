@@ -1,0 +1,10 @@
+v4.23.2: OpenTracks
+
+Changes:
+- Predictive back works completely
+
+Bugfix:
+- Fixed in crash related to the track filename in the settings
+
+Developer:
+- Introduced data class for Statistics

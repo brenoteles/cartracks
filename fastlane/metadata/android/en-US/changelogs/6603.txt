@@ -1,0 +1,12 @@
+v4.26.0: OpenTracks
+
+Changes:
+- GPS is optional: configurable in the settings
+- BLE sensor address/name is only shown after successful connection
+
+Bugfix:
+- Altitude is now shown again in EGM2008 (introduced in v4.25.0)
+- Altitude and speed were shown as 0.0 briefly when data was stored
+
+Developer:
+- Refactored sensor subsystem

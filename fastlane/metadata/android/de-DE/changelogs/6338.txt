@@ -1,0 +1,10 @@
+v4.23.0: OpenTracks
+
+Änderungen:
+- Benutzeroberfläche: Durchschnittsgeschwindigkeit des aktuellen Segments hinzugefügt
+  (derzeit nur in neuen Layouts verfügbar)
+- Durch Klicken auf die Benachrichtigung wird die eigentliche Aufzeichnungs-Benutzeroberfläche geöffnet
+
+Entwickler:
+- Veralteter JobIntentService durch WorkManager ersetzt
+- Verwende .isEmpty() außer für CharSequence und Stream.toList()

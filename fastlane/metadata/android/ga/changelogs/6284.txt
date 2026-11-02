@@ -1,0 +1,4 @@
+v4.22.0: OpenTracks
+
+Athruithe:
+- Aistriú go https://codeberg.org/OpenTracksApp/OpenTracks

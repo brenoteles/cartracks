@@ -1,0 +1,11 @@
+v3.3.1: OpenTracks
+
+Cambios:
+- Android 10: permite conservar datos al desinstalar
+- API Dashboard: icono de mapa para abrir la pista en app externa (ej. OSMDashboard)
+
+Corrección de errores:
+- Se corrigió el nombre de la app (roto en v3.3.0)
+
+Desarrollador:
+- Documentación de la API Dashboard en README_DEVELOPER.md

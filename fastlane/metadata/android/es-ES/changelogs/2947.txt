@@ -1,0 +1,17 @@
+v3.0.1: OpenTracks
+
+Cambios:
+- Compartir marcadores
+- Configuración reestructurada
+- Se ha eliminado el botón «Atrás» de la barra de acciones
+- Exportación: se ha eliminado la opción de configuración del tamaño de las fotos
+- Exportación: ahora se puede seleccionar el formato KML
+
+Correcciones de errores:
+- El directorio de exportación es ahora /OpenTracks/
+- El modo horizontal ya no provoca fallos
+- Se ha corregido la exportación a KML/KMZ
+
+Desarrollador:
+- Las pruebas se pueden ejecutar (aunque muchas fallan)
+- Se ha habilitado la integración continua con TravisCI (sin pruebas)
