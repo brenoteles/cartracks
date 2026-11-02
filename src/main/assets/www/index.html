@@ -4,17 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>CarTracks</title>
+  
+  <!-- Apple Typography (Inter - Twin oficial do SF Pro) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="framework7.min.css">
   <link rel="stylesheet" href="leaflet.css">
+
   <style>
     /* ========================================================
-       APPLE HIG & COLOTA INSPIRED DESIGN SYSTEM
+       APPLE HIG & COLOTA COMPLETE DESIGN SYSTEM
        ======================================================== */
     :root {
       --apple-bg: #000000;
-      --apple-card-bg: #1c1c1e;
+      --apple-card: #1c1c1e;
       --apple-card-elevated: #2c2c2e;
-      --apple-separator: rgba(255, 255, 255, 0.12);
+      --apple-card-border: rgba(255, 255, 255, 0.08);
       --apple-blue: #0A84FF;
       --apple-green: #30D158;
       --apple-orange: #FF9F0A;
@@ -23,13 +30,13 @@
       --apple-indigo: #5E5CE6;
       --apple-label: #FFFFFF;
       --apple-secondary-label: #8E8E93;
-      --apple-tertiary-label: #636366;
+      --apple-tertiary-label: #48484A;
 
       --f7-theme-color: #0A84FF;
       --f7-theme-color-rgb: 10, 132, 255;
-      --f7-bars-bg-color: rgba(28, 28, 30, 0.85);
+      --f7-bars-bg-color: rgba(20, 20, 22, 0.88);
       --f7-bars-text-color: #FFFFFF;
-      --f7-navbar-bg-color: rgba(28, 28, 30, 0.85);
+      --f7-navbar-bg-color: rgba(20, 20, 22, 0.88);
       --f7-navbar-text-color: #FFFFFF;
       --f7-navbar-link-color: #0A84FF;
       --f7-page-bg-color: #000000;
@@ -37,28 +44,33 @@
       --f7-text-color: #FFFFFF;
     }
 
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif !important;
       background-color: var(--apple-bg) !important;
       color: var(--apple-label);
-      letter-spacing: -0.3px;
+      letter-spacing: -0.025em;
       margin: 0;
       padding: 0;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Apple Frosted Glass Navbar */
+    /* Apple Frosted Glass Header */
     .navbar, .navbar-bg {
-      background-color: rgba(20, 20, 22, 0.88) !important;
+      background-color: rgba(18, 18, 20, 0.85) !important;
       backdrop-filter: blur(25px) saturate(190%) !important;
       -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
-      border-bottom: 0.5px solid var(--apple-separator) !important;
+      border-bottom: 0.5px solid var(--apple-card-border) !important;
     }
     .navbar .title {
       font-size: 17px !important;
       font-weight: 700 !important;
-      letter-spacing: -0.4px !important;
-      color: #ffffff !important;
+      letter-spacing: -0.03em !important;
+      color: #FFFFFF !important;
     }
     .navbar a.link {
       color: var(--apple-blue) !important;
@@ -66,35 +78,61 @@
       font-size: 16px !important;
     }
 
-    /* Apple Tabbar */
+    /* Apple Cupertino Bottom Tabbar com Espaçamento de Gestos (Galaxy S24 Ultra) */
     .toolbar-bottom, .toolbar-bottom .toolbar-bg {
-      background-color: rgba(20, 20, 22, 0.92) !important;
+      background-color: rgba(18, 18, 20, 0.94) !important;
       backdrop-filter: blur(25px) saturate(190%) !important;
       -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
-      border-top: 0.5px solid var(--apple-separator) !important;
+      border-top: 0.5px solid var(--apple-card-border) !important;
+      padding-bottom: 26px !important; /* Espaço para barra de gestos */
+      height: 78px !important;
     }
     .tabbar a {
       color: var(--apple-secondary-label) !important;
       font-weight: 500;
       font-size: 11px;
       transition: all 0.2s ease;
+      padding-top: 4px;
     }
     .tabbar a.tab-link-active {
       color: var(--apple-blue) !important;
+      font-weight: 600;
     }
     .tabbar-icon {
-      font-size: 20px;
+      font-size: 21px;
       margin-bottom: 2px;
       display: block;
     }
+    .page-content {
+      padding-bottom: 125px !important; /* Evita que o conteúdo cole na barra */
+    }
 
-    /* Apple Inset Cards */
+    /* Apple Dynamic Island Live Banner */
+    .dynamic-island-banner {
+      background: rgba(28, 28, 30, 0.95);
+      border: 1px solid rgba(48, 209, 88, 0.4);
+      border-radius: 9999px;
+      padding: 8px 16px;
+      margin: 10px 16px 4px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(48, 209, 88, 0.25);
+      cursor: pointer;
+      animation: pulseGreen 2s infinite ease-in-out;
+    }
+    @keyframes pulseGreen {
+      0%, 100% { border-color: rgba(48, 209, 88, 0.4); }
+      50% { border-color: rgba(48, 209, 88, 0.9); }
+    }
+
+    /* Apple Inset Grouped Cards */
     .apple-card {
-      background: var(--apple-card-bg);
-      border-radius: 18px;
+      background: var(--apple-card);
+      border-radius: 20px;
       padding: 16px;
       margin: 12px 16px;
-      border: 0.5px solid var(--apple-separator);
+      border: 0.5px solid var(--apple-card-border);
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
     }
     .apple-card-header {
@@ -104,20 +142,38 @@
       margin-bottom: 12px;
     }
     .apple-card-title {
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
       color: var(--apple-secondary-label);
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.5px;
     }
-    .apple-pill {
-      background: rgba(10, 132, 255, 0.15);
-      color: var(--apple-blue);
-      font-size: 11.5px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      letter-spacing: -0.2px;
+
+    /* Apple Segmented Control (Filtro de Período) */
+    .apple-segmented {
+      display: flex;
+      background: #2c2c2e;
+      border-radius: 12px;
+      padding: 3px;
+      margin: 8px 16px 14px 16px;
+      gap: 2px;
+    }
+    .apple-seg-btn {
+      flex: 1;
+      text-align: center;
+      padding: 7px 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--apple-secondary-label);
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .apple-seg-btn.active {
+      background: #636366;
+      color: #FFFFFF;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
 
     /* Apple Telemetry Metrics Grid */
@@ -131,7 +187,7 @@
       border-radius: 14px;
       padding: 12px 8px;
       text-align: center;
-      border: 0.5px solid rgba(255, 255, 255, 0.06);
+      border: 0.5px solid rgba(255, 255, 255, 0.05);
     }
     .metric-val {
       font-size: 17px;
@@ -152,27 +208,66 @@
       color: #FFFFFF !important;
       font-weight: 700 !important;
       font-size: 16px !important;
-      border-radius: 14px !important;
+      border-radius: 16px !important;
       height: 52px !important;
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
       box-shadow: 0 4px 16px rgba(10, 132, 255, 0.4) !important;
-      letter-spacing: -0.3px !important;
       border: none !important;
+      letter-spacing: -0.3px;
     }
     .apple-btn-green {
       background: linear-gradient(135deg, #30D158 0%, #248A3D 100%) !important;
-      box-shadow: 0 4px 16px rgba(48, 209, 88, 0.4) !important;
+      box-shadow: 0 4px 16px rgba(48, 209, 88, 0.35) !important;
+    }
+    .apple-btn-red {
+      background: linear-gradient(135deg, #FF453A 0%, #C9261E 100%) !important;
+      box-shadow: 0 4px 16px rgba(255, 69, 58, 0.4) !important;
+    }
+    .apple-btn-pill {
+      border-radius: 9999px !important;
+    }
+
+    /* Favorites Home/Work Cards */
+    .places-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .place-item {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 14px;
+      padding: 10px 12px;
+      border: 0.5px solid var(--apple-card-border);
+      cursor: pointer;
+    }
+    .place-icon {
+      font-size: 18px;
+    }
+    .place-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-top: 4px;
+    }
+    .place-desc {
+      font-size: 11px;
+      color: var(--apple-secondary-label);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 2px;
     }
 
     /* Trip Inset List */
     .trip-item-apple {
-      background: var(--apple-card-bg);
-      border-radius: 16px;
+      background: var(--apple-card);
+      border-radius: 18px;
       padding: 15px;
       margin: 10px 16px;
-      border: 0.5px solid var(--apple-separator);
+      border: 0.5px solid var(--apple-card-border);
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
       cursor: pointer;
       transition: transform 0.15s ease, background 0.15s ease;
@@ -221,49 +316,39 @@
     .tag-blue { color: var(--apple-blue); background: rgba(10, 132, 255, 0.15); }
     .tag-orange { color: var(--apple-orange); background: rgba(255, 159, 10, 0.15); }
     .tag-red { color: var(--apple-red); background: rgba(255, 69, 58, 0.15); }
+    .tag-green { color: var(--apple-green); background: rgba(48, 209, 88, 0.15); }
 
-    /* Apple Maps & Colota Style Interactive Map Modal */
+    /* Map Controls & Fullscreen Expansion */
     #detail-map {
-      height: 380px;
+      height: 360px;
       width: 100%;
       border-radius: 20px;
-      border: 0.5px solid var(--apple-separator);
+      border: 0.5px solid var(--apple-card-border);
       box-shadow: 0 8px 30px rgba(0,0,0,0.6);
       background: #121214;
+      transition: height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #detail-map.map-expanded {
+      height: calc(100vh - 180px) !important;
     }
 
-    /* Colota-style Point Inspector Bubble */
-    .colota-inspector-card {
-      background: rgba(28, 28, 30, 0.95);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 14px;
-      padding: 10px 14px;
-      border: 0.5px solid rgba(255, 255, 255, 0.15);
-      color: #FFFFFF;
-      font-size: 12px;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.5);
-      pointer-events: none;
-    }
-
-    /* Floating Apple Map Control Buttons */
     .map-floating-bar {
       position: absolute;
-      top: 24px;
-      right: 24px;
+      top: 16px;
+      right: 16px;
       z-index: 1000;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
     .map-glass-btn {
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       border-radius: 12px;
-      background: rgba(28, 28, 30, 0.85);
+      background: rgba(28, 28, 30, 0.88);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 0.5px solid var(--apple-separator);
+      border: 0.5px solid var(--apple-card-border);
       color: #FFFFFF;
       display: flex;
       align-items: center;
@@ -273,7 +358,7 @@
       cursor: pointer;
     }
 
-    /* Apple Speed Profile Bar */
+    /* Apple Speed Profile Bar (Colota) */
     .speed-bar-colota {
       display: flex;
       height: 8px;
@@ -295,15 +380,34 @@
       margin: 0 auto 12px auto;
     }
 
-    /* Fuel Card Apple Wallet style */
-    .fuel-wallet-card {
-      background: linear-gradient(145deg, #1c1c1e 0%, #252528 100%);
-      border-radius: 16px;
-      padding: 16px;
-      margin: 10px 16px;
-      border: 0.5px solid var(--apple-separator);
-      border-left: 5px solid var(--apple-blue);
-      box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+    /* Live Cockpit Speedometer */
+    .speedo-circle {
+      text-align: center;
+      padding: 20px 0 10px 0;
+    }
+    .speedo-num {
+      font-size: 78px;
+      font-weight: 900;
+      letter-spacing: -2px;
+      color: #FFFFFF;
+      line-height: 1;
+    }
+    .speedo-unit {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--apple-blue);
+      letter-spacing: 2px;
+      margin-top: 4px;
+    }
+
+    /* Live Map Container */
+    #live-map {
+      height: 280px;
+      width: 100%;
+      border-radius: 18px;
+      border: 0.5px solid var(--apple-card-border);
+      background: #121214;
+      margin-top: 14px;
     }
   </style>
 </head>
@@ -323,24 +427,35 @@
             <div class="navbar-inner">
               <div class="title">🚗 CarTracks</div>
               <div class="right">
-                <a href="#" class="link" onclick="AndroidBridge.openSettings()" style="font-size: 20px; padding-right: 14px;">⚙️</a>
+                <a href="#" class="link" onclick="AndroidBridge.openSettings()" style="font-size: 20px; padding-right: 16px;">⚙️</a>
               </div>
             </div>
           </div>
 
-          <div class="page-content" style="padding-bottom: 90px;">
+          <div class="page-content">
+
+            <!-- Banner Flutuante de Gravação Ativa (Estilo Dynamic Island) -->
+            <div id="dynamic-live-banner" class="dynamic-island-banner" style="display: none;" onclick="reopenLiveCockpit()">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 14px;">🔴</span>
+                <span style="font-weight: 700; font-size: 13.5px; color: #fff;">Viagem em Andamento</span>
+                <span id="live-banner-spd" class="apple-tag tag-green">0 km/h</span>
+              </div>
+              <span style="color: var(--apple-blue); font-size: 12.5px; font-weight: 600;">Abrir Cockpit ›</span>
+            </div>
+
             <!-- Apple Style Consolidated Summary Card -->
             <div class="apple-card">
               <div class="apple-card-header">
-                <div class="apple-card-title">🚘 Painel do Veículo</div>
-                <div class="apple-pill">Colota Telemetria</div>
+                <div class="apple-card-title">🚘 Painel da Garagem</div>
+                <div id="period-summary-pill" class="apple-tag tag-blue">Todas as Viagens</div>
               </div>
               
-              <div style="font-size: 28px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.6px;" id="dash-km-total">
+              <div style="font-size: 28px; font-weight: 900; color: #FFFFFF; letter-spacing: -0.6px;" id="dash-km-total">
                 Carregando...
               </div>
               <div style="font-size: 13px; color: var(--apple-secondary-label); margin-top: 2px;">
-                Estatísticas acumuladas de condução
+                Quilometragem acumulada no período
               </div>
 
               <!-- Apple Grid Metrics -->
@@ -359,26 +474,50 @@
                 </div>
               </div>
 
-              <!-- Frequências de Viagem (Apple Inset Subcard) -->
-              <div style="margin-top: 14px; background: rgba(0,0,0,0.3); padding: 12px 14px; border-radius: 12px; border: 0.5px solid rgba(255,255,255,0.06); font-size: 13px;">
-                <div id="dash-dest-fav" style="color: #FFFFFF; font-weight: 500;">📍 <b>Destino frequente:</b> Carregando...</div>
-                <div style="margin-top: 6px; color: #FFFFFF; font-weight: 500;" id="dash-station-fav">⛽ <b>Posto frequente:</b> Carregando...</div>
+              <!-- Locais Salvos (Casa & Trabalho) -->
+              <div class="places-grid">
+                <div class="place-item" onclick="openLocationModal('home')">
+                  <div class="place-icon">🏠</div>
+                  <div class="place-name" id="home-name">Casa</div>
+                  <div class="place-desc" id="home-desc">Toque para configurar</div>
+                </div>
+                <div class="place-item" onclick="openLocationModal('work')">
+                  <div class="place-icon">🏢</div>
+                  <div class="place-name" id="work-name">Trabalho</div>
+                  <div class="place-desc" id="work-desc">Toque para configurar</div>
+                </div>
               </div>
             </div>
 
-            <!-- Botão Iniciar Nova Viagem (Apple Pill Action) -->
-            <div style="margin: 0 16px 16px 16px;">
+            <!-- Botão Iniciar Viagem no GPS (Apple Action Pill) -->
+            <div style="margin: 0 16px 14px 16px;">
               <button class="button apple-btn-primary apple-btn-green" onclick="AndroidBridge.startNewTrip()">
                 ▶️ Iniciar Viagem no GPS
               </button>
             </div>
 
-            <!-- Lista de Viagens Estilo Apple / Colota -->
+            <!-- Apple Segmented Control: Filtro por Período de Tempo -->
+            <div class="apple-segmented">
+              <div class="apple-seg-btn" id="seg-today" onclick="filterByPeriod('today')">Hoje</div>
+              <div class="apple-seg-btn" id="seg-week" onclick="filterByPeriod('week')">7 Dias</div>
+              <div class="apple-seg-btn" id="seg-month" onclick="filterByPeriod('month')">Este Mês</div>
+              <div class="apple-seg-btn active" id="seg-all" onclick="filterByPeriod('all')">Todas</div>
+              <div class="apple-seg-btn" id="seg-custom" onclick="openCustomDateFilter()">📅 Filtrar</div>
+            </div>
+
+            <!-- Botão para Ver Todos os Percursos do Período no Mapa -->
+            <div id="btn-period-map" style="display: none; margin: 0 16px 14px 16px;">
+              <button class="button apple-btn-primary" onclick="showAllPeriodTripsOnMap()" style="height: 42px; font-size: 14px; background: #2c2c2e; border: 0.5px solid var(--apple-card-border); box-shadow: none;">
+                🗺️ Ver Todos os Trajetos do Período no Mapa
+              </button>
+            </div>
+
+            <!-- Lista de Viagens Estilo Apple -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 18px 18px 8px 18px;">
-              <span style="font-size: 13px; font-weight: 600; color: var(--apple-secondary-label); text-transform: uppercase; letter-spacing: 0.6px;">
-                Histórico de Viagens
+              <span style="font-size: 13px; font-weight: 600; color: var(--apple-secondary-label); text-transform: uppercase; letter-spacing: 0.6px;" id="trips-section-header">
+                Viagens Registradas
               </span>
-              <span style="font-size: 12px; color: var(--apple-blue); font-weight: 600;">Toque para inspecionar</span>
+              <span style="font-size: 12px; color: var(--apple-blue); font-weight: 600;" id="trips-count-badge">0 viagens</span>
             </div>
             
             <div id="trips-container">
@@ -398,12 +537,12 @@
             <div class="navbar-inner">
               <div class="title">⛽ Abastecimento</div>
               <div class="right">
-                <a href="#" class="link" onclick="openFuelSheet()" style="font-weight: 700; color: var(--apple-blue); font-size: 15px; padding-right: 14px;">+ Novo</a>
+                <a href="#" class="link" onclick="openFuelSheet()" style="font-weight: 700; color: var(--apple-blue); font-size: 15px; padding-right: 16px;">+ Novo</a>
               </div>
             </div>
           </div>
           
-          <div class="page-content" style="padding-bottom: 90px;">
+          <div class="page-content">
             <div style="margin: 16px;">
               <button class="button apple-btn-primary" onclick="openFuelSheet()">
                 ⛽ Registrar Abastecimento
@@ -411,7 +550,7 @@
             </div>
 
             <div style="margin: 18px 18px 8px 18px; font-size: 13px; font-weight: 600; color: var(--apple-secondary-label); text-transform: uppercase; letter-spacing: 0.6px;">
-              Registros Anteriores
+              Histórico no Veículo
             </div>
             <div id="fuel-history-container">
               <!-- Renderizado via JS -->
@@ -421,7 +560,7 @@
       </div>
 
       <!-- ==========================================
-           APPLE TABBAR INFERIOR (Cupertino Blur)
+           APPLE TABBAR INFERIOR (Elevado com Safe Area)
            ========================================== -->
       <div class="toolbar toolbar-bottom tabbar tabbar-icons">
         <div class="toolbar-bg"></div>
@@ -440,7 +579,67 @@
     </div>
 
     <!-- ==========================================
-           POPUP DE TELEMETRIA & MAPA (COLOTA STYLE)
+           LIVE COCKPIT MODAL (Substitui tela antiga)
+           ========================================== -->
+    <div class="popup popup-live-cockpit" style="background: var(--apple-bg);">
+      <div class="page" style="background: var(--apple-bg);">
+        <div class="navbar">
+          <div class="navbar-bg"></div>
+          <div class="navbar-inner">
+            <div class="title" style="color: #fff; font-weight: 800;">🔴 Cockpit Veicular Ativo</div>
+            <div class="right">
+              <a class="link popup-close" href="#" style="color: var(--apple-blue); font-weight: 600; padding-right: 14px;">Minimizar 🔽</a>
+            </div>
+          </div>
+        </div>
+        
+        <div class="page-content" style="padding: 16px; padding-bottom: 50px;">
+          <!-- Velocímetro Digital Apple -->
+          <div class="apple-card" style="margin: 0; background: linear-gradient(180deg, #1c1c1e 0%, #151518 100%);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="apple-tag tag-red">● GRAVAÇÃO GPS ATIVA</span>
+              <span id="live-clock" style="font-size: 13px; color: var(--apple-secondary-label); font-weight: 600;">00:00:00</span>
+            </div>
+
+            <div class="speedo-circle">
+              <div class="speedo-num" id="live-speed-display">0</div>
+              <div class="speedo-unit">KM/H</div>
+            </div>
+
+            <!-- Métricas Live -->
+            <div class="metrics-grid" style="margin-top: 10px;">
+              <div class="metric-cell">
+                <div class="metric-val" id="live-dist-display" style="color: var(--apple-green);">0.0 km</div>
+                <div class="metric-lbl">Distância</div>
+              </div>
+              <div class="metric-cell">
+                <div class="metric-val" id="live-maxspd-display" style="color: var(--apple-orange);">0 km/h</div>
+                <div class="metric-lbl">Vel. Máxima</div>
+              </div>
+              <div class="metric-cell">
+                <div class="metric-val" id="live-fuel-display" style="color: var(--apple-mint);">R$ 0,00</div>
+                <div class="metric-lbl">Custo Est.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mapa Live do Cockpit -->
+          <div style="position: relative;">
+            <div id="live-map"></div>
+          </div>
+
+          <!-- Botão de Finalizar Viagem -->
+          <div style="margin-top: 18px;">
+            <button class="button apple-btn-primary apple-btn-red" onclick="finishLiveTrip()">
+              ⏹️ Finalizar e Salvar Viagem
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+           POPUP DE DETALHES DA VIAGEM COM MAPA EXPANSÍVEL
            ========================================== -->
     <div class="popup popup-trip-detail" style="background: var(--apple-bg);">
       <div class="page" style="background: var(--apple-bg);">
@@ -460,31 +659,32 @@
           <div style="position: relative;">
             <div id="detail-map"></div>
             
-            <!-- Botões Flutuantes de Ação no Mapa (Estilo Apple Maps) -->
+            <!-- Botões Flutuantes: Centralizar, Alternar OSM e EXPANDIR MAPA MAIOR -->
             <div class="map-floating-bar">
+              <div class="map-glass-btn" onclick="toggleMapFullscreen()" id="btn-expand-map" title="Expandir Mapa Maior">⛶</div>
               <div class="map-glass-btn" onclick="recenterMap()" title="Centralizar Percurso">🎯</div>
               <div class="map-glass-btn" onclick="toggleMapTiles()" title="Alternar Camada OSM">🗺️</div>
             </div>
           </div>
 
-          <!-- Apple Style Point Inspector Box (Inspiração Colota) -->
-          <div id="colota-inspector" style="margin-top: 14px; background: rgba(28, 28, 30, 0.9); border-radius: 14px; padding: 12px 16px; border: 0.5px solid var(--apple-separator); display: flex; justify-content: space-between; align-items: center;">
+          <!-- Inspetor de Pontos Interativo (Colota) -->
+          <div id="colota-inspector" style="margin-top: 14px; background: rgba(28, 28, 30, 0.95); border-radius: 14px; padding: 12px 16px; border: 0.5px solid var(--apple-card-border); display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <div style="font-size: 11px; color: var(--apple-secondary-label); text-transform: uppercase; font-weight: 600;">Inspetor de Trajeto (Colota)</div>
+              <div style="font-size: 11px; color: var(--apple-secondary-label); text-transform: uppercase; font-weight: 600;">Inspetor de Trajeto</div>
               <div id="inspector-status" style="font-size: 14px; font-weight: 700; color: #ffffff; margin-top: 2px;">Toque em qualquer trecho do trajeto</div>
             </div>
-            <div id="inspector-badge" class="apple-pill" style="display: none;">0 km/h</div>
+            <div id="inspector-badge" class="apple-tag tag-blue" style="display: none; font-size: 13px; font-weight: 800;">0 km/h</div>
           </div>
 
           <!-- Legenda de Velocidades Apple -->
-          <div style="display: flex; justify-content: space-around; background: var(--apple-card-bg); padding: 10px; border-radius: 12px; border: 0.5px solid var(--apple-separator); margin-top: 12px; font-size: 11.5px; color: var(--apple-secondary-label); font-weight: 600;">
+          <div style="display: flex; justify-content: space-around; background: var(--apple-card); padding: 10px; border-radius: 12px; border: 0.5px solid var(--apple-card-border); margin-top: 12px; font-size: 11.5px; color: var(--apple-secondary-label); font-weight: 600;">
             <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: var(--apple-green);"></span>&lt; 40 km/h (Urbano)</div>
             <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: var(--apple-orange);"></span>40-80 km/h (Fluido)</div>
             <div style="display: flex; align-items: center; gap: 6px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: var(--apple-red);"></span>&gt; 80 km/h (Rodovia)</div>
           </div>
 
           <!-- Cartão de Detalhes da Viagem Selecionada -->
-          <div class="apple-card" style="margin: 14px 0 0 0;">
+          <div class="apple-card" id="detail-card-panel" style="margin: 14px 0 0 0;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
               <div>
                 <div style="font-size: 19px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.4px;" id="modal-trip-name">Nome da Viagem</div>
@@ -538,13 +738,67 @@
     </div>
 
     <!-- ==========================================
-           SHEET REGISTRO DE ABASTECIMENTO (Apple Modal)
+           MODAL CONFIGURAÇÃO CASA / TRABALHO
            ========================================== -->
-    <div class="sheet-modal fuel-sheet" style="background: var(--apple-card-bg); border-top-left-radius: 20px; border-top-right-radius: 20px; height: auto;">
-      <div class="toolbar" style="background: var(--apple-card-elevated); border-bottom: 0.5px solid var(--apple-separator); border-top-left-radius: 20px; border-top-right-radius: 20px;">
+    <div class="sheet-modal location-sheet" style="background: var(--apple-card); border-top-left-radius: 20px; border-top-right-radius: 20px; height: auto;">
+      <div class="toolbar" style="background: var(--apple-card-elevated); border-top-left-radius: 20px; border-top-right-radius: 20px;">
+        <div class="toolbar-inner">
+          <div class="left"><b id="location-sheet-title" style="margin-left: 16px; color: #ffffff; font-size: 16px;">Configurar Local</b></div>
+          <div class="right"><a class="link sheet-close" href="#" style="color: var(--apple-blue); font-weight: 700; padding-right: 16px;">Fechar</a></div>
+        </div>
+      </div>
+      <div class="sheet-modal-inner">
+        <div class="page-content" style="padding: 16px 16px 36px 16px;">
+          <div class="apple-drag-handle"></div>
+          <div class="list no-hairlines-md" style="margin: 0; background: transparent;">
+            <ul>
+              <li class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label" style="color: var(--apple-secondary-label);">Nome / Identificação</div>
+                  <div class="item-input-wrap">
+                    <input type="text" id="loc-input-label" value="" placeholder="Ex: Casa / Escritório" style="color: #fff; font-size: 16px;">
+                  </div>
+                </div>
+              </li>
+              <li class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label" style="color: var(--apple-secondary-label);">Latitude</div>
+                  <div class="item-input-wrap">
+                    <input type="text" id="loc-input-lat" value="" placeholder="-23.5615" style="color: #fff; font-size: 16px;">
+                  </div>
+                </div>
+              </li>
+              <li class="item-content item-input">
+                <div class="item-inner">
+                  <div class="item-title item-label" style="color: var(--apple-secondary-label);">Longitude</div>
+                  <div class="item-input-wrap">
+                    <input type="text" id="loc-input-lon" value="" placeholder="-46.6559" style="color: #fff; font-size: 16px;">
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 16px;">
+            <button class="button apple-btn-primary" onclick="useCurrentGpsForLocation()" style="flex: 1; height: 44px; font-size: 13.5px; background: #2c2c2e; border: 0.5px solid var(--apple-card-border);">
+              📍 Usar GPS Atual
+            </button>
+            <button class="button apple-btn-primary" onclick="saveLocationConfirm()" style="flex: 1; height: 44px; font-size: 13.5px;">
+              Salvar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+           SHEET REGISTRO DE ABASTECIMENTO
+           ========================================== -->
+    <div class="sheet-modal fuel-sheet" style="background: var(--apple-card); border-top-left-radius: 20px; border-top-right-radius: 20px; height: auto;">
+      <div class="toolbar" style="background: var(--apple-card-elevated); border-top-left-radius: 20px; border-top-right-radius: 20px;">
         <div class="toolbar-inner">
           <div class="left"><b style="margin-left: 16px; color: #ffffff; font-size: 16px;">Novo Abastecimento</b></div>
-          <div class="right"><a class="link sheet-close" href="#" style="color: var(--apple-blue); font-weight: 700; font-size: 16px; padding-right: 16px;">Cancelar</a></div>
+          <div class="right"><a class="link sheet-close" href="#" style="color: var(--apple-blue); font-weight: 700; padding-right: 16px;">Cancelar</a></div>
         </div>
       </div>
       <div class="sheet-modal-inner">
@@ -555,7 +809,7 @@
             <ul>
               <li class="item-content item-input">
                 <div class="item-inner">
-                  <div class="item-title item-label" style="color: var(--apple-secondary-label); font-weight: 600;">Posto de Combustível</div>
+                  <div class="item-title item-label" style="color: var(--apple-secondary-label);">Posto de Combustível</div>
                   <div class="item-input-wrap">
                     <input type="text" id="input-station" value="Posto Shell Jardins" style="color: #fff; font-size: 16px;">
                   </div>
@@ -563,7 +817,7 @@
               </li>
               <li class="item-content item-input">
                 <div class="item-inner">
-                  <div class="item-title item-label" style="color: var(--apple-secondary-label); font-weight: 600;">Litros Abastecidos</div>
+                  <div class="item-title item-label" style="color: var(--apple-secondary-label);">Litros Abastecidos</div>
                   <div class="item-input-wrap">
                     <input type="number" id="input-liters" value="40.0" oninput="calcFuelTotal()" style="color: #fff; font-size: 16px;">
                   </div>
@@ -571,7 +825,7 @@
               </li>
               <li class="item-content item-input">
                 <div class="item-inner">
-                  <div class="item-title item-label" style="color: var(--apple-secondary-label); font-weight: 600;">Preço por Litro (R$)</div>
+                  <div class="item-title item-label" style="color: var(--apple-secondary-label);">Preço por Litro (R$)</div>
                   <div class="item-input-wrap">
                     <input type="number" id="input-price" value="5.89" oninput="calcFuelTotal()" style="color: #fff; font-size: 16px;">
                   </div>
@@ -579,7 +833,7 @@
               </li>
               <li class="item-content item-input">
                 <div class="item-inner">
-                  <div class="item-title item-label" style="color: var(--apple-secondary-label); font-weight: 600;">Total Pago (R$)</div>
+                  <div class="item-title item-label" style="color: var(--apple-secondary-label);">Total Pago (R$)</div>
                   <div class="item-input-wrap">
                     <input type="number" id="input-total" value="235.60" style="color: var(--apple-mint) !important; font-weight: 800; font-size: 17px;">
                   </div>
@@ -587,7 +841,7 @@
               </li>
               <li class="item-content item-input">
                 <div class="item-inner">
-                  <div class="item-title item-label" style="color: var(--apple-secondary-label); font-weight: 600;">Hodômetro (km)</div>
+                  <div class="item-title item-label" style="color: var(--apple-secondary-label);">Hodômetro (km)</div>
                   <div class="item-input-wrap">
                     <input type="number" id="input-odometer" value="45600" style="color: #fff; font-size: 16px;">
                   </div>
@@ -595,7 +849,7 @@
               </li>
               <li class="item-content item-input">
                 <div class="item-inner">
-                  <div class="item-title item-label" style="color: var(--apple-secondary-label); font-weight: 600;">Combustível / Notas</div>
+                  <div class="item-title item-label" style="color: var(--apple-secondary-label);">Combustível / Notas</div>
                   <div class="item-input-wrap">
                     <input type="text" id="input-notes" value="Gasolina V-Power - Tanque Cheio" style="color: #fff; font-size: 16px;">
                   </div>
@@ -624,13 +878,25 @@
       darkMode: true,
     });
 
+    // Estados e variáveis globais
+    var allTrips = [];
+    var filteredTrips = [];
+    var currentPeriod = 'all';
+    var savedLocations = { home: null, work: null };
+    var activeLocationType = 'home';
+
     var map = null;
     var polylinesGroup = null;
     var markersGroup = null;
-    var currentTileLayer = null;
-    var useFranceTiles = false;
+    var isMapExpanded = false;
 
-    // Inicialização do OpenStreetMap (Oficial + Gratuito + Sem Chaves)
+    var liveMap = null;
+    var liveMarker = null;
+    var livePolyline = null;
+    var livePoints = [];
+    var liveInterval = null;
+
+    // Inicialização do OpenStreetMap (Oficial + Gratuito)
     function initMap() {
       if (map) {
         map.invalidateSize();
@@ -642,43 +908,36 @@
         attributionControl: false
       }).setView([-23.5615, -46.6559], 13);
 
-      // Camada OpenStreetMap padrão
-      setMapTileLayer(false);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+      }).addTo(map);
 
       polylinesGroup = L.featureGroup().addTo(map);
       markersGroup = L.layerGroup().addTo(map);
     }
 
-    function setMapTileLayer(useAlternative) {
-      if (currentTileLayer) {
-        map.removeLayer(currentTileLayer);
-      }
+    // Alternar mapa maior / tela cheia
+    function toggleMapFullscreen() {
+      isMapExpanded = !isMapExpanded;
+      var mapEl = document.getElementById('detail-map');
+      var btn = document.getElementById('btn-expand-map');
       
-      var url = useAlternative 
-        ? 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png'
-        : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+      if (isMapExpanded) {
+        mapEl.classList.add('map-expanded');
+        btn.innerHTML = '🗗';
+        btn.title = 'Reduzir Mapa';
+      } else {
+        mapEl.classList.remove('map-expanded');
+        btn.innerHTML = '⛶';
+        btn.title = 'Expandir Mapa Maior';
+      }
 
-      currentTileLayer = L.tileLayer(url, {
-        maxZoom: 19,
-        subdomains: useAlternative ? ['a', 'b', 'c'] : []
-      });
-
-      currentTileLayer.on('tileerror', function() {
-        if (!useAlternative) {
-          setMapTileLayer(true);
+      setTimeout(function() {
+        if (map) {
+          map.invalidateSize();
+          recenterMap();
         }
-      });
-
-      currentTileLayer.addTo(map);
-    }
-
-    function toggleMapTiles() {
-      useFranceTiles = !useFranceTiles;
-      setMapTileLayer(useFranceTiles);
-      app.toast.create({
-        text: useFranceTiles ? 'Camada: OSM France HD' : 'Camada: OpenStreetMap Standard',
-        closeTimeout: 1500
-      }).open();
+      }, 320);
     }
 
     function recenterMap() {
@@ -687,48 +946,239 @@
       }
     }
 
-    app.on('popupOpened', function (popup) {
-      if (popup && popup.el && popup.el.classList.contains('popup-trip-detail')) {
-        setTimeout(function() {
-          initMap();
-          if (map) {
-            map.invalidateSize();
-            recenterMap();
+    function toggleMapTiles() {
+      app.toast.create({ text: 'Camada: OpenStreetMap Oficial HD', closeTimeout: 1500 }).open();
+    }
+
+    // ========================================================
+    // FILTRO DE PERÍODOS DE TEMPO
+    // ========================================================
+    function filterByPeriod(period) {
+      currentPeriod = period;
+      document.querySelectorAll('.apple-seg-btn').forEach(function(el) { el.classList.remove('active'); });
+      var btn = document.getElementById('seg-' + period);
+      if (btn) btn.classList.add('active');
+
+      var now = Date.now();
+      var oneDay = 24 * 60 * 60 * 1000;
+      var filtered = [];
+
+      if (period === 'today') {
+        var startOfToday = new Date().setHours(0,0,0,0);
+        filtered = allTrips.filter(function(t) { return t.startTimeMs >= startOfToday; });
+        document.getElementById('period-summary-pill').innerText = 'Hoje';
+      } else if (period === 'week') {
+        var sevenDaysAgo = now - (7 * oneDay);
+        filtered = allTrips.filter(function(t) { return t.startTimeMs >= sevenDaysAgo; });
+        document.getElementById('period-summary-pill').innerText = 'Últimos 7 Dias';
+      } else if (period === 'month') {
+        var startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+        filtered = allTrips.filter(function(t) { return t.startTimeMs >= startOfMonth; });
+        document.getElementById('period-summary-pill').innerText = 'Este Mês';
+      } else {
+        filtered = allTrips;
+        document.getElementById('period-summary-pill').innerText = 'Todas as Viagens';
+      }
+
+      filteredTrips = filtered;
+      renderTripsList(filteredTrips);
+      updateConsolidatedPeriodStats(filteredTrips);
+
+      var mapBtn = document.getElementById('btn-period-map');
+      if (filteredTrips.length > 1) {
+        mapBtn.style.display = 'block';
+      } else {
+        mapBtn.style.display = 'none';
+      }
+    }
+
+    function openCustomDateFilter() {
+      app.dialog.prompt('Filtrar viagens dos últimos quantos dias?', 'Período Personalizado', function(val) {
+        var days = parseInt(val) || 30;
+        var cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+        filteredTrips = allTrips.filter(function(t) { return t.startTimeMs >= cutoff; });
+        document.querySelectorAll('.apple-seg-btn').forEach(function(el) { el.classList.remove('active'); });
+        document.getElementById('seg-custom').classList.add('active');
+        document.getElementById('period-summary-pill').innerText = 'Últimos ' + days + ' dias';
+        renderTripsList(filteredTrips);
+        updateConsolidatedPeriodStats(filteredTrips);
+      });
+    }
+
+    function updateConsolidatedPeriodStats(trips) {
+      var totalKm = 0;
+      trips.forEach(function(t) { totalKm += (t.distanceKm || parseFloat(t.distance) || 0); });
+      var fuelLiters = totalKm * 0.08;
+      var fuelCost = fuelLiters * 5.89;
+
+      document.getElementById('dash-km-total').innerText = totalKm.toFixed(1) + ' km rodados';
+      document.getElementById('dash-fuel-spent').innerText = fuelLiters.toFixed(1) + ' L';
+      document.getElementById('dash-cost-spent').innerText = 'R$ ' + fuelCost.toFixed(2);
+      document.getElementById('trips-count-badge').innerText = trips.length + ' viagens';
+    }
+
+    // ========================================================
+    // CASA E TRABALHO (Apple Maps Style)
+    // ========================================================
+    function loadSavedLocations() {
+      if (window.AndroidBridge && AndroidBridge.getCustomLocations) {
+        try {
+          var res = JSON.parse(AndroidBridge.getCustomLocations());
+          if (res) {
+            savedLocations = res;
+            if (res.home && res.home.isSet) {
+              document.getElementById('home-desc').innerText = res.home.label || 'Configurado';
+            }
+            if (res.work && res.work.isSet) {
+              document.getElementById('work-desc').innerText = res.work.label || 'Configurado';
+            }
           }
-        }, 150);
+        } catch(e) { console.error(e); }
       }
-    });
-
-    function calcFuelTotal() {
-      var liters = parseFloat(document.getElementById('input-liters').value) || 0;
-      var price = parseFloat(document.getElementById('input-price').value) || 0;
-      document.getElementById('input-total').value = (liters * price).toFixed(2);
     }
 
-    function openFuelSheet() {
-      app.sheet.open('.fuel-sheet');
+    function openLocationModal(type) {
+      activeLocationType = type;
+      var isHome = type === 'home';
+      document.getElementById('location-sheet-title').innerText = isHome ? 'Definir Local de Casa' : 'Definir Local de Trabalho';
+      var cur = isHome ? savedLocations.home : savedLocations.work;
+      
+      document.getElementById('loc-input-label').value = cur ? cur.label : (isHome ? 'Minha Casa' : 'Meu Escritório');
+      document.getElementById('loc-input-lat').value = cur ? cur.lat : (isHome ? '-23.6015' : '-23.5615');
+      document.getElementById('loc-input-lon').value = cur ? cur.lon : (isHome ? '-46.6900' : '-46.6559');
+
+      app.sheet.open('.location-sheet');
     }
 
-    function saveFuelEntry() {
-      var station = document.getElementById('input-station').value || 'Posto de Gasolina';
-      var liters = parseFloat(document.getElementById('input-liters').value) || 0;
-      var price = parseFloat(document.getElementById('input-price').value) || 0;
-      var total = parseFloat(document.getElementById('input-total').value) || (liters * price);
-      var odo = parseFloat(document.getElementById('input-odometer').value) || 0;
-      var notes = document.getElementById('input-notes').value || '';
-
-      if (window.AndroidBridge && AndroidBridge.saveFuel) {
-        AndroidBridge.saveFuel(station, liters, price, total, odo, notes);
+    function useCurrentGpsForLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          document.getElementById('loc-input-lat').value = pos.coords.latitude.toFixed(5);
+          document.getElementById('loc-input-lon').value = pos.coords.longitude.toFixed(5);
+          app.toast.create({ text: 'Coordenadas obtidas pelo GPS!', closeTimeout: 1500 }).open();
+        }, function() {
+          app.toast.create({ text: 'Não foi possível ler o GPS no momento.', closeTimeout: 2000 }).open();
+        });
       }
-      app.sheet.close('.fuel-sheet');
-      app.toast.create({ text: 'Abastecimento salvo com sucesso!', closeTimeout: 2000 }).open();
+    }
+
+    function saveLocationConfirm() {
+      var label = document.getElementById('loc-input-label').value || (activeLocationType === 'home' ? 'Casa' : 'Trabalho');
+      var lat = document.getElementById('loc-input-lat').value || '-23.5615';
+      var lon = document.getElementById('loc-input-lon').value || '-46.6559';
+
+      if (window.AndroidBridge && AndroidBridge.saveCustomLocation) {
+        AndroidBridge.saveCustomLocation(activeLocationType, lat, lon, label);
+      }
+      app.sheet.close('.location-sheet');
+      app.toast.create({ text: 'Local salvo com sucesso!', closeTimeout: 2000 }).open();
+      loadSavedLocations();
+    }
+
+    // ========================================================
+    // APPLE LIVE COCKPIT (Substitui a tela antiga do OpenTracks)
+    // ========================================================
+    function openLiveCockpit(trackId) {
+      app.popup.open('.popup-live-cockpit');
+      document.getElementById('dynamic-live-banner').style.display = 'none';
+
+      setTimeout(function() {
+        initLiveMap();
+      }, 250);
+
+      if (liveInterval) clearInterval(liveInterval);
+      liveInterval = setInterval(updateLiveTelemetry, 1000);
+    }
+
+    function reopenLiveCockpit() {
+      app.popup.open('.popup-live-cockpit');
+    }
+
+    function initLiveMap() {
+      if (liveMap) {
+        liveMap.invalidateSize();
+        return;
+      }
+      liveMap = L.map('live-map', { zoomControl: false, attributionControl: false }).setView([-23.5615, -46.6559], 15);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(liveMap);
+      
+      liveMarker = L.circleMarker([-23.5615, -46.6559], {
+        color: '#FFFFFF',
+        fillColor: '#0A84FF',
+        fillOpacity: 1,
+        radius: 10,
+        weight: 3
+      }).addTo(liveMap);
+
+      livePolyline = L.polyline([], { color: '#30D158', weight: 6, lineCap: 'round' }).addTo(liveMap);
+    }
+
+    function updateLiveTelemetry() {
+      if (window.AndroidBridge && AndroidBridge.getLiveRecordingStatus) {
+        try {
+          var status = JSON.parse(AndroidBridge.getLiveRecordingStatus());
+          if (status) {
+            if (!status.isRecording) {
+              document.getElementById('dynamic-live-banner').style.display = 'none';
+              return;
+            }
+
+            // Atualiza Cockpit
+            document.getElementById('live-speed-display').innerText = status.currentSpeedKmh || '0';
+            document.getElementById('live-dist-display').innerText = (status.distanceKm || '0.0') + ' km';
+            document.getElementById('live-maxspd-display').innerText = (status.maxSpeedKmh || '0') + ' km/h';
+            document.getElementById('live-fuel-display').innerText = 'R$ ' + (status.fuelCost || '0,00');
+
+            // Formata relógio
+            var s = status.durationSec || 0;
+            var hrs = Math.floor(s / 3600);
+            var mins = Math.floor((s % 3600) / 60);
+            var secs = s % 60;
+            document.getElementById('live-clock').innerText = 
+              (hrs < 10 ? '0' : '') + hrs + ':' + (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+
+            // Atualiza Banner flutuante
+            document.getElementById('dynamic-live-banner').style.display = 'flex';
+            document.getElementById('live-banner-spd').innerText = (status.currentSpeedKmh || '0') + ' km/h';
+
+            // Atualiza mapa live
+            if (liveMap && status.lat && status.lon) {
+              var pos = [status.lat, status.lon];
+              liveMarker.setLatLng(pos);
+              livePoints.push(pos);
+              livePolyline.setLatLngs(livePoints);
+              liveMap.panTo(pos);
+            }
+          }
+        } catch(e) { console.error(e); }
+      }
+    }
+
+    function finishLiveTrip() {
+      app.dialog.confirm('Deseja realmente finalizar esta viagem e gravá-la no histórico?', 'Finalizar Viagem', function() {
+        if (liveInterval) clearInterval(liveInterval);
+        if (window.AndroidBridge && AndroidBridge.stopTrip) {
+          AndroidBridge.stopTrip();
+        }
+        app.popup.close('.popup-live-cockpit');
+        document.getElementById('dynamic-live-banner').style.display = 'none';
+        setTimeout(loadDataFromAndroid, 600);
+      });
+    }
+
+    function onTripStopped() {
+      app.popup.close('.popup-live-cockpit');
+      document.getElementById('dynamic-live-banner').style.display = 'none';
       loadDataFromAndroid();
     }
 
-    function renderTrips(trips) {
+    // ========================================================
+    // RENDERIZAÇÃO DAS VIAGENS
+    // ========================================================
+    function renderTripsList(trips) {
       var container = document.getElementById('trips-container');
       if (!trips || trips.length === 0) {
-        container.innerHTML = '<div class="apple-card" style="color: var(--apple-secondary-label); text-align: center;">Nenhuma viagem registrada ainda.</div>';
+        container.innerHTML = '<div class="apple-card" style="color: var(--apple-secondary-label); text-align: center; padding: 24px;">Nenhuma viagem encontrada neste período.</div>';
         return;
       }
 
@@ -772,7 +1222,6 @@
       document.getElementById('modal-trip-desc').innerText = desc || 'Trajeto veicular rastreado.';
       document.getElementById('modal-trip-fuel').innerText = '⛽ Estimativa: ' + estFuel + ' (' + estCost + ')';
       
-      // Reseta inspetor de pontos
       document.getElementById('inspector-status').innerText = 'Toque em qualquer trecho do trajeto';
       document.getElementById('inspector-badge').style.display = 'none';
 
@@ -788,7 +1237,6 @@
       }, 250);
     }
 
-    // Funcionalidade de Mapa inspirada em Colota: Gradiente de Velocidade & Inspetor Interativo
     function drawTripMapWithSpeedGradient(jsonStr, title) {
       initMap();
       polylinesGroup.clearLayers();
@@ -798,14 +1246,10 @@
         var points = JSON.parse(jsonStr);
         if (!points || points.length === 0) return;
 
-        var countSlow = 0;
-        var countMid = 0;
-        var countFast = 0;
-
+        var countSlow = 0, countMid = 0, countFast = 0;
         var maxSpeedObserved = 0;
         var fastestPoint = points[0];
 
-        // Desenha segmentos do percurso com gradiente Apple
         for (var i = 0; i < points.length - 1; i++) {
           var p1 = points[i];
           var p2 = points[i + 1];
@@ -835,21 +1279,18 @@
             lineJoin: 'round'
           }).addTo(polylinesGroup);
 
-          // Inspetor interativo de ponto ao tocar no traçado (Inspiração Colota)
           (function(pt, speedVal, idx) {
             segment.on('click', function(e) {
-              var altText = pt.alt ? (' • Alt: ' + pt.alt.toFixed(0) + 'm') : '';
+              var altText = pt.alt ? (' • ' + pt.alt.toFixed(0) + 'm alt.') : '';
               document.getElementById('inspector-status').innerHTML = 'Ponto #' + (idx + 1) + ' (' + pt.lat.toFixed(4) + ', ' + pt.lon.toFixed(4) + ')' + altText;
               var badge = document.getElementById('inspector-badge');
               badge.style.display = 'block';
               badge.innerText = speedVal.toFixed(0) + ' km/h';
-              badge.style.background = (speedVal >= 80) ? 'rgba(255, 69, 58, 0.2)' : (speedVal >= 40 ? 'rgba(255, 159, 10, 0.2)' : 'rgba(48, 209, 88, 0.2)');
-              badge.style.color = (speedVal >= 80) ? '#FF453A' : (speedVal >= 40 ? '#FF9F0A' : '#30D158');
+              badge.className = (speedVal >= 80) ? 'apple-tag tag-red' : (speedVal >= 40 ? 'apple-tag tag-orange' : 'apple-tag tag-green');
             });
           })(p1, spd, i);
         }
 
-        // Distribuição de Velocidade
         var totalSegments = Math.max(1, (points.length - 1));
         var pctSlow = Math.round((countSlow / totalSegments) * 100);
         var pctMid = Math.round((countMid / totalSegments) * 100);
@@ -861,19 +1302,14 @@
         document.getElementById('speed-bar-f').style.width = pctFast + '%';
         document.getElementById('modal-speed-ratio').innerText = pctSlow + '% Urbano | ' + pctMid + '% Fluido | ' + pctFast + '% Rodovia';
 
-        // Marcador Apple Green para Partida
         var startPt = [points[0].lat, points[0].lon];
         L.circleMarker(startPt, { color: '#ffffff', fillColor: '#30D158', fillOpacity: 1, radius: 9, weight: 3 })
-          .addTo(markersGroup)
-          .bindPopup('<b>🚩 Origem</b><br>' + title);
+          .addTo(markersGroup).bindPopup('<b>🚩 Origem</b><br>' + title);
 
-        // Marcador Apple Blue para Destino
         var endPt = [points[points.length - 1].lat, points[points.length - 1].lon];
         L.circleMarker(endPt, { color: '#ffffff', fillColor: '#0A84FF', fillOpacity: 1, radius: 9, weight: 3 })
-          .addTo(markersGroup)
-          .bindPopup('<b>🏁 Destino</b><br>' + title);
+          .addTo(markersGroup).bindPopup('<b>🏁 Destino</b><br>' + title);
 
-        // Marcador Especial: Trecho Mais Rápido da Viagem (Colota Peak Speed)
         if (fastestPoint && maxSpeedObserved > 0) {
           var peakIcon = L.divIcon({
             className: 'apple-peak-speed',
@@ -881,27 +1317,66 @@
             iconSize: [100, 24],
             iconAnchor: [50, 28]
           });
-
-          var peakMarker = L.marker([fastestPoint.lat, fastestPoint.lon], { icon: peakIcon }).addTo(markersGroup);
-          peakMarker.bindPopup('<b>⚡ Pico de Velocidade</b><br>Velocidade máxima no percurso: <b>' + maxSpeedObserved.toFixed(0) + ' km/h</b>');
+          L.marker([fastestPoint.lat, fastestPoint.lon], { icon: peakIcon }).addTo(markersGroup);
         }
 
         map.fitBounds(polylinesGroup.getBounds(), { padding: [35, 35] });
-      } catch(e) {
-        console.error(e);
-      }
+      } catch(e) { console.error(e); }
     }
 
+    function showAllPeriodTripsOnMap() {
+      if (!filteredTrips || filteredTrips.length === 0) return;
+      document.getElementById('popup-trip-title').innerText = 'Percursos do Período (' + filteredTrips.length + ' viagens)';
+      document.getElementById('modal-trip-name').innerText = 'Todos os Trajetos Selecionados';
+      document.getElementById('modal-trip-meta').innerText = document.getElementById('period-summary-pill').innerText;
+      document.getElementById('modal-trip-dist').innerText = document.getElementById('dash-km-total').innerText;
+      document.getElementById('modal-trip-avg-speed').innerText = '--';
+      document.getElementById('modal-trip-max-speed').innerText = '--';
+      document.getElementById('modal-fastest-badge').innerText = filteredTrips.length + ' rotas';
+      document.getElementById('modal-trip-desc').innerText = 'Visualização conjunta de todos os deslocamentos no período.';
+      document.getElementById('modal-trip-fuel').innerText = 'Total de combustível gasto no período.';
+
+      app.popup.open('.popup-trip-detail');
+
+      setTimeout(function() {
+        initMap();
+        polylinesGroup.clearLayers();
+        markersGroup.clearLayers();
+
+        var colors = ['#0A84FF', '#30D158', '#FF9F0A', '#5E5CE6', '#63E6E2'];
+        filteredTrips.forEach(function(t, idx) {
+          if (window.AndroidBridge && AndroidBridge.getTripPointsJson) {
+            try {
+              var pts = JSON.parse(AndroidBridge.getTripPointsJson(t.id));
+              if (pts && pts.length > 1) {
+                var latlngs = pts.map(function(p) { return [p.lat, p.lon]; });
+                L.polyline(latlngs, { color: colors[idx % colors.length], weight: 5, opacity: 0.85 }).addTo(polylinesGroup);
+                L.circleMarker(latlngs[0], { color: '#fff', fillColor: '#30D158', radius: 6, fillOpacity: 1 }).addTo(markersGroup);
+                L.circleMarker(latlngs[latlngs.length - 1], { color: '#fff', fillColor: '#FF453A', radius: 6, fillOpacity: 1 }).addTo(markersGroup);
+              }
+            } catch(e) {}
+          }
+        });
+
+        if (polylinesGroup.getLayers().length > 0) {
+          map.fitBounds(polylinesGroup.getBounds(), { padding: [35, 35] });
+        }
+      }, 300);
+    }
+
+    // ========================================================
+    // ABASTECIMENTOS
+    // ========================================================
     function renderFuelHistory(entries) {
       var container = document.getElementById('fuel-history-container');
       if (!entries || entries.length === 0) {
-        container.innerHTML = '<div class="apple-card" style="color: var(--apple-secondary-label); text-align: center;">Nenhum abastecimento registrado.</div>';
+        container.innerHTML = '<div class="apple-card" style="color: var(--apple-secondary-label); text-align: center; padding: 24px;">Nenhum abastecimento registrado.</div>';
         return;
       }
 
       var html = '';
       entries.forEach(function(e) {
-        html += '<div class="fuel-wallet-card">' +
+        html += '<div class="apple-card" style="margin-top: 8px; border-left: 4px solid var(--apple-blue);">' +
           '<div style="display: flex; justify-content: space-between; align-items: center;">' +
             '<div style="font-weight: 800; font-size: 16px; color: #ffffff;">⛽ ' + e.station + '</div>' +
             '<div style="font-weight: 800; font-size: 17px; color: var(--apple-green);">R$ ' + e.total.toFixed(2) + '</div>' +
@@ -914,28 +1389,57 @@
       container.innerHTML = html;
     }
 
+    function calcFuelTotal() {
+      var liters = parseFloat(document.getElementById('input-liters').value) || 0;
+      var price = parseFloat(document.getElementById('input-price').value) || 0;
+      document.getElementById('input-total').value = (liters * price).toFixed(2);
+    }
+
+    function openFuelSheet() {
+      app.sheet.open('.fuel-sheet');
+    }
+
+    function saveFuelEntry() {
+      var station = document.getElementById('input-station').value || 'Posto de Gasolina';
+      var liters = parseFloat(document.getElementById('input-liters').value) || 0;
+      var price = parseFloat(document.getElementById('input-price').value) || 0;
+      var total = parseFloat(document.getElementById('input-total').value) || (liters * price);
+      var odo = parseFloat(document.getElementById('input-odometer').value) || 0;
+      var notes = document.getElementById('input-notes').value || '';
+
+      if (window.AndroidBridge && AndroidBridge.saveFuel) {
+        AndroidBridge.saveFuel(station, liters, price, total, odo, notes);
+      }
+      app.sheet.close('.fuel-sheet');
+      app.toast.create({ text: 'Abastecimento salvo com sucesso!', closeTimeout: 2000 }).open();
+      loadDataFromAndroid();
+    }
+
+    // ========================================================
+    // CARREGAMENTO GERAL DE DADOS
+    // ========================================================
     function loadDataFromAndroid() {
       if (window.AndroidBridge) {
         try {
           var tripsJson = AndroidBridge.getTripsJson();
           var fuelJson = AndroidBridge.getFuelJson();
-          var statsJson = AndroidBridge.getGarageStatsJson();
 
-          renderTrips(JSON.parse(tripsJson));
+          allTrips = JSON.parse(tripsJson) || [];
+          filterByPeriod(currentPeriod);
           renderFuelHistory(JSON.parse(fuelJson));
+          loadSavedLocations();
 
-          var stats = JSON.parse(statsJson);
-          if (stats) {
-            document.getElementById('dash-km-total').innerText = stats.totalKm + ' km rodados';
-            document.getElementById('dash-fuel-spent').innerText = stats.fuelLiters + ' L';
-            document.getElementById('dash-cost-spent').innerText = 'R$ ' + stats.fuelCost;
-            document.getElementById('dash-avg-kml').innerText = stats.avgKmL + ' km/L';
-            document.getElementById('dash-dest-fav').innerHTML = '📍 <b>Destino frequente:</b> ' + stats.favDest;
-            document.getElementById('dash-station-fav').innerHTML = '⛽ <b>Posto frequente:</b> ' + stats.favStation;
+          // Verifica se há viagem em andamento
+          if (AndroidBridge.getLiveRecordingStatus) {
+            var st = JSON.parse(AndroidBridge.getLiveRecordingStatus());
+            if (st && st.isRecording) {
+              document.getElementById('dynamic-live-banner').style.display = 'flex';
+              document.getElementById('live-banner-spd').innerText = (st.currentSpeedKmh || '0') + ' km/h';
+            } else {
+              document.getElementById('dynamic-live-banner').style.display = 'none';
+            }
           }
-        } catch(e) {
-          console.error(e);
-        }
+        } catch(e) { console.error(e); }
       }
     }
 

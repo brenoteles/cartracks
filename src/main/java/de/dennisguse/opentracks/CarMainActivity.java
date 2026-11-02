@@ -2,9 +2,12 @@ package de.dennisguse.opentracks;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
+import android.webkit.GeolocationPermissions;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -31,10 +34,10 @@ import de.dennisguse.opentracks.data.TrackListIterator;
 import de.dennisguse.opentracks.data.TrackPointIterator;
 import de.dennisguse.opentracks.data.models.Track;
 import de.dennisguse.opentracks.data.models.TrackPoint;
+import de.dennisguse.opentracks.services.RecordingData;
 import de.dennisguse.opentracks.services.TrackRecordingService;
 import de.dennisguse.opentracks.services.TrackRecordingServiceConnection;
 import de.dennisguse.opentracks.settings.SettingsActivity;
-import de.dennisguse.opentracks.util.IntentUtils;
 
 public class CarMainActivity extends AppCompatActivity {
 
@@ -42,6 +45,7 @@ public class CarMainActivity extends AppCompatActivity {
     private ContentProviderUtils providerUtils;
     private FuelDatabaseHelper fuelDb;
     private ActivityResultLauncher<String[]> locationPermissionLauncher;
+    private TrackRecordingServiceConnection serviceConnection;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -84,16 +88,23 @@ public class CarMainActivity extends AppCompatActivity {
         settings.setAllowUniversalAccessFromFileURLs(true);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setGeolocationEnabled(true);
         settings.setUserAgentString("Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36 CarTracksApp/1.0");
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(android.webkit.ConsoleMessage consoleMessage) {
-                android.util.Log.d("CarTracksJS", consoleMessage.message() + " -- From line "
-                        + consoleMessage.lineNumber() + " of " + consoleMessage.sourceId());
+                android.util.Log.d("CarTracksJS", consoleMessage.message() + " -- Line "
+                        + consoleMessage.lineNumber());
                 return true;
             }
+
+            @Override
+            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+                callback.invoke(origin, true, false);
+            }
         });
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
@@ -114,6 +125,25 @@ public class CarMainActivity extends AppCompatActivity {
 
         webView.addJavascriptInterface(new WebAppInterface(), "AndroidBridge");
         webView.loadUrl("file:///android_asset/www/index.html");
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (serviceConnection == null) {
+            serviceConnection = new TrackRecordingServiceConnection((service, conn) -> {
+                Log.d("CarMainActivity", "Service connected.");
+            });
+        }
+        serviceConnection.bind(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (serviceConnection != null) {
+            serviceConnection.unbind(this);
+        }
     }
 
     @Override
@@ -140,9 +170,12 @@ public class CarMainActivity extends AppCompatActivity {
                         obj.put("desc", item.description());
                         double km = item.totalDistance().toKM();
                         obj.put("distance", String.format(java.util.Locale.getDefault(), "%.1f km", km));
+                        obj.put("distanceKm", km);
                         obj.put("date", item.startTime().atOffset(item.zoneOffset()).format(formatter));
+                        obj.put("startTimeMs", item.startTime().toEpochMilli());
                         long minutes = item.totalTime().toMinutes();
                         obj.put("duration", minutes + " min");
+                        obj.put("durationMin", minutes);
 
                         Track track = providerUtils.getTrack(item.id());
                         double maxSpeedVal = 0;
@@ -165,6 +198,9 @@ public class CarMainActivity extends AppCompatActivity {
 
                         obj.put("avgSpeed", String.format(java.util.Locale.getDefault(), "%.0f km/h", avgSpeedVal));
                         obj.put("maxSpeed", String.format(java.util.Locale.getDefault(), "%.0f km/h", maxSpeedVal));
+                        obj.put("avgSpeedNum", avgSpeedVal);
+                        obj.put("maxSpeedNum", maxSpeedVal);
+
                         double tripFuel = km * 0.08;
                         obj.put("estFuel", String.format(java.util.Locale.getDefault(), "%.1f L", tripFuel));
                         obj.put("estCost", String.format(java.util.Locale.getDefault(), "R$ %.2f", tripFuel * 5.89));
@@ -191,6 +227,9 @@ public class CarMainActivity extends AppCompatActivity {
                             double speedKmh = (tp.position().hasSpeed() && tp.position().speed() != null)
                                     ? tp.position().speed().toKMH() : 0.0;
                             obj.put("speed", speedKmh);
+                            if (tp.position().hasAltitude() && tp.position().altitude() != null) {
+                                obj.put("alt", tp.position().altitude().toM());
+                            }
                             arr.put(obj);
                         }
                     }
@@ -241,7 +280,7 @@ public class CarMainActivity extends AppCompatActivity {
                 obj.put("fuelLiters", String.format(java.util.Locale.getDefault(), "%.1f", fuelEstLiters));
                 obj.put("fuelCost", String.format(java.util.Locale.getDefault(), "%.2f", fuelEstCost));
                 obj.put("avgKmL", "12.5");
-                obj.put("favDest", "Escritório Paulista (45%)");
+                obj.put("favDest", "Trabalho (Paulista)");
                 obj.put("favStation", "Shell Jardins (65%)");
             } catch (Exception e) {
                 e.printStackTrace();
@@ -274,6 +313,101 @@ public class CarMainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public void stopTrip() {
+            runOnUiThread(() -> {
+                try {
+                    TrackRecordingService service = serviceConnection != null ? serviceConnection.getTrackRecordingService() : null;
+                    if (service != null && service.isRecording()) {
+                        service.endCurrentTrack();
+                    } else {
+                        TrackRecordingServiceConnection.execute(CarMainActivity.this, (s, conn) -> {
+                            if (s.isRecording()) s.endCurrentTrack();
+                        });
+                    }
+                    Toast.makeText(CarMainActivity.this, "Viagem finalizada e salva!", Toast.LENGTH_SHORT).show();
+                    if (webView != null) {
+                        webView.loadUrl("javascript:onTripStopped()");
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(CarMainActivity.this, "Erro: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String getLiveRecordingStatus() {
+            JSONObject obj = new JSONObject();
+            try {
+                TrackRecordingService service = serviceConnection != null ? serviceConnection.getTrackRecordingService() : null;
+                boolean recording = service != null && service.isRecording();
+                obj.put("isRecording", recording);
+                if (recording && service != null) {
+                    RecordingData recData = service.getRecordingDataObservable() != null ? service.getRecordingDataObservable().getValue() : null;
+                    if (recData != null && recData.track() != null) {
+                        double km = recData.track().statistics().totalDistance().toKM();
+                        long sec = recData.track().statistics().totalDuration().getSeconds();
+                        double maxSpd = recData.track().statistics().maxSpeed() != null ? recData.track().statistics().maxSpeed().toKMH() : 0.0;
+                        double curSpd = 0;
+                        if (recData.latestTrackPoint() != null && recData.latestTrackPoint().position() != null) {
+                            if (recData.latestTrackPoint().position().hasSpeed() && recData.latestTrackPoint().position().speed() != null) {
+                                curSpd = recData.latestTrackPoint().position().speed().toKMH();
+                            }
+                            obj.put("lat", recData.latestTrackPoint().position().latitude());
+                            obj.put("lon", recData.latestTrackPoint().position().longitude());
+                            if (recData.latestTrackPoint().position().hasAltitude() && recData.latestTrackPoint().position().altitude() != null) {
+                                obj.put("alt", recData.latestTrackPoint().position().altitude().toM());
+                            }
+                        }
+                        obj.put("distanceKm", String.format(java.util.Locale.getDefault(), "%.2f", km));
+                        obj.put("durationSec", sec);
+                        obj.put("currentSpeedKmh", String.format(java.util.Locale.getDefault(), "%.0f", curSpd));
+                        obj.put("maxSpeedKmh", String.format(java.util.Locale.getDefault(), "%.0f", maxSpd));
+                        double fuel = km * 0.08;
+                        obj.put("fuelLiters", String.format(java.util.Locale.getDefault(), "%.2f", fuel));
+                        obj.put("fuelCost", String.format(java.util.Locale.getDefault(), "%.2f", fuel * 5.89));
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return obj.toString();
+        }
+
+        @JavascriptInterface
+        public void saveCustomLocation(String key, String lat, String lon, String label) {
+            getSharedPreferences("CarTracksLocations", MODE_PRIVATE).edit()
+                    .putString(key + "_lat", lat)
+                    .putString(key + "_lon", lon)
+                    .putString(key + "_label", label)
+                    .apply();
+        }
+
+        @JavascriptInterface
+        public String getCustomLocations() {
+            SharedPreferences sp = getSharedPreferences("CarTracksLocations", MODE_PRIVATE);
+            JSONObject obj = new JSONObject();
+            try {
+                JSONObject home = new JSONObject();
+                home.put("lat", sp.getString("home_lat", "-23.6015"));
+                home.put("lon", sp.getString("home_lon", "-46.6900"));
+                home.put("label", sp.getString("home_label", "Casa"));
+                home.put("isSet", sp.contains("home_lat"));
+
+                JSONObject work = new JSONObject();
+                work.put("lat", sp.getString("work_lat", "-23.5615"));
+                work.put("lon", sp.getString("work_lon", "-46.6559"));
+                work.put("label", sp.getString("work_label", "Trabalho"));
+                work.put("isSet", sp.contains("work_lat"));
+
+                obj.put("home", home);
+                obj.put("work", work);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return obj.toString();
+        }
+
+        @JavascriptInterface
         public void openSettings() {
             startActivity(new Intent(CarMainActivity.this, SettingsActivity.class));
         }
@@ -284,12 +418,18 @@ public class CarMainActivity extends AppCompatActivity {
             TrackRecordingServiceConnection.executeForeground(CarMainActivity.this, (service, connection) -> {
                 if (!service.isRecording()) {
                     Track.Id trackId = service.startNewTrack();
-                    Toast.makeText(CarMainActivity.this, "Viagem iniciada! Gravando trajeto no GPS...", Toast.LENGTH_SHORT).show();
-                    Intent intent = IntentUtils.newIntent(CarMainActivity.this, TrackRecordingActivity.class)
-                            .putExtra(TrackRecordingActivity.EXTRA_TRACK_ID, trackId);
-                    startActivity(intent);
+                    Toast.makeText(CarMainActivity.this, "Viagem iniciada no Cockpit!", Toast.LENGTH_SHORT).show();
+                    runOnUiThread(() -> {
+                        if (webView != null) {
+                            webView.loadUrl("javascript:openLiveCockpit(" + trackId.id() + ")");
+                        }
+                    });
                 } else {
-                    Toast.makeText(CarMainActivity.this, "Já existe uma viagem em gravação.", Toast.LENGTH_SHORT).show();
+                    runOnUiThread(() -> {
+                        if (webView != null) {
+                            webView.loadUrl("javascript:openLiveCockpit(0)");
+                        }
+                    });
                 }
             });
         } catch (Exception e) {
