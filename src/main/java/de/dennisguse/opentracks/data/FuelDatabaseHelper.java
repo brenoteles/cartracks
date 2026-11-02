@@ -12,7 +12,7 @@ import java.util.List;
 public class FuelDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "cartracks_fuel.db";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
 
     public static final String TABLE_NAME = "fuel_records";
     public static final String COL_ID = "_id";
@@ -25,6 +25,8 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
     public static final String COL_NOTES = "notes";
     public static final String COL_IS_FULL_TANK = "is_full_tank";
     public static final String COL_FUEL_TYPE = "fuel_type";
+    public static final String COL_LATITUDE = "latitude";
+    public static final String COL_LONGITUDE = "longitude";
 
     private static FuelDatabaseHelper instance;
 
@@ -51,7 +53,9 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
                 + COL_ODOMETER + " REAL, "
                 + COL_NOTES + " TEXT, "
                 + COL_IS_FULL_TANK + " INTEGER DEFAULT 1, "
-                + COL_FUEL_TYPE + " TEXT DEFAULT 'Gasolina Comum');");
+                + COL_FUEL_TYPE + " TEXT DEFAULT 'Gasolina Comum', "
+                + COL_LATITUDE + " REAL, "
+                + COL_LONGITUDE + " REAL);");
 
         seedMockFuelData(db);
     }
@@ -59,17 +63,17 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
     private void seedMockFuelData(SQLiteDatabase db) {
         long now = System.currentTimeMillis();
         long day = 86400000L;
-        // 1. Tanque cheio inicial há 18 dias
-        insertInitial(db, now - 18 * day, "Posto Shell Jardins", 48.0, 5.89, 282.72, 44100, "Tanque cheio", 1, "Gasolina Aditivada");
-        // 2. Abastecimento parcial no meio do caminho há 12 dias
-        insertInitial(db, now - 12 * day, "Posto Ipiranga Rebouças", 22.5, 3.89, 87.52, 44420, "Abastecimento rápido 20L", 0, "Etanol");
-        // 3. Tanque cheio há 6 dias (permite cálculo real acumulando o abastecimento parcial!)
-        insertInitial(db, now - 6 * day, "Posto Shell Jardins", 34.0, 5.85, 198.90, 44980, "Tanque cheio até a trava", 1, "Gasolina Comum");
-        // 4. Abastecimento parcial recente há 2 dias
-        insertInitial(db, now - 2 * day, "Posto BR Petrobras", 18.0, 5.79, 104.22, 45220, "Completado meio tanque", 0, "Gasolina Comum");
+        // 1. Tanque cheio inicial há 18 dias (Com localização definida no mapa)
+        insertInitial(db, now - 18 * day, "Posto Shell Jardins", 48.0, 5.89, 282.72, 44100, "Tanque cheio", 1, "Gasolina Aditivada", -23.5672, -46.6685);
+        // 2. Abastecimento parcial no meio do caminho há 12 dias (Com localização definida no mapa)
+        insertInitial(db, now - 12 * day, "Posto Ipiranga Rebouças", 22.5, 3.89, 87.52, 44420, "Abastecimento rápido 20L", 0, "Etanol", -23.5618, -46.6720);
+        // 3. Tanque cheio há 6 dias (Com localização definida no mapa)
+        insertInitial(db, now - 6 * day, "Posto Shell Jardins", 34.0, 5.85, 198.90, 44980, "Tanque cheio até a trava", 1, "Gasolina Comum", -23.5672, -46.6685);
+        // 4. Abastecimento parcial recente há 2 dias (Sem localização ainda — permite testar adicionar localização depois!)
+        insertInitial(db, now - 2 * day, "Posto BR Petrobras", 18.0, 5.79, 104.22, 45220, "Completado meio tanque", 0, "Gasolina Comum", null, null);
     }
 
-    private void insertInitial(SQLiteDatabase db, long time, String station, double liters, double price, double total, double odo, String notes, int isFull, String fuelType) {
+    private void insertInitial(SQLiteDatabase db, long time, String station, double liters, double price, double total, double odo, String notes, int isFull, String fuelType, Double lat, Double lon) {
         ContentValues cv = new ContentValues();
         cv.put(COL_DATE_TIME, time);
         cv.put(COL_STATION_NAME, station);
@@ -80,6 +84,13 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
         cv.put(COL_NOTES, notes);
         cv.put(COL_IS_FULL_TANK, isFull);
         cv.put(COL_FUEL_TYPE, fuelType);
+        if (lat != null && lon != null) {
+            cv.put(COL_LATITUDE, lat);
+            cv.put(COL_LONGITUDE, lon);
+        } else {
+            cv.putNull(COL_LATITUDE);
+            cv.putNull(COL_LONGITUDE);
+        }
         db.insert(TABLE_NAME, null, cv);
     }
 
@@ -89,6 +100,16 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
             try {
                 db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COL_IS_FULL_TANK + " INTEGER DEFAULT 1;");
                 db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COL_FUEL_TYPE + " TEXT DEFAULT 'Gasolina Comum';");
+            } catch (Exception ignored) {
+            }
+        }
+        if (oldVersion < 3) {
+            try {
+                db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COL_LATITUDE + " REAL;");
+                db.execSQL("ALTER TABLE " + TABLE_NAME + " ADD COLUMN " + COL_LONGITUDE + " REAL;");
+                // Populate mock locations for existing seeded stations
+                db.execSQL("UPDATE " + TABLE_NAME + " SET " + COL_LATITUDE + " = -23.5672, " + COL_LONGITUDE + " = -46.6685 WHERE " + COL_STATION_NAME + " LIKE '%Shell%';");
+                db.execSQL("UPDATE " + TABLE_NAME + " SET " + COL_LATITUDE + " = -23.5618, " + COL_LONGITUDE + " = -46.6720 WHERE " + COL_STATION_NAME + " LIKE '%Ipiranga%';");
             } catch (Exception ignored) {
                 db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
                 onCreate(db);
@@ -107,6 +128,8 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
         public String notes;
         public boolean isFullTank = true;
         public String fuelType = "Gasolina Comum";
+        public Double latitude = null;
+        public Double longitude = null;
     }
 
     public List<FuelEntry> getAllEntries() {
@@ -134,6 +157,12 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
                         e.fuelType = "Gasolina Comum";
                     }
                 }
+                int latCol = c.getColumnIndex(COL_LATITUDE);
+                int lonCol = c.getColumnIndex(COL_LONGITUDE);
+                if (latCol >= 0 && lonCol >= 0 && !c.isNull(latCol) && !c.isNull(lonCol)) {
+                    e.latitude = c.getDouble(latCol);
+                    e.longitude = c.getDouble(lonCol);
+                }
                 list.add(e);
             }
         }
@@ -141,10 +170,14 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
     }
 
     public void addEntry(String station, double liters, double price, double total, double odo, String notes) {
-        addEntry(station, liters, price, total, odo, notes, true, "Gasolina Comum");
+        addEntry(station, liters, price, total, odo, notes, true, "Gasolina Comum", null, null);
     }
 
     public void addEntry(String station, double liters, double price, double total, double odo, String notes, boolean isFullTank, String fuelType) {
+        addEntry(station, liters, price, total, odo, notes, isFullTank, fuelType, null, null);
+    }
+
+    public void addEntry(String station, double liters, double price, double total, double odo, String notes, boolean isFullTank, String fuelType, Double latitude, Double longitude) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put(COL_DATE_TIME, System.currentTimeMillis());
@@ -156,6 +189,21 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
         cv.put(COL_NOTES, notes);
         cv.put(COL_IS_FULL_TANK, isFullTank ? 1 : 0);
         cv.put(COL_FUEL_TYPE, fuelType != null ? fuelType : "Gasolina Comum");
+        if (latitude != null && longitude != null) {
+            cv.put(COL_LATITUDE, latitude);
+            cv.put(COL_LONGITUDE, longitude);
+        } else {
+            cv.putNull(COL_LATITUDE);
+            cv.putNull(COL_LONGITUDE);
+        }
         db.insert(TABLE_NAME, null, cv);
+    }
+
+    public void updateEntryLocation(long id, double latitude, double longitude) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(COL_LATITUDE, latitude);
+        cv.put(COL_LONGITUDE, longitude);
+        db.update(TABLE_NAME, cv, COL_ID + " = ?", new String[]{String.valueOf(id)});
     }
 }

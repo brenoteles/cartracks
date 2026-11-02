@@ -289,7 +289,9 @@ class CarMainActivity : ComponentActivity() {
                 odometerKm = e.odometerKm,
                 notes = e.notes ?: "",
                 isFullTank = e.isFullTank,
-                fuelType = e.fuelType
+                fuelType = e.fuelType,
+                latitude = e.latitude,
+                longitude = e.longitude
             )
         }
         fuelState.value = entries
@@ -613,10 +615,16 @@ class CarMainActivity : ComponentActivity() {
                     2 -> FuelScreen(
                         fuelEntries = fuelEntries,
                         tankCapacityLiters = tankCapacity,
-                        onAddFuel = { station, liters, price, total, odo, notes, isFull, fuelType ->
-                            fuelDb.addEntry(station, liters, price, total, odo, notes, isFull, fuelType)
+                        currentGps = currentGps,
+                        onAddFuel = { station, liters, price, total, odo, notes, isFull, fuelType, lat, lon ->
+                            fuelDb.addEntry(station, liters, price, total, odo, notes, isFull, fuelType, lat, lon)
                             loadFuelEntries()
                             Toast.makeText(this@CarMainActivity, "Abastecimento registrado!", Toast.LENGTH_SHORT).show()
+                        },
+                        onUpdateFuelLocation = { entryId, lat, lon ->
+                            fuelDb.updateEntryLocation(entryId, lat, lon)
+                            loadFuelEntries()
+                            Toast.makeText(this@CarMainActivity, "Localização do posto salva no mapa!", Toast.LENGTH_SHORT).show()
                         }
                     )
                     3 -> SettingsScreen(

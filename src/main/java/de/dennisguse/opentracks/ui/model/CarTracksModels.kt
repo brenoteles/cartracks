@@ -33,7 +33,16 @@ data class FuelItem(
     val odometerKm: Double,
     val notes: String,
     val isFullTank: Boolean = true,
-    val fuelType: String = "Gasolina Comum"
+    val fuelType: String = "Gasolina Comum",
+    val latitude: Double? = null,
+    val longitude: Double? = null
+)
+
+data class MapMarkerItem(
+    val lat: Double,
+    val lon: Double,
+    val title: String,
+    val snippet: String = ""
 )
 
 data class CustomLocation(

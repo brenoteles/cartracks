@@ -1,5 +1,6 @@
 package de.dennisguse.opentracks.ui.components
 
+import android.content.Context
 import android.graphics.Color as AndroidColor
 import android.graphics.Paint
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,11 +14,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.preference.PreferenceManager
+import de.dennisguse.opentracks.ui.model.MapMarkerItem
 import de.dennisguse.opentracks.ui.model.TripPoint
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
@@ -25,19 +26,31 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
+import java.io.File
 
-val EsriWorldStreetMapHD = XYTileSource(
-    "EsriHD",
-    0, 19, 256, ".jpg",
-    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/"),
-    "© Esri, OpenStreetMap"
-)
+private fun ensureOsmDroidConfigured(context: Context) {
+    val appCtx = context.applicationContext
+    val config = Configuration.getInstance()
+    config.load(appCtx, PreferenceManager.getDefaultSharedPreferences(appCtx))
+
+    // Set writable internal cache directory AFTER load() so any stale/unwritable path in SharedPreferences is overridden
+    val baseDir = File(appCtx.cacheDir, "osmdroid_hd_v6").apply { mkdirs() }
+    val tileDir = File(baseDir, "tiles").apply { mkdirs() }
+    config.osmdroidBasePath = baseDir
+    config.osmdroidTileCache = tileDir
+
+    // Valid browser/app User-Agent required by tile.openstreetmap.org
+    config.userAgentValue = "Mozilla/5.0 (Linux; Android 16; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 CarTracks/1.0.6"
+    config.tileDownloadThreads = 4.toShort()
+    config.tileFileSystemThreads = 4.toShort()
+}
 
 @Composable
 fun CarMapView(
     modifier: Modifier = Modifier,
     points: List<TripPoint> = emptyList(),
     multiRoutes: List<List<TripPoint>> = emptyList(),
+    extraMarkers: List<MapMarkerItem> = emptyList(),
     currentLocation: Pair<Double, Double>? = null,
     pinnedLocation: Pair<Double, Double>? = null,
     pinnedTitle: String = "Local Selecionado",
@@ -46,21 +59,20 @@ fun CarMapView(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Initialize OSMDroid Configuration with valid User-Agent to prevent 403 Forbidden
-    Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
-    Configuration.getInstance().userAgentValue = "CarTracks/1.0 (Android; Mobile; Samsung)"
-
     val mapView = remember {
+        ensureOsmDroidConfigured(context)
         MapView(context).apply {
-            // High Definition (HD) settings
-            setTileSource(EsriWorldStreetMapHD) // Crisp, detailed HD vector-raster tiles
-            isTilesScaledToDpi = true           // Sharp HD scaling on QHD+ Samsung screens
+            setTileSource(TileSourceFactory.MAPNIK) // Official OpenStreetMap standard {z}/{x}/{y} tiles
+            setUseDataConnection(true)
+            isTilesScaledToDpi = true               // Crisp HD DPI scaling on QHD+ screens
+            setDestroyMode(false)                   // Keep tile provider alive across Compose recompositions
             setMultiTouchControls(true)
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
             minZoomLevel = 4.0
-            maxZoomLevel = 19.5
-            controller.setZoom(15.0)
-            controller.setCenter(GeoPoint(-23.5874, -46.6576)) // Default São Paulo
+            maxZoomLevel = 20.0
+            controller.setZoom(15.5)
+            controller.setCenter(GeoPoint(-23.5672, -46.6685)) // Default São Paulo (Jardins)
+            onResume()
         }
     }
 
@@ -69,13 +81,13 @@ fun CarMapView(
             when (event) {
                 Lifecycle.Event.ON_RESUME -> mapView.onResume()
                 Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                Lifecycle.Event.ON_DESTROY -> mapView.onDetach()
                 else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            mapView.onPause()
         }
     }
 
@@ -83,6 +95,7 @@ fun CarMapView(
         modifier = modifier.fillMaxSize(),
         factory = { mapView },
         update = { map ->
+            map.setUseDataConnection(true)
             map.overlays.clear()
 
             // 1. Map Events Receiver for Tapping / Pinning Location
@@ -118,7 +131,7 @@ fun CarMapView(
                 val startMarker = Marker(map).apply {
                     position = GeoPoint(startPt.lat, startPt.lon)
                     title = "Partida"
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 }
                 map.overlays.add(startMarker)
 
@@ -128,7 +141,7 @@ fun CarMapView(
                     val endMarker = Marker(map).apply {
                         position = GeoPoint(endPt.lat, endPt.lon)
                         title = "Chegada"
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                     }
                     map.overlays.add(endMarker)
                 }
@@ -177,21 +190,52 @@ fun CarMapView(
                 }
             }
 
-            // 4. Current Location Marker
+            // 4. Extra Markers (e.g. Fuel Stations on Map)
+            if (extraMarkers.isNotEmpty()) {
+                val markerGeoPoints = mutableListOf<GeoPoint>()
+                extraMarkers.forEach { item ->
+                    val pt = GeoPoint(item.lat, item.lon)
+                    markerGeoPoints.add(pt)
+                    val m = Marker(map).apply {
+                        position = pt
+                        title = item.title
+                        snippet = item.snippet
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    }
+                    map.overlays.add(m)
+                }
+                if (points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null) {
+                    if (markerGeoPoints.size == 1) {
+                        map.controller.setZoom(16.0)
+                        map.controller.setCenter(markerGeoPoints.first())
+                    } else {
+                        try {
+                            val box = BoundingBox.fromGeoPoints(markerGeoPoints)
+                            map.post {
+                                map.zoomToBoundingBox(box.increaseByScale(1.45f), true)
+                            }
+                        } catch (e: Exception) {
+                            map.controller.setCenter(markerGeoPoints.first())
+                        }
+                    }
+                }
+            }
+
+            // 5. Current Location Marker
             currentLocation?.let { (lat, lon) ->
                 val curPoint = GeoPoint(lat, lon)
                 val curMarker = Marker(map).apply {
                     position = curPoint
                     title = "Posição Atual"
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 }
                 map.overlays.add(curMarker)
-                if (points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null) {
+                if (points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null && extraMarkers.isEmpty()) {
                     map.controller.animateTo(curPoint)
                 }
             }
 
-            // 5. Pinned Location Marker (for Casa / Trabalho picker)
+            // 6. Pinned Location Marker (for Casa / Trabalho / Posto picker)
             pinnedLocation?.let { (lat, lon) ->
                 val pinPt = GeoPoint(lat, lon)
                 val pinMarker = Marker(map).apply {
@@ -200,7 +244,7 @@ fun CarMapView(
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                 }
                 map.overlays.add(pinMarker)
-                map.controller.setCenter(pinPt)
+                map.controller.animateTo(pinPt)
             }
 
             map.invalidate()
