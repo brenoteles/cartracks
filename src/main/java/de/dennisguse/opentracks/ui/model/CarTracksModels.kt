@@ -31,7 +31,9 @@ data class FuelItem(
     val pricePerLiter: Double,
     val totalCost: Double,
     val odometerKm: Double,
-    val notes: String
+    val notes: String,
+    val isFullTank: Boolean = true,
+    val fuelType: String = "Gasolina Comum"
 )
 
 data class CustomLocation(
@@ -46,6 +48,21 @@ enum class PeriodFilter(val label: String) {
     SETE_DIAS("7 Dias"),
     ESTE_MES("Este Mês"),
     TODAS("Todas")
+}
+
+enum class DestinationFilter(val label: String) {
+    TODOS("Todos Destinos"),
+    CASA("🏠 Para Casa"),
+    TRABALHO("🏢 Para o Trabalho"),
+    OUTROS("🚗 Outros Trajetos")
+}
+
+enum class FuelTypeFilter(val label: String) {
+    TODOS("Todos"),
+    GASOLINA_COMUM("Gasolina Comum"),
+    GASOLINA_ADITIVADA("Gasolina Aditivada"),
+    ETANOL("Etanol"),
+    DIESEL("Diesel")
 }
 
 data class LiveCockpitData(

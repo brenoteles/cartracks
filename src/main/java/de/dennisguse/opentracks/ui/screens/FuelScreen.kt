@@ -3,6 +3,8 @@ package de.dennisguse.opentracks.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -31,14 +33,31 @@ import java.util.Locale
 @Composable
 fun FuelScreen(
     fuelEntries: List<FuelItem>,
-    onAddFuel: (station: String, liters: Double, price: Double, total: Double, odo: Double, notes: String) -> Unit
+    tankCapacityLiters: Double = 50.0,
+    onAddFuel: (station: String, liters: Double, price: Double, total: Double, odo: Double, notes: String, isFullTank: Boolean, fuelType: String) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    val totalSpent = fuelEntries.sumOf { it.totalCost }
-    val totalLiters = fuelEntries.sumOf { it.liters }
-    val efficiencyStats = remember(fuelEntries) {
-        FuelEfficiencyCalculator.calculateStats(fuelEntries)
+    // Filter states
+    var selectedFuelTypeFilter by remember { mutableStateOf("Todos") }
+    var selectedTankStateFilter by remember { mutableStateOf("Todos") } // "Todos", "Cheio", "Parcial"
+
+    val filteredEntries = remember(fuelEntries, selectedFuelTypeFilter, selectedTankStateFilter) {
+        fuelEntries.filter { item ->
+            val matchFuel = selectedFuelTypeFilter == "Todos" || item.fuelType.equals(selectedFuelTypeFilter, ignoreCase = true)
+            val matchTank = when (selectedTankStateFilter) {
+                "Cheio" -> item.isFullTank
+                "Parcial" -> !item.isFullTank
+                else -> true
+            }
+            matchFuel && matchTank
+        }
+    }
+
+    val totalSpent = filteredEntries.sumOf { it.totalCost }
+    val totalLiters = filteredEntries.sumOf { it.liters }
+    val efficiencyStats = remember(fuelEntries, tankCapacityLiters) {
+        FuelEfficiencyCalculator.calculateStats(fuelEntries, tankCapacityLiters)
     }
 
     if (showDialog) {
@@ -47,6 +66,8 @@ fun FuelScreen(
         var priceStr by remember { mutableStateOf("5.89") }
         var odoStr by remember { mutableStateOf("") }
         var notes by remember { mutableStateOf("") }
+        var isFullTank by remember { mutableStateOf(true) }
+        var chosenFuelType by remember { mutableStateOf("Gasolina Comum") }
 
         AlertDialog(
             onDismissRequest = { showDialog = false },
@@ -59,6 +80,56 @@ fun FuelScreen(
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Full Tank vs Partial Switch
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(AppleCard)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (isFullTank) "🟢 Tanque Cheio (100%)" else "🟡 Abastecimento Parcial",
+                            color = if (isFullTank) AppleGreen else AppleOrange,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                        Switch(
+                            checked = isFullTank,
+                            onCheckedChange = { isFullTank = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = AppleGreen,
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = AppleOrange
+                            )
+                        )
+                    }
+
+                    // Fuel Type Chips
+                    Text("Tipo de Combustível:", fontSize = 12.sp, color = TextSecondary)
+                    val fuelOptions = listOf("Gasolina Comum", "Gasolina Aditivada", "Etanol", "Diesel")
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(fuelOptions) { ft ->
+                            val sel = ft == chosenFuelType
+                            FilterChip(
+                                selected = sel,
+                                onClick = { chosenFuelType = ft },
+                                label = { Text(ft, fontSize = 11.sp) },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = AppleBlue,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = AppleCard,
+                                    labelColor = TextSecondary
+                                ),
+                                border = null
+                            )
+                        }
+                    }
+
                     OutlinedTextField(
                         value = station,
                         onValueChange = { station = it },
@@ -66,6 +137,7 @@ fun FuelScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
                             value = litersStr,
@@ -84,6 +156,7 @@ fun FuelScreen(
                             modifier = Modifier.weight(1f)
                         )
                     }
+
                     OutlinedTextField(
                         value = odoStr,
                         onValueChange = { odoStr = it },
@@ -92,6 +165,7 @@ fun FuelScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
@@ -109,7 +183,7 @@ fun FuelScreen(
                         val o = odoStr.replace(',', '.').toDoubleOrNull() ?: 0.0
                         if (station.isNotBlank() && l > 0) {
                             val tot = l * p
-                            onAddFuel(station, l, p, tot, o, notes)
+                            onAddFuel(station, l, p, tot, o, notes, isFullTank, chosenFuelType)
                             showDialog = false
                         }
                     },
@@ -145,14 +219,14 @@ fun FuelScreen(
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Eficiência real (km/L) e despesas de combustível",
+                    text = "Consumo real (tanque cheio e parcial) • Tanque máx: ${tankCapacityLiters.toInt()}L",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
             }
         }
 
-        // Feature 3: Real km/L & Cost Metrics Grid
+        // Efficiency Summary Card
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
@@ -174,19 +248,20 @@ fun FuelScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricCard(
-                        title = "Total Gasto",
+                        title = "Gasto Filtrado",
                         value = String.format(Locale.getDefault(), "R$ %.2f", totalSpent),
                         icon = Icons.Default.AttachMoney,
                         tint = AppleOrange,
                         modifier = Modifier.weight(1f)
                     )
                     MetricCard(
-                        title = "Total Litros",
+                        title = "Litros Filtrados",
                         value = String.format(Locale.getDefault(), "%.1f L", totalLiters),
                         icon = Icons.Default.Speed,
                         tint = AppleTeal,
@@ -196,7 +271,81 @@ fun FuelScreen(
             }
         }
 
-        // Action Button
+        // Partial & Full Tank Explanation Card
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(AppleCardElevated)
+                    .padding(12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("💡", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Abastecimentos parciais acumulam litros até o próximo tanque cheio para calcular o consumo exato entre ciclos.",
+                        color = TextSecondary,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp
+                    )
+                }
+            }
+        }
+
+        // Filter 1: By Fuel Type
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Filtrar por Combustível:", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                val fuelFilters = listOf("Todos", "Gasolina Comum", "Gasolina Aditivada", "Etanol", "Diesel")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(fuelFilters) { ft ->
+                        val isSel = ft == selectedFuelTypeFilter
+                        FilterChip(
+                            selected = isSel,
+                            onClick = { selectedFuelTypeFilter = ft },
+                            label = { Text(ft, fontSize = 12.sp) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = AppleBlue,
+                                selectedLabelColor = Color.White,
+                                containerColor = AppleCard,
+                                labelColor = TextSecondary
+                            ),
+                            border = null
+                        )
+                    }
+                }
+            }
+        }
+
+        // Filter 2: By Tank Fill Type
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Filtrar por Tipo de Tanque:", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                val tankFilters = listOf("Todos" to "Todos", "Cheio" to "🟢 Tanque Cheio", "Parcial" to "🟡 Parcial")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(tankFilters) { (key, label) ->
+                        val isSel = key == selectedTankStateFilter
+                        FilterChip(
+                            selected = isSel,
+                            onClick = { selectedTankStateFilter = key },
+                            label = { Text(label, fontSize = 12.sp) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = AppleBlue,
+                                selectedLabelColor = Color.White,
+                                containerColor = AppleCard,
+                                labelColor = TextSecondary
+                            ),
+                            border = null
+                        )
+                    }
+                }
+            }
+        }
+
+        // Action Button: Add Fuel
         item {
             Button(
                 onClick = { showDialog = true },
@@ -220,8 +369,8 @@ fun FuelScreen(
             }
         }
 
-        // Entries List with Individual km/L calculation
-        if (fuelEntries.isEmpty()) {
+        // Entries List
+        if (filteredEntries.isEmpty()) {
             item {
                 Box(
                     modifier = Modifier
@@ -232,7 +381,7 @@ fun FuelScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Nenhum abastecimento registrado.",
+                        text = "Nenhum abastecimento encontrado para os filtros selecionados.",
                         color = TextSecondary,
                         fontSize = 14.sp
                     )
@@ -240,17 +389,7 @@ fun FuelScreen(
             }
         } else {
             val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-            itemsIndexed(fuelEntries) { index, entry ->
-                // Check if next entry in list (which is previous in time) allows delta calculation
-                var itemKmL: Double? = null
-                if (index < fuelEntries.size - 1) {
-                    val prevInTime = fuelEntries[index + 1]
-                    val delta = entry.odometerKm - prevInTime.odometerKm
-                    if (delta > 0 && entry.liters > 0) {
-                        itemKmL = delta / entry.liters
-                    }
-                }
-
+            itemsIndexed(filteredEntries) { index, entry ->
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -277,6 +416,37 @@ fun FuelScreen(
                             )
                         }
 
+                        // Badges: Fuel Type and Full Tank vs Partial
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(AppleCardElevated)
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = entry.fuelType,
+                                    color = AppleTeal,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (entry.isFullTank) AppleGreen.copy(alpha = 0.15f) else AppleOrange.copy(alpha = 0.15f))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = if (entry.isFullTank) "🟢 Tanque Cheio" else "🟡 Abastecimento Parcial",
+                                    color = if (entry.isFullTank) AppleGreen else AppleOrange,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -295,33 +465,12 @@ fun FuelScreen(
                             )
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (entry.odometerKm > 0) {
-                                Text(
-                                    text = "Odômetro: ${String.format(Locale.getDefault(), "%.0f", entry.odometerKm)} km",
-                                    color = TextTertiary,
-                                    fontSize = 12.sp
-                                )
-                            }
-                            if (itemKmL != null && itemKmL > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(AppleGreen.copy(alpha = 0.15f))
-                                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                                ) {
-                                    Text(
-                                        text = "Rendimento: ${String.format(Locale.getDefault(), "%.1f", itemKmL)} km/L",
-                                        color = AppleGreen,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
+                        if (entry.odometerKm > 0) {
+                            Text(
+                                text = "Odômetro: ${String.format(Locale.getDefault(), "%.0f", entry.odometerKm)} km",
+                                color = TextTertiary,
+                                fontSize = 12.sp
+                            )
                         }
                     }
                 }

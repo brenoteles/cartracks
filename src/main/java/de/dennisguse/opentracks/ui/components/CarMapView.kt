@@ -12,14 +12,26 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.preference.PreferenceManager
 import de.dennisguse.opentracks.ui.model.TripPoint
+import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
+
+val EsriWorldStreetMapHD = XYTileSource(
+    "EsriHD",
+    0, 19, 256, ".jpg",
+    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/"),
+    "© Esri, OpenStreetMap"
+)
 
 @Composable
 fun CarMapView(
@@ -27,18 +39,28 @@ fun CarMapView(
     points: List<TripPoint> = emptyList(),
     multiRoutes: List<List<TripPoint>> = emptyList(),
     currentLocation: Pair<Double, Double>? = null,
-    onPointClicked: ((TripPoint) -> Unit)? = null
+    pinnedLocation: Pair<Double, Double>? = null,
+    pinnedTitle: String = "Local Selecionado",
+    onMapTapped: ((Double, Double) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    // Initialize OSMDroid Configuration with valid User-Agent to prevent 403 Forbidden
+    Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
+    Configuration.getInstance().userAgentValue = "CarTracks/1.0 (Android; Mobile; Samsung)"
+
     val mapView = remember {
         MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
+            // High Definition (HD) settings
+            setTileSource(EsriWorldStreetMapHD) // Crisp, detailed HD vector-raster tiles
+            isTilesScaledToDpi = true           // Sharp HD scaling on QHD+ Samsung screens
             setMultiTouchControls(true)
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
+            minZoomLevel = 4.0
+            maxZoomLevel = 19.5
             controller.setZoom(15.0)
-            controller.setCenter(GeoPoint(-23.5874, -46.6576)) // Default São Paulo / Brazil
+            controller.setCenter(GeoPoint(-23.5874, -46.6576)) // Default São Paulo
         }
     }
 
@@ -63,7 +85,23 @@ fun CarMapView(
         update = { map ->
             map.overlays.clear()
 
-            // 1. Single Route Polyline
+            // 1. Map Events Receiver for Tapping / Pinning Location
+            if (onMapTapped != null) {
+                val eventsReceiver = object : MapEventsReceiver {
+                    override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
+                        onMapTapped(p.latitude, p.longitude)
+                        return true
+                    }
+
+                    override fun longPressHelper(p: GeoPoint): Boolean {
+                        onMapTapped(p.latitude, p.longitude)
+                        return true
+                    }
+                }
+                map.overlays.add(MapEventsOverlay(eventsReceiver))
+            }
+
+            // 2. Single Route Polyline
             if (points.isNotEmpty()) {
                 val geoPoints = points.map { GeoPoint(it.lat, it.lon) }
                 val polyline = Polyline(map).apply {
@@ -98,14 +136,14 @@ fun CarMapView(
                 try {
                     val box = BoundingBox.fromGeoPoints(geoPoints)
                     map.post {
-                        map.zoomToBoundingBox(box.increaseByScale(1.3f), true)
+                        map.zoomToBoundingBox(box.increaseByScale(1.35f), true)
                     }
                 } catch (e: Exception) {
                     map.controller.setCenter(geoPoints.first())
                 }
             }
 
-            // 2. Multi-Routes (for Period Overview)
+            // 3. Multi-Routes (for Period Overview)
             if (multiRoutes.isNotEmpty()) {
                 val routeColors = listOf(
                     "#0A84FF", "#30D158", "#FF9F0A", "#BF5AF2", "#FF453A", "#64D2FF"
@@ -139,7 +177,7 @@ fun CarMapView(
                 }
             }
 
-            // 3. Current Location Marker (Live GPS tracking)
+            // 4. Current Location Marker
             currentLocation?.let { (lat, lon) ->
                 val curPoint = GeoPoint(lat, lon)
                 val curMarker = Marker(map).apply {
@@ -148,9 +186,21 @@ fun CarMapView(
                     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                 }
                 map.overlays.add(curMarker)
-                if (points.isEmpty() && multiRoutes.isEmpty()) {
+                if (points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null) {
                     map.controller.animateTo(curPoint)
                 }
+            }
+
+            // 5. Pinned Location Marker (for Casa / Trabalho picker)
+            pinnedLocation?.let { (lat, lon) ->
+                val pinPt = GeoPoint(lat, lon)
+                val pinMarker = Marker(map).apply {
+                    position = pinPt
+                    title = pinnedTitle
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                }
+                map.overlays.add(pinMarker)
+                map.controller.setCenter(pinPt)
             }
 
             map.invalidate()

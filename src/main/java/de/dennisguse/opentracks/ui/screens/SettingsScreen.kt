@@ -1,12 +1,12 @@
 package de.dennisguse.opentracks.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,8 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import de.dennisguse.opentracks.ui.components.LocationPickerMapDialog
 import de.dennisguse.opentracks.ui.model.CustomLocation
 import de.dennisguse.opentracks.ui.theme.*
 
@@ -26,10 +28,10 @@ fun SettingsScreen(
     homeLoc: CustomLocation,
     workLoc: CustomLocation,
     currentGps: Pair<Double, Double>?,
-    speedLimitKmh: Int,
-    isSpeedAlertEnabled: Boolean,
+    tankCapacityLiters: Double,
+    primaryFuelType: String,
     onSaveLocation: (key: String, lat: Double, lon: Double, label: String) -> Unit,
-    onSaveSpeedAlert: (limitKmh: Int, enabled: Boolean) -> Unit,
+    onSaveVehicleConfig: (tankCapacity: Double, primaryFuelType: String) -> Unit,
     onOpenSystemSettings: () -> Unit
 ) {
     var homeLat by remember(homeLoc) { mutableStateOf(homeLoc.lat.toString()) }
@@ -38,8 +40,36 @@ fun SettingsScreen(
     var workLat by remember(workLoc) { mutableStateOf(workLoc.lat.toString()) }
     var workLon by remember(workLoc) { mutableStateOf(workLoc.lon.toString()) }
 
-    var currentLimit by remember(speedLimitKmh) { mutableStateOf(speedLimitKmh) }
-    var alertEnabled by remember(isSpeedAlertEnabled) { mutableStateOf(isSpeedAlertEnabled) }
+    var tankCapacityStr by remember(tankCapacityLiters) { mutableStateOf(tankCapacityLiters.toInt().toString()) }
+    var selectedFuelType by remember(primaryFuelType) { mutableStateOf(primaryFuelType) }
+
+    var mapPickerTarget by remember { mutableStateOf<String?>(null) } // "home" or "work"
+
+    // Map Location Picker Modal
+    if (mapPickerTarget != null) {
+        val isHome = mapPickerTarget == "home"
+        val curLat = if (isHome) homeLat.toDoubleOrNull() ?: -23.6015 else workLat.toDoubleOrNull() ?: -23.5615
+        val curLon = if (isHome) homeLon.toDoubleOrNull() ?: -46.6900 else workLon.toDoubleOrNull() ?: -46.6559
+
+        LocationPickerMapDialog(
+            title = if (isHome) "Casa" else "Trabalho",
+            initialLat = curLat,
+            initialLon = curLon,
+            currentGps = currentGps,
+            onConfirm = { lat, lon ->
+                if (isHome) {
+                    homeLat = lat.toString()
+                    homeLon = lon.toString()
+                    onSaveLocation("home", lat, lon, "Casa")
+                } else {
+                    workLat = lat.toString()
+                    workLon = lon.toString()
+                    onSaveLocation("work", lat, lon, "Trabalho")
+                }
+            },
+            onDismiss = { mapPickerTarget = null }
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -59,17 +89,17 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Alertas de velocidade, rotas e preferências do veículo",
+                    text = "Locais favoritos no mapa e parâmetros do veículo",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
             }
         }
 
-        // Feature 5: Speed Limit Alert Settings Card
+        // Section: Vehicle & Fuel Parameters
         item {
             Text(
-                text = "Alerta de Limite de Velocidade",
+                text = "Parâmetros do Veículo",
                 color = AppleBlue,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
@@ -84,86 +114,65 @@ fun SettingsScreen(
                     .background(AppleCard)
                     .padding(16.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Aviso Sonoro e Visual",
-                                color = TextPrimary,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Beep suave e aviso ao ultrapassar a velocidade máxima",
-                                color = TextSecondary,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Switch(
-                            checked = alertEnabled,
-                            onCheckedChange = {
-                                alertEnabled = it
-                                onSaveSpeedAlert(currentLimit, it)
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = AppleBlue
-                            )
-                        )
-                    }
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Capacidade do Tanque e Combustível",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
 
-                    if (alertEnabled) {
-                        Text(
-                            text = "Limite Atual: $currentLimit km/h",
-                            color = AppleTeal,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                    OutlinedTextField(
+                        value = tankCapacityStr,
+                        onValueChange = {
+                            tankCapacityStr = it
+                            val cap = it.toDoubleOrNull() ?: 50.0
+                            onSaveVehicleConfig(cap, selectedFuelType)
+                        },
+                        label = { Text("Capacidade Máxima do Tanque (Litros)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                        val presetLimits = listOf(60, 80, 100, 110, 120, 140)
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(presetLimits) { limit ->
-                                val isSelected = limit == currentLimit
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        currentLimit = limit
-                                        onSaveSpeedAlert(limit, alertEnabled)
-                                    },
-                                    label = {
-                                        Text(
-                                            text = "$limit km/h",
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            fontSize = 13.sp
-                                        )
-                                    },
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = AppleBlue,
-                                        selectedLabelColor = Color.White,
-                                        containerColor = AppleCardElevated,
-                                        labelColor = TextSecondary
-                                    ),
-                                    border = null
-                                )
-                            }
+                    Text(
+                        text = "Combustível Principal:",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    val fuelTypes = listOf("Gasolina Comum", "Gasolina Aditivada", "Etanol", "Diesel")
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(fuelTypes) { fType ->
+                            val isSelected = fType == selectedFuelType
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    selectedFuelType = fType
+                                    val cap = tankCapacityStr.toDoubleOrNull() ?: 50.0
+                                    onSaveVehicleConfig(cap, fType)
+                                },
+                                label = { Text(fType, fontSize = 12.sp) },
+                                shape = RoundedCornerShape(14.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = AppleBlue,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = AppleCardElevated,
+                                    labelColor = TextSecondary
+                                ),
+                                border = null
+                            )
                         }
                     }
                 }
             }
         }
 
-        // Section: Favorite Locations
+        // Section: Favorite Locations with Map Pinning
         item {
             Text(
-                text = "Locais Favoritos (Detecção de Trajetos)",
+                text = "Locais Favoritos (Pinar no Mapa)",
                 color = AppleBlue,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
@@ -172,16 +181,18 @@ fun SettingsScreen(
 
         // Home Location Card
         item {
-            LocationCard(
+            LocationCardWithMapPicker(
                 title = "🏠 Casa",
                 lat = homeLat,
                 lon = homeLon,
                 onLatChange = { homeLat = it },
                 onLonChange = { homeLon = it },
+                onOpenMapPicker = { mapPickerTarget = "home" },
                 onUseGps = {
                     currentGps?.let { (lat, lon) ->
                         homeLat = lat.toString()
                         homeLon = lon.toString()
+                        onSaveLocation("home", lat, lon, "Casa")
                     }
                 },
                 onSave = {
@@ -194,16 +205,18 @@ fun SettingsScreen(
 
         // Work Location Card
         item {
-            LocationCard(
+            LocationCardWithMapPicker(
                 title = "🏢 Trabalho",
                 lat = workLat,
                 lon = workLon,
                 onLatChange = { workLat = it },
                 onLonChange = { workLon = it },
+                onOpenMapPicker = { mapPickerTarget = "work" },
                 onUseGps = {
                     currentGps?.let { (lat, lon) ->
                         workLat = lat.toString()
                         workLon = lon.toString()
+                        onSaveLocation("work", lat, lon, "Trabalho")
                     }
                 },
                 onSave = {
@@ -241,7 +254,7 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Configurações Avançadas de Sensores",
+                    text = "Configurações Avançadas do Sistema",
                     color = TextPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
@@ -266,14 +279,9 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Versão 1.0.4 • Samsung Galaxy S24 Ultra Optimized",
+                        text = "Versão 1.0.5 • Mapa HD • Tanque Parcial / Cheio • Pinar no Mapa",
                         color = TextSecondary,
                         fontSize = 12.sp
-                    )
-                    Text(
-                        text = "Exportação GPX / KML • Alerta de Velocidade • Consumo Real km/L",
-                        color = TextTertiary,
-                        fontSize = 11.sp
                     )
                 }
             }
@@ -282,12 +290,13 @@ fun SettingsScreen(
 }
 
 @Composable
-fun LocationCard(
+fun LocationCardWithMapPicker(
     title: String,
     lat: String,
     lon: String,
     onLatChange: (String) -> Unit,
     onLonChange: (String) -> Unit,
+    onOpenMapPicker: () -> Unit,
     onUseGps: () -> Unit,
     onSave: () -> Unit
 ) {
@@ -299,12 +308,39 @@ fun LocationCard(
             .padding(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(
-                text = title,
-                color = TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    color = TextPrimary,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Prominent Map Picker Button!
+                Button(
+                    onClick = onOpenMapPicker,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Map,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = AppleBlue
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Pinar no Mapa",
+                        color = AppleBlue,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -339,7 +375,7 @@ fun LocationCard(
                         tint = AppleBlue
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Usar GPS Atual", fontSize = 12.sp, color = TextPrimary)
+                    Text("Usar GPS", fontSize = 12.sp, color = TextPrimary)
                 }
 
                 Button(

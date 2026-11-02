@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import de.dennisguse.opentracks.data.ContentProviderUtils
 import de.dennisguse.opentracks.data.FuelDatabaseHelper
+import de.dennisguse.opentracks.data.MockDataGenerator
 import de.dennisguse.opentracks.data.TrackListIterator
 import de.dennisguse.opentracks.data.TrackPointIterator
 import de.dennisguse.opentracks.data.models.Track
@@ -35,7 +36,6 @@ import de.dennisguse.opentracks.ui.model.*
 import de.dennisguse.opentracks.ui.screens.*
 import de.dennisguse.opentracks.ui.theme.*
 import de.dennisguse.opentracks.util.FuelEfficiencyCalculator
-import de.dennisguse.opentracks.util.SpeedAlertManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -47,7 +47,6 @@ class CarMainActivity : ComponentActivity() {
 
     private lateinit var providerUtils: ContentProviderUtils
     private lateinit var fuelDb: FuelDatabaseHelper
-    private lateinit var speedAlertManager: SpeedAlertManager
     private var serviceConnection: TrackRecordingServiceConnection? = null
 
     // Compose State Holders
@@ -57,8 +56,10 @@ class CarMainActivity : ComponentActivity() {
     private val homeLocationState = mutableStateOf(CustomLocation(-23.6015, -46.6900, "Casa", false))
     private val workLocationState = mutableStateOf(CustomLocation(-23.5615, -46.6559, "Trabalho", false))
     private val currentGpsState = mutableStateOf<Pair<Double, Double>?>(null)
-    private val speedLimitState = mutableStateOf(100)
-    private val speedAlertEnabledState = mutableStateOf(true)
+
+    // Vehicle & Fuel Config
+    private val tankCapacityState = mutableStateOf(50.0)
+    private val primaryFuelTypeState = mutableStateOf("Gasolina Comum")
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -74,9 +75,12 @@ class CarMainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Seed mock data if database is fresh
+        MockDataGenerator.populateMockDataIfEmpty(this)
+
         providerUtils = ContentProviderUtils(this)
         fuelDb = FuelDatabaseHelper.getInstance(this)
-        speedAlertManager = SpeedAlertManager(this)
 
         loadPreferences()
         loadCustomLocations()
@@ -115,25 +119,20 @@ class CarMainActivity : ComponentActivity() {
         serviceConnection?.unbind(this)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        speedAlertManager.release()
-    }
-
     private fun loadPreferences() {
         val sp = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
-        speedLimitState.value = sp.getInt("speed_limit_kmh", 100)
-        speedAlertEnabledState.value = sp.getBoolean("speed_alert_enabled", true)
+        tankCapacityState.value = sp.getFloat("tank_capacity_liters", 50f).toDouble()
+        primaryFuelTypeState.value = sp.getString("primary_fuel_type", "Gasolina Comum") ?: "Gasolina Comum"
     }
 
-    private fun saveSpeedLimit(limit: Int, enabled: Boolean) {
+    private fun saveVehicleConfig(tankCapacity: Double, primaryFuelType: String) {
         getSharedPreferences("CarTracksPrefs", MODE_PRIVATE).edit()
-            .putInt("speed_limit_kmh", limit)
-            .putBoolean("speed_alert_enabled", enabled)
+            .putFloat("tank_capacity_liters", tankCapacity.toFloat())
+            .putString("primary_fuel_type", primaryFuelType)
             .apply()
-        speedLimitState.value = limit
-        speedAlertEnabledState.value = enabled
-        Toast.makeText(this, "Alerta de velocidade atualizado: $limit km/h", Toast.LENGTH_SHORT).show()
+        tankCapacityState.value = tankCapacity
+        primaryFuelTypeState.value = primaryFuelType
+        Toast.makeText(this, "Parâmetros do veículo salvos!", Toast.LENGTH_SHORT).show()
     }
 
     private fun loadCustomLocations() {
@@ -288,7 +287,9 @@ class CarMainActivity : ComponentActivity() {
                 pricePerLiter = e.pricePerLiter,
                 totalCost = e.totalCost,
                 odometerKm = e.odometerKm,
-                notes = e.notes ?: ""
+                notes = e.notes ?: "",
+                isFullTank = e.isFullTank,
+                fuelType = e.fuelType
             )
         }
         fuelState.value = entries
@@ -366,9 +367,6 @@ class CarMainActivity : ComponentActivity() {
                 }
             }
         }
-
-        // Feature 5: Speed Alert Check & Trigger
-        speedAlertManager.checkSpeed(curSpd, speedLimitState.value, speedAlertEnabledState.value)
 
         val fuel = km * 0.08
         val cost = fuel * 5.89
@@ -455,8 +453,8 @@ class CarMainActivity : ComponentActivity() {
         val homeLoc by homeLocationState
         val workLoc by workLocationState
         val currentGps by currentGpsState
-        val speedLimit by speedLimitState
-        val isSpeedAlertEnabled by speedAlertEnabledState
+        val tankCapacity by tankCapacityState
+        val primaryFuelType by primaryFuelTypeState
 
         // Auto-open cockpit if user just started a trip
         LaunchedEffect(liveData.isRecording) {
@@ -469,9 +467,6 @@ class CarMainActivity : ComponentActivity() {
         if (isCockpitFullscreen && liveData.isRecording) {
             LiveCockpitScreen(
                 liveData = liveData,
-                speedLimitKmh = speedLimit,
-                isSpeedAlertEnabled = isSpeedAlertEnabled,
-                onUpdateSpeedLimit = { saveSpeedLimit(it, isSpeedAlertEnabled) },
                 onStopTripClicked = {
                     stopTrip()
                     isCockpitFullscreen = false
@@ -617,8 +612,9 @@ class CarMainActivity : ComponentActivity() {
                     )
                     2 -> FuelScreen(
                         fuelEntries = fuelEntries,
-                        onAddFuel = { station, liters, price, total, odo, notes ->
-                            fuelDb.addEntry(station, liters, price, total, odo, notes)
+                        tankCapacityLiters = tankCapacity,
+                        onAddFuel = { station, liters, price, total, odo, notes, isFull, fuelType ->
+                            fuelDb.addEntry(station, liters, price, total, odo, notes, isFull, fuelType)
                             loadFuelEntries()
                             Toast.makeText(this@CarMainActivity, "Abastecimento registrado!", Toast.LENGTH_SHORT).show()
                         }
@@ -627,13 +623,13 @@ class CarMainActivity : ComponentActivity() {
                         homeLoc = homeLoc,
                         workLoc = workLoc,
                         currentGps = currentGps,
-                        speedLimitKmh = speedLimit,
-                        isSpeedAlertEnabled = isSpeedAlertEnabled,
+                        tankCapacityLiters = tankCapacity,
+                        primaryFuelType = primaryFuelType,
                         onSaveLocation = { key, lat, lon, label ->
                             saveCustomLocation(key, lat, lon, label)
                         },
-                        onSaveSpeedAlert = { limit, enabled ->
-                            saveSpeedLimit(limit, enabled)
+                        onSaveVehicleConfig = { cap, fType ->
+                            saveVehicleConfig(cap, fType)
                         },
                         onOpenSystemSettings = {
                             startActivity(Intent(this@CarMainActivity, SettingsActivity::class.java))

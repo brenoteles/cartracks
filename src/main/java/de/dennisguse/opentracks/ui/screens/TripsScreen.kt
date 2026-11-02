@@ -13,10 +13,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import de.dennisguse.opentracks.ui.model.DestinationFilter
 import de.dennisguse.opentracks.ui.model.PeriodFilter
 import de.dennisguse.opentracks.ui.model.TripItem
 import de.dennisguse.opentracks.ui.theme.*
@@ -30,12 +32,33 @@ fun TripsScreen(
     onPeriodMapClicked: () -> Unit
 ) {
     val now = System.currentTimeMillis()
-    val filteredTrips = remember(trips, selectedFilter) {
-        when (selectedFilter) {
+    var selectedDestination by remember { mutableStateOf(DestinationFilter.TODOS) }
+
+    val filteredTrips = remember(trips, selectedFilter, selectedDestination) {
+        val byPeriod = when (selectedFilter) {
             PeriodFilter.HOJE -> trips.filter { now - it.startTimeMs <= 24 * 3600 * 1000L }
             PeriodFilter.SETE_DIAS -> trips.filter { now - it.startTimeMs <= 7 * 24 * 3600 * 1000L }
             PeriodFilter.ESTE_MES -> trips.filter { now - it.startTimeMs <= 30 * 24 * 3600 * 1000L }
             PeriodFilter.TODAS -> trips
+        }
+
+        when (selectedDestination) {
+            DestinationFilter.TODOS -> byPeriod
+            DestinationFilter.CASA -> byPeriod.filter {
+                it.commuteBadge?.contains("Casa") == true ||
+                it.name.contains("Casa", ignoreCase = true) ||
+                it.description.contains("Casa", ignoreCase = true)
+            }
+            DestinationFilter.TRABALHO -> byPeriod.filter {
+                it.commuteBadge?.contains("Trabalho") == true ||
+                it.name.contains("Trabalho", ignoreCase = true) ||
+                it.description.contains("Trabalho", ignoreCase = true)
+            }
+            DestinationFilter.OUTROS -> byPeriod.filter {
+                it.commuteBadge == null &&
+                !it.name.contains("Casa", ignoreCase = true) &&
+                !it.name.contains("Trabalho", ignoreCase = true)
+            }
         }
     }
 
@@ -61,45 +84,82 @@ fun TripsScreen(
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Rotas, telemetria e consumo por período",
+                    text = "Filtros por período e destino com mapa HD",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
             }
         }
 
-        // Period Filters (Cupertino Segmented Style)
+        // Filter 1: Period Filters
         item {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(PeriodFilter.values()) { filter ->
-                    val isSelected = filter == selectedFilter
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onFilterSelected(filter) },
-                        label = {
-                            Text(
-                                text = filter.label,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                fontSize = 13.sp
-                            )
-                        },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = AppleBlue,
-                            selectedLabelColor = TextPrimary,
-                            containerColor = AppleCard,
-                            labelColor = TextSecondary
-                        ),
-                        border = null
-                    )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Período:", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(PeriodFilter.values()) { filter ->
+                        val isSelected = filter == selectedFilter
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onFilterSelected(filter) },
+                            label = {
+                                Text(
+                                    text = filter.label,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 13.sp
+                                )
+                            },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = AppleBlue,
+                                selectedLabelColor = TextPrimary,
+                                containerColor = AppleCard,
+                                labelColor = TextSecondary
+                            ),
+                            border = null
+                        )
+                    }
                 }
             }
         }
 
-        // Summary Card for Selected Period
+        // Filter 2: Destination Filters
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Destino do Trajeto:", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(DestinationFilter.values()) { dest ->
+                        val isSelected = dest == selectedDestination
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedDestination = dest },
+                            label = {
+                                Text(
+                                    text = dest.label,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    fontSize = 13.sp
+                                )
+                            },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = ApplePurple,
+                                selectedLabelColor = Color.White,
+                                containerColor = AppleCard,
+                                labelColor = TextSecondary
+                            ),
+                            border = null
+                        )
+                    }
+                }
+            }
+        }
+
+        // Summary Card for Selected Filters
         item {
             Box(
                 modifier = Modifier
@@ -110,7 +170,7 @@ fun TripsScreen(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Resumo do Período (${selectedFilter.label})",
+                        text = "Resumo: ${selectedFilter.label} • ${selectedDestination.label}",
                         color = TextSecondary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
@@ -128,7 +188,7 @@ fun TripsScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${filteredTrips.size} viagens",
+                                text = "${filteredTrips.size} viagens encontradas",
                                 color = TextSecondary,
                                 fontSize = 12.sp
                             )
@@ -150,7 +210,7 @@ fun TripsScreen(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Fixed Button: Responsive, NEVER overflows text!
+                    // Button to view all filtered routes on HD Map
                     Button(
                         onClick = onPeriodMapClicked,
                         modifier = Modifier
@@ -167,7 +227,7 @@ fun TripsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Ver Todas as Rotas no Mapa",
+                            text = "Ver Rotas Filtradas no Mapa HD",
                             color = TextPrimary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -191,7 +251,7 @@ fun TripsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Nenhuma viagem encontrada neste período.",
+                        text = "Nenhuma viagem encontrada para os filtros selecionados.",
                         color = TextSecondary,
                         fontSize = 14.sp
                     )

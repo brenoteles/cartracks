@@ -23,7 +23,7 @@ import de.dennisguse.opentracks.data.models.TrackPoint;
 
 public class MockDataGenerator {
 
-    private static final String PREF_MOCK_DATA_INSERTED = "mock_car_trips_inserted_v6";
+    private static final String PREF_MOCK_DATA_INSERTED = "mock_car_trips_inserted_v7";
 
     public static void populateMockDataIfEmpty(Context context) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);

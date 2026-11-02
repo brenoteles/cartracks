@@ -8,55 +8,94 @@ data class FuelEfficiencyStats(
     val lastRecordedKmL: Double?,
     val totalRecordedKm: Double,
     val totalFuelSpent: Double,
-    val intervalsCount: Int
+    val fullTankCyclesCount: Int,
+    val partialFillsCount: Int
 )
 
 object FuelEfficiencyCalculator {
 
-    fun calculateStats(entries: List<FuelItem>): FuelEfficiencyStats {
+    /**
+     * Calculates real fuel economy considering both Full Tank and Partial Fill-ups.
+     * Full-tank to full-tank cycles give 100% exact consumption by summing intermediate partial liters.
+     */
+    fun calculateStats(entries: List<FuelItem>, tankCapacityLiters: Double = 50.0): FuelEfficiencyStats {
+        val totalSpent = entries.sumOf { it.totalCost }
+        val partialCount = entries.count { !it.isFullTank }
+
         if (entries.size < 2) {
-            val totalSpent = entries.sumOf { it.totalCost }
             return FuelEfficiencyStats(
-                averageKmL = 12.5, // Default automotive benchmark
+                averageKmL = 12.5,
                 averageCostPerKm = 5.89 / 12.5,
                 lastRecordedKmL = null,
                 totalRecordedKm = 0.0,
                 totalFuelSpent = totalSpent,
-                intervalsCount = 0
+                fullTankCyclesCount = 0,
+                partialFillsCount = partialCount
             )
         }
 
         // Sort ascending by odometer
         val sorted = entries.filter { it.odometerKm > 0 }.sortedBy { it.odometerKm }
-        var totalDeltaKm = 0.0
-        var totalLiters = 0.0
-        var totalCost = 0.0
-        var lastKmL: Double? = null
-        var intervals = 0
 
-        for (i in 1 until sorted.size) {
-            val prev = sorted[i - 1]
+        var totalCycleKm = 0.0
+        var totalCycleLiters = 0.0
+        var totalCycleCost = 0.0
+        var lastCycleKmL: Double? = null
+        var fullTankCycles = 0
+
+        // Track accumulated fuel since previous full tank
+        var lastFullTankIndex: Int? = null
+
+        for (i in sorted.indices) {
             val curr = sorted[i]
-            val deltaKm = curr.odometerKm - prev.odometerKm
-            if (deltaKm > 0 && curr.liters > 0) {
-                totalDeltaKm += deltaKm
-                totalLiters += curr.liters
-                totalCost += curr.totalCost
-                lastKmL = deltaKm / curr.liters
-                intervals++
+            if (curr.isFullTank) {
+                if (lastFullTankIndex != null) {
+                    val prevFull = sorted[lastFullTankIndex]
+                    val deltaKm = curr.odometerKm - prevFull.odometerKm
+
+                    // Sum all liters added since previous full tank (including partials and this full tank)
+                    var litersInCycle = 0.0
+                    var costInCycle = 0.0
+                    for (j in (lastFullTankIndex + 1)..i) {
+                        litersInCycle += sorted[j].liters
+                        costInCycle += sorted[j].totalCost
+                    }
+
+                    if (deltaKm > 0 && litersInCycle > 0) {
+                        val kmL = deltaKm / litersInCycle
+                        lastCycleKmL = kmL
+                        totalCycleKm += deltaKm
+                        totalCycleLiters += litersInCycle
+                        totalCycleCost += costInCycle
+                        fullTankCycles++
+                    }
+                }
+                lastFullTankIndex = i
             }
         }
 
-        val avgKmL = if (totalLiters > 0 && totalDeltaKm > 0) totalDeltaKm / totalLiters else 12.5
-        val avgCostKm = if (totalDeltaKm > 0) totalCost / totalDeltaKm else 5.89 / avgKmL
+        // Fallback if no 2 full tanks exist yet
+        val avgKmL = if (fullTankCycles > 0 && totalCycleLiters > 0) {
+            totalCycleKm / totalCycleLiters
+        } else {
+            // General odometer span / total liters
+            val first = sorted.first()
+            val last = sorted.last()
+            val delta = last.odometerKm - first.odometerKm
+            val liters = entries.sumOf { it.liters }
+            if (delta > 0 && liters > 0) delta / liters else 12.5
+        }
+
+        val avgCostKm = if (totalCycleKm > 0) totalCycleCost / totalCycleKm else 5.89 / avgKmL
 
         return FuelEfficiencyStats(
             averageKmL = avgKmL,
             averageCostPerKm = avgCostKm,
-            lastRecordedKmL = lastKmL,
-            totalRecordedKm = totalDeltaKm,
-            totalFuelSpent = entries.sumOf { it.totalCost },
-            intervalsCount = intervals
+            lastRecordedKmL = lastCycleKmL,
+            totalRecordedKm = if (totalCycleKm > 0) totalCycleKm else (sorted.last().odometerKm - sorted.first().odometerKm),
+            totalFuelSpent = totalSpent,
+            fullTankCyclesCount = fullTankCycles,
+            partialFillsCount = partialCount
         )
     }
 
