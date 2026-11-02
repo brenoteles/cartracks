@@ -62,8 +62,8 @@ public class CarMainActivity extends AppCompatActivity {
         );
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().setStatusBarColor(android.graphics.Color.parseColor("#0b151f"));
-            getWindow().setNavigationBarColor(android.graphics.Color.parseColor("#070c11"));
+            getWindow().setStatusBarColor(android.graphics.Color.parseColor("#000000"));
+            getWindow().setNavigationBarColor(android.graphics.Color.parseColor("#141416"));
         }
 
         MockDataGenerator.populateMockDataIfEmpty(this);
