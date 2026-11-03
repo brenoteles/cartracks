@@ -1,6 +1,7 @@
 package de.dennisguse.opentracks.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -165,7 +166,8 @@ fun TripsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(AppleCard)
+                    .background(WandaCard)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
                     .padding(16.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

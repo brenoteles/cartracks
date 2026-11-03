@@ -2,6 +2,7 @@ package de.dennisguse.opentracks.ui.screens
 
 import android.location.Geocoder
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -588,7 +589,8 @@ fun FuelScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(AppleCardElevated)
+                    .background(WandaCardElevated)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
                     .padding(12.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -734,7 +736,8 @@ fun FuelScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(AppleCard)
+                        .background(WandaCard)
+                        .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
                         .padding(14.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

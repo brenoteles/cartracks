@@ -1,6 +1,7 @@
 package de.dennisguse.opentracks.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -141,7 +142,8 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(AppleCard)
+                    .background(WandaCard)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
                     .padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -311,7 +313,8 @@ fun AppleLocationCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(AppleCard)
+            .background(WandaCard)
+            .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
             .padding(18.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
