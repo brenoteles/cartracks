@@ -42,7 +42,7 @@ fun LocationPickerMapDialog(
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
-            // 1. HD Interactive Map with Tap-to-Pin
+            // 1. Interactive HD Map
             CarMapView(
                 pinnedLocation = Pair(pinnedLat, pinnedLon),
                 pinnedTitle = title,
@@ -53,7 +53,7 @@ fun LocationPickerMapDialog(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // 2. Top Header Overlay
+            // 2. Top Header Overlay (Apple HIG Glassmorphism)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -66,7 +66,7 @@ fun LocationPickerMapDialog(
             ) {
                 Column {
                     Text(
-                        text = "Pinar no Mapa: $title",
+                        text = "Escolher Localização: $title",
                         color = TextPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
@@ -100,7 +100,7 @@ fun LocationPickerMapDialog(
                 ) {
                     Column {
                         Text(
-                            text = "Coordenadas Selecionadas:",
+                            text = "Ponto Selecionado:",
                             color = TextSecondary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
@@ -128,7 +128,7 @@ fun LocationPickerMapDialog(
                                 tint = AppleBlue
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("GPS Atual", fontSize = 12.sp, color = TextPrimary)
+                            Text("Usar GPS Atual", fontSize = 12.sp, color = TextPrimary)
                         }
                     }
                 }

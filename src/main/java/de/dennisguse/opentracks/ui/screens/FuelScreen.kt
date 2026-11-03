@@ -1,5 +1,6 @@
 package de.dennisguse.opentracks.ui.screens
 
+import android.location.Geocoder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -36,6 +38,8 @@ import de.dennisguse.opentracks.ui.model.FuelItem
 import de.dennisguse.opentracks.ui.model.MapMarkerItem
 import de.dennisguse.opentracks.ui.theme.*
 import de.dennisguse.opentracks.util.FuelEfficiencyCalculator
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -59,10 +63,11 @@ fun FuelScreen(
     ) -> Unit,
     onUpdateFuelLocation: (entryId: Long, latitude: Double, longitude: Double) -> Unit = { _, _, _ -> }
 ) {
+    val context = LocalContext.current
     var showAddDialog by remember { mutableStateOf(false) }
     var showAllStationsMap by remember { mutableStateOf(false) }
 
-    // State for picking/editing location of an EXISTING fuel entry ("colocar depois")
+    // State for picking/editing location of an EXISTING fuel entry ("depois do abastecimento")
     var editingLocationEntry by remember { mutableStateOf<FuelItem?>(null) }
 
     // Filter states
@@ -174,18 +179,57 @@ fun FuelScreen(
         }
     }
 
-    // 3. Dialog to add a new fuel entry ("Na hora do abastecimento", with optional map pin)
+    // 3. Dialog to add a new fuel entry (With Location Autofill & Smart Suggestions)
     if (showAddDialog) {
+        // Compute realistic odometer estimate based on last recorded entry
+        val lastOdo = remember(fuelEntries) {
+            fuelEntries.map { it.odometerKm }.filter { it > 0 }.maxOrNull() ?: 45220.0
+        }
+        val estimatedNextOdo = remember(lastOdo) { (lastOdo + 320.0).toInt().toString() }
+
         var station by remember { mutableStateOf("") }
         var litersStr by remember { mutableStateOf("") }
         var priceStr by remember { mutableStateOf("5.89") }
-        var odoStr by remember { mutableStateOf("") }
+        var odoStr by remember { mutableStateOf(estimatedNextOdo) }
         var notes by remember { mutableStateOf("") }
         var isFullTank by remember { mutableStateOf(true) }
         var chosenFuelType by remember { mutableStateOf("Gasolina Comum") }
-        var selectedLat by remember { mutableStateOf<Double?>(null) }
-        var selectedLon by remember { mutableStateOf<Double?>(null) }
+        var selectedLat by remember { mutableStateOf<Double?>(currentGps?.first) }
+        var selectedLon by remember { mutableStateOf<Double?>(currentGps?.second) }
         var showNewEntryMapPicker by remember { mutableStateOf(false) }
+
+        // Smart Geocoding / Location Autofill
+        val activeCoord = if (selectedLat != null && selectedLon != null) Pair(selectedLat!!, selectedLon!!) else currentGps
+        LaunchedEffect(activeCoord) {
+            if (activeCoord != null && station.isBlank()) {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val geocoder = Geocoder(context, Locale.getDefault())
+                        val addresses = geocoder.getFromLocation(activeCoord.first, activeCoord.second, 1)
+                        if (!addresses.isNullOrEmpty()) {
+                            val addr = addresses[0]
+                            val street = addr.thoroughfare ?: addr.featureName
+                            val sub = addr.subLocality ?: addr.locality
+                            val autoName = when {
+                                !street.isNullOrBlank() && !sub.isNullOrBlank() -> "Posto $street ($sub)"
+                                !street.isNullOrBlank() -> "Posto $street"
+                                !sub.isNullOrBlank() -> "Posto $sub"
+                                else -> ""
+                            }
+                            if (autoName.isNotBlank()) {
+                                withContext(Dispatchers.Main) {
+                                    if (station.isBlank()) {
+                                        station = autoName
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
 
         if (showNewEntryMapPicker) {
             LocationPickerMapDialog(
@@ -211,7 +255,10 @@ fun FuelScreen(
                     )
                 },
                 text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                         // Full Tank vs Partial Switch
                         Row(
                             modifier = Modifier
@@ -240,6 +287,34 @@ fun FuelScreen(
                             )
                         }
 
+                        // Station Name with Quick Suggestions
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            OutlinedTextField(
+                                value = station,
+                                onValueChange = { station = it },
+                                label = { Text("Nome do Posto") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            // Quick Station Suggestions
+                            val commonStations = listOf("Posto Shell", "Posto Ipiranga", "Posto BR Petrobras", "Posto Ipiranga Rebouças")
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                items(commonStations) { sName ->
+                                    AssistChip(
+                                        onClick = { station = sName },
+                                        label = { Text(sName, fontSize = 11.sp) },
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            containerColor = AppleCard,
+                                            labelColor = AppleTeal
+                                        ),
+                                        border = null
+                                    )
+                                }
+                            }
+                        }
+
                         // Fuel Type Chips
                         Text("Tipo de Combustível:", fontSize = 12.sp, color = TextSecondary)
                         val fuelOptions = listOf("Gasolina Comum", "Gasolina Aditivada", "Etanol", "Diesel")
@@ -262,14 +337,7 @@ fun FuelScreen(
                             }
                         }
 
-                        OutlinedTextField(
-                            value = station,
-                            onValueChange = { station = it },
-                            label = { Text("Nome do Posto") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
+                        // Liters & Price Inputs
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = litersStr,
@@ -289,16 +357,34 @@ fun FuelScreen(
                             )
                         }
 
+                        // Quick Liters Shortcuts
+                        val literPresets = listOf("20", "30", "40", "${tankCapacityLiters.toInt()}")
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(literPresets) { l ->
+                                AssistChip(
+                                    onClick = { litersStr = l },
+                                    label = { Text("${l}L", fontSize = 11.sp) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = AppleCard,
+                                        labelColor = AppleGreen
+                                    ),
+                                    border = null
+                                )
+                            }
+                        }
+
+                        // Odometer Input (Pre-filled with estimated km!)
                         OutlinedTextField(
                             value = odoStr,
                             onValueChange = { odoStr = it },
-                            label = { Text("Km no Odômetro") },
+                            label = { Text("Km no Odômetro (Automático)") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        // Optional Location Section ("Na hora ou depois")
+                        // Location Section ("Escolher no Mapa na hora ou depois")
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -334,14 +420,14 @@ fun FuelScreen(
 
                             if (selectedLat != null && selectedLon != null) {
                                 Text(
-                                    text = String.format(Locale.US, "Fixado: %.5f, %.5f", selectedLat, selectedLon),
+                                    text = String.format(Locale.US, "Definido: %.5f, %.5f", selectedLat, selectedLon),
                                     color = AppleTeal,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             } else {
                                 Text(
-                                    text = "Você pode pinar o posto agora ou adicionar depois na lista.",
+                                    text = "Você pode escolher o local no mapa agora ou adicionar depois na lista.",
                                     color = TextSecondary,
                                     fontSize = 11.sp
                                 )
@@ -361,7 +447,7 @@ fun FuelScreen(
                                     Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(15.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = if (selectedLat != null) "Alterar no Mapa" else "Pinar no Mapa",
+                                        text = if (selectedLat != null) "Alterar no Mapa" else "Escolher no Mapa",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -496,7 +582,7 @@ fun FuelScreen(
             }
         }
 
-        // Partial & Full Tank Explanation Card
+        // Explanation Card
         item {
             Box(
                 modifier = Modifier
@@ -509,7 +595,7 @@ fun FuelScreen(
                     Text("💡", fontSize = 16.sp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Abastecimentos parciais acumulam litros até o próximo tanque cheio. Você pode pinar a localização do posto na hora ou depois!",
+                        text = "Abastecimentos parciais acumulam litros até o próximo tanque cheio. O app sugere automaticamente nomes de postos e odômetro!",
                         color = TextSecondary,
                         fontSize = 11.sp,
                         lineHeight = 15.sp
@@ -611,7 +697,7 @@ fun FuelScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Ver Mapa dos Postos Abastecidos (${stationsWithLocation.size})",
+                            text = "Ver Postos Abastecidos no Mapa (${stationsWithLocation.size})",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = AppleTeal
@@ -727,7 +813,7 @@ fun FuelScreen(
                             )
                         }
 
-                        // Map Location Row (View/Edit if set, or Add Location Later if not set!)
+                        // Map Location Row (View on Map if set, or Add Location Later if not set!)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -748,7 +834,7 @@ fun FuelScreen(
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = String.format(Locale.US, "%.4f, %.4f", entry.latitude, entry.longitude),
+                                        text = "Local Salvo no Mapa",
                                         color = AppleTeal,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium
@@ -772,7 +858,7 @@ fun FuelScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Ver / Editar no Mapa",
+                                        text = "Ver no Mapa",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -802,7 +888,7 @@ fun FuelScreen(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "Definir Local no Mapa",
+                                        text = "Marcar Local no Mapa",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )

@@ -34,22 +34,16 @@ fun SettingsScreen(
     onSaveVehicleConfig: (tankCapacity: Double, primaryFuelType: String) -> Unit,
     onOpenSystemSettings: () -> Unit
 ) {
-    var homeLat by remember(homeLoc) { mutableStateOf(homeLoc.lat.toString()) }
-    var homeLon by remember(homeLoc) { mutableStateOf(homeLoc.lon.toString()) }
-
-    var workLat by remember(workLoc) { mutableStateOf(workLoc.lat.toString()) }
-    var workLon by remember(workLoc) { mutableStateOf(workLoc.lon.toString()) }
-
     var tankCapacityStr by remember(tankCapacityLiters) { mutableStateOf(tankCapacityLiters.toInt().toString()) }
     var selectedFuelType by remember(primaryFuelType) { mutableStateOf(primaryFuelType) }
 
     var mapPickerTarget by remember { mutableStateOf<String?>(null) } // "home" or "work"
 
-    // Map Location Picker Modal
+    // Map Location Picker Modal (No manual typing of coordinates!)
     if (mapPickerTarget != null) {
         val isHome = mapPickerTarget == "home"
-        val curLat = if (isHome) homeLat.toDoubleOrNull() ?: -23.6015 else workLat.toDoubleOrNull() ?: -23.5615
-        val curLon = if (isHome) homeLon.toDoubleOrNull() ?: -46.6900 else workLon.toDoubleOrNull() ?: -46.6559
+        val curLat = if (isHome) homeLoc.lat else workLoc.lat
+        val curLon = if (isHome) homeLoc.lon else workLoc.lon
 
         LocationPickerMapDialog(
             title = if (isHome) "Casa" else "Trabalho",
@@ -58,12 +52,8 @@ fun SettingsScreen(
             currentGps = currentGps,
             onConfirm = { lat, lon ->
                 if (isHome) {
-                    homeLat = lat.toString()
-                    homeLon = lon.toString()
                     onSaveLocation("home", lat, lon, "Casa")
                 } else {
-                    workLat = lat.toString()
-                    workLon = lon.toString()
                     onSaveLocation("work", lat, lon, "Trabalho")
                 }
             },
@@ -89,11 +79,51 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Locais favoritos no mapa e parâmetros do veículo",
+                    text = "Personalize seus locais favoritos e consumo do veículo",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
             }
+        }
+
+        // Section: Favorite Locations (Apple Style - Zero Manual Coordinates)
+        item {
+            Text(
+                text = "Locais Favoritos (Detecção Inteligente)",
+                color = AppleBlue,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Home Location Card
+        item {
+            AppleLocationCard(
+                title = "Casa",
+                icon = "🏠",
+                isConfigured = homeLoc.isSet,
+                onOpenMapPicker = { mapPickerTarget = "home" },
+                onUseGps = {
+                    currentGps?.let { (lat, lon) ->
+                        onSaveLocation("home", lat, lon, "Casa")
+                    }
+                }
+            )
+        }
+
+        // Work Location Card
+        item {
+            AppleLocationCard(
+                title = "Trabalho",
+                icon = "🏢",
+                isConfigured = workLoc.isSet,
+                onOpenMapPicker = { mapPickerTarget = "work" },
+                onUseGps = {
+                    currentGps?.let { (lat, lon) ->
+                        onSaveLocation("work", lat, lon, "Trabalho")
+                    }
+                }
+            )
         }
 
         // Section: Vehicle & Fuel Parameters
@@ -110,17 +140,53 @@ fun SettingsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(AppleCard)
-                    .padding(16.dp)
+                    .padding(18.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "Capacidade do Tanque e Combustível",
-                        color = TextPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Capacidade do Tanque",
+                            color = TextPrimary,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${tankCapacityStr} Litros",
+                            color = AppleTeal,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Quick Tank Presets
+                    val presets = listOf("45", "50", "55", "60", "70")
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(presets) { p ->
+                            val sel = tankCapacityStr == p
+                            FilterChip(
+                                selected = sel,
+                                onClick = {
+                                    tankCapacityStr = p
+                                    onSaveVehicleConfig(p.toDouble(), selectedFuelType)
+                                },
+                                label = { Text("${p}L", fontSize = 12.sp) },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = AppleBlue,
+                                    selectedLabelColor = Color.White,
+                                    containerColor = AppleCardElevated,
+                                    labelColor = TextSecondary
+                                ),
+                                border = null
+                            )
+                        }
+                    }
 
                     OutlinedTextField(
                         value = tankCapacityStr,
@@ -129,11 +195,13 @@ fun SettingsScreen(
                             val cap = it.toDoubleOrNull() ?: 50.0
                             onSaveVehicleConfig(cap, selectedFuelType)
                         },
-                        label = { Text("Capacidade Máxima do Tanque (Litros)") },
+                        label = { Text("Ou digite a capacidade exata (L)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
                         text = "Combustível Principal:",
@@ -154,7 +222,7 @@ fun SettingsScreen(
                                     onSaveVehicleConfig(cap, fType)
                                 },
                                 label = { Text(fType, fontSize = 12.sp) },
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(12.dp),
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = AppleBlue,
                                     selectedLabelColor = Color.White,
@@ -169,65 +237,7 @@ fun SettingsScreen(
             }
         }
 
-        // Section: Favorite Locations with Map Pinning
-        item {
-            Text(
-                text = "Locais Favoritos (Pinar no Mapa)",
-                color = AppleBlue,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        // Home Location Card
-        item {
-            LocationCardWithMapPicker(
-                title = "🏠 Casa",
-                lat = homeLat,
-                lon = homeLon,
-                onLatChange = { homeLat = it },
-                onLonChange = { homeLon = it },
-                onOpenMapPicker = { mapPickerTarget = "home" },
-                onUseGps = {
-                    currentGps?.let { (lat, lon) ->
-                        homeLat = lat.toString()
-                        homeLon = lon.toString()
-                        onSaveLocation("home", lat, lon, "Casa")
-                    }
-                },
-                onSave = {
-                    val lat = homeLat.toDoubleOrNull() ?: 0.0
-                    val lon = homeLon.toDoubleOrNull() ?: 0.0
-                    onSaveLocation("home", lat, lon, "Casa")
-                }
-            )
-        }
-
-        // Work Location Card
-        item {
-            LocationCardWithMapPicker(
-                title = "🏢 Trabalho",
-                lat = workLat,
-                lon = workLon,
-                onLatChange = { workLat = it },
-                onLonChange = { workLon = it },
-                onOpenMapPicker = { mapPickerTarget = "work" },
-                onUseGps = {
-                    currentGps?.let { (lat, lon) ->
-                        workLat = lat.toString()
-                        workLon = lon.toString()
-                        onSaveLocation("work", lat, lon, "Trabalho")
-                    }
-                },
-                onSave = {
-                    val lat = workLat.toDoubleOrNull() ?: 0.0
-                    val lon = workLon.toDoubleOrNull() ?: 0.0
-                    onSaveLocation("work", lat, lon, "Trabalho")
-                }
-            )
-        }
-
-        // Section: System & Sensors
+        // Section: System & Advanced
         item {
             Text(
                 text = "Sistema e Sensores",
@@ -254,7 +264,7 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Configurações Avançadas do Sistema",
+                    text = "Configurações Avançadas de Gravação",
                     color = TextPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
@@ -267,7 +277,7 @@ fun SettingsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(AppleCard)
                     .padding(16.dp)
             ) {
@@ -279,7 +289,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Versão 1.0.5 • Mapa HD • Tanque Parcial / Cheio • Pinar no Mapa",
+                        text = "Versão 1.0.6 • Mapa HD Nativo • Apple HIG Dark Design",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
@@ -290,101 +300,99 @@ fun SettingsScreen(
 }
 
 @Composable
-fun LocationCardWithMapPicker(
+fun AppleLocationCard(
     title: String,
-    lat: String,
-    lon: String,
-    onLatChange: (String) -> Unit,
-    onLonChange: (String) -> Unit,
+    icon: String,
+    isConfigured: Boolean,
     onOpenMapPicker: () -> Unit,
-    onUseGps: () -> Unit,
-    onSave: () -> Unit
+    onUseGps: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(AppleCard)
-            .padding(16.dp)
+            .padding(18.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = title,
-                    color = TextPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                // Prominent Map Picker Button!
-                Button(
-                    onClick = onOpenMapPicker,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Map,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = AppleBlue
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(icon, fontSize = 22.sp)
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Pinar no Mapa",
-                        color = AppleBlue,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
+                        text = title,
+                        color = TextPrimary,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isConfigured) AppleGreen.copy(alpha = 0.15f) else AppleOrange.copy(alpha = 0.15f))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (isConfigured) "🟢 Configurado no Mapa" else "⚪ Não Definido",
+                        color = if (isConfigured) AppleGreen else AppleOrange,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = lat,
-                    onValueChange = onLatChange,
-                    label = { Text("Latitude") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = lon,
-                    onValueChange = onLonChange,
-                    label = { Text("Longitude") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            Text(
+                text = "Identifica automaticamente viagens com partida ou destino em $title.",
+                color = TextSecondary,
+                fontSize = 13.sp,
+                lineHeight = 17.sp
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                Button(
+                    onClick = onOpenMapPicker,
+                    modifier = Modifier
+                        .weight(1.3f)
+                        .height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AppleBlue)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Map,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isConfigured) "Alterar no Mapa" else "Escolher no Mapa",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                }
+
                 OutlinedButton(
                     onClick = onUseGps,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.MyLocation,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = AppleBlue
+                        tint = AppleTeal
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Usar GPS", fontSize = 12.sp, color = TextPrimary)
-                }
-
-                Button(
-                    onClick = onSave,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppleBlue)
-                ) {
-                    Text("Salvar", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
