@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.dennisguse.opentracks.ui.components.CarMapView
+import de.dennisguse.opentracks.ui.components.EditTripDialog
 import de.dennisguse.opentracks.ui.model.TripItem
 import de.dennisguse.opentracks.ui.model.TripPoint
 import de.dennisguse.opentracks.ui.theme.*
@@ -38,11 +39,66 @@ fun TripDetailScreen(
     points: List<TripPoint>,
     onBackClicked: () -> Unit,
     onExportGpx: () -> Unit,
-    onExportKml: () -> Unit
+    onExportKml: () -> Unit,
+    onUpdateTrip: ((Long, String, String) -> Unit)? = null,
+    onDeleteTrip: ((Long) -> Unit)? = null
 ) {
     var isMapMaximized by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val tripKmL = remember(trip.avgSpeedKmh) {
         FuelEfficiencyCalculator.estimateTripKmL(trip.avgSpeedKmh)
+    }
+
+    if (showEditDialog) {
+        EditTripDialog(
+            trip = trip,
+            onConfirm = { newName, newDesc ->
+                onUpdateTrip?.invoke(trip.id, newName, newDesc)
+                showEditDialog = false
+            },
+            onDelete = if (onDeleteTrip != null) {
+                {
+                    showEditDialog = false
+                    onDeleteTrip(trip.id)
+                    onBackClicked()
+                }
+            } else null,
+            onDismiss = { showEditDialog = false }
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = {
+                Text("Excluir Viagem", fontWeight = FontWeight.Bold, color = WandaRed10)
+            },
+            text = {
+                Text(
+                    "Tem certeza que deseja apagar o registro desta viagem? Esta ação não pode ser desfeita.",
+                    color = TextPrimary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDeleteTrip?.invoke(trip.id)
+                        onBackClicked()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = WandaRed10)
+                ) {
+                    Text("Excluir", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancelar", color = TextSecondary)
+                }
+            },
+            containerColor = WandaCardElevated
+        )
     }
 
     Scaffold(
@@ -75,6 +131,24 @@ fun TripDetailScreen(
                     }
                 },
                 actions = {
+                    if (onUpdateTrip != null) {
+                        IconButton(onClick = { showEditDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Editar Viagem",
+                                tint = WandaInteractive
+                            )
+                        }
+                    }
+                    if (onDeleteTrip != null) {
+                        IconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Excluir Viagem",
+                                tint = WandaRed10
+                            )
+                        }
+                    }
                     IconButton(onClick = onExportGpx) {
                         Icon(
                             imageVector = Icons.Default.Share,

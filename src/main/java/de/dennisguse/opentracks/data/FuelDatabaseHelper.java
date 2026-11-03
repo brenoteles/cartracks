@@ -56,8 +56,7 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
                 + COL_FUEL_TYPE + " TEXT DEFAULT 'Gasolina Comum', "
                 + COL_LATITUDE + " REAL, "
                 + COL_LONGITUDE + " REAL);");
-
-        seedMockFuelData(db);
+        // Fresh database starts clean with 0 mock entries for real user data
     }
 
     private void seedMockFuelData(SQLiteDatabase db) {
@@ -205,6 +204,45 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
         cv.put(COL_LATITUDE, latitude);
         cv.put(COL_LONGITUDE, longitude);
         db.update(TABLE_NAME, cv, COL_ID + " = ?", new String[]{String.valueOf(id)});
+    }
+
+    public void updateStationName(long id, String newStationName) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(COL_STATION_NAME, newStationName);
+        db.update(TABLE_NAME, cv, COL_ID + " = ?", new String[]{String.valueOf(id)});
+    }
+
+    public void updateEntry(long id, String station, double liters, double price, double total, double odo, String notes, boolean isFull, String fuelType) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues cv = new ContentValues();
+        cv.put(COL_STATION_NAME, station);
+        cv.put(COL_LITERS, liters);
+        cv.put(COL_PRICE_PER_LITER, price);
+        cv.put(COL_TOTAL_COST, total > 0 ? total : liters * price);
+        cv.put(COL_ODOMETER, odo);
+        cv.put(COL_NOTES, notes);
+        cv.put(COL_IS_FULL_TANK, isFull ? 1 : 0);
+        cv.put(COL_FUEL_TYPE, fuelType);
+        db.update(TABLE_NAME, cv, COL_ID + " = ?", new String[]{String.valueOf(id)});
+    }
+
+    public void deleteEntry(long id) {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete(TABLE_NAME, COL_ID + " = ?", new String[]{String.valueOf(id)});
+    }
+
+    public void deleteAllEntries() {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete(TABLE_NAME, null, null);
+    }
+
+    public void deleteMockEntries() {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete(TABLE_NAME, COL_STATION_NAME + " LIKE '%Shell Jardins%' OR " +
+                COL_STATION_NAME + " LIKE '%Ipiranga Rebouças%' OR " +
+                COL_STATION_NAME + " LIKE '%Ipiranga Faria Lima%' OR " +
+                COL_STATION_NAME + " LIKE '%BR Petrobras Pinheiros%'", null);
     }
 
     public double getLatestPricePerLiter() {

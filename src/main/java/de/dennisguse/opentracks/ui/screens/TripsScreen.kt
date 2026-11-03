@@ -38,7 +38,9 @@ fun TripsScreen(
     selectedFilter: PeriodFilter,
     onFilterSelected: (PeriodFilter) -> Unit,
     onTripClicked: (TripItem) -> Unit,
-    onPeriodMapClicked: () -> Unit
+    onPeriodMapClicked: () -> Unit,
+    onDeleteTrip: ((Long) -> Unit)? = null,
+    onUpdateTrip: ((Long, String, String) -> Unit)? = null
 ) {
     val now = System.currentTimeMillis()
     var selectedDestination by remember { mutableStateOf(DestinationFilter.TODOS) }
@@ -307,11 +309,24 @@ fun TripsScreen(
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Nenhuma viagem encontrada para os filtros selecionados.",
-                        color = TextSecondary,
-                        fontSize = 14.sp
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = "🛣️", fontSize = 32.sp)
+                        Text(
+                            text = "Nenhuma viagem registrada",
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "Toque em 'Iniciar Viagem' no Início para começar a gravar seus trajetos reais de carro!",
+                            color = TextSecondary,
+                            fontSize = 13.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
                 }
             }
         } else {

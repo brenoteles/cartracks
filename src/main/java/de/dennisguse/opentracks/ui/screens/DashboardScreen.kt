@@ -37,9 +37,14 @@ fun DashboardScreen(
     vehiclePlate: String = "",
     tankCapacityLiters: Double = 50.0,
     primaryFuelType: String = "Gasolina Comum",
+    currentFuelLiters: Double = 35.0,
+    estimatedKmL: Double = 12.0,
+    odometerKm: Double = 0.0,
     parkingInfo: ParkingInfo? = null,
     onNavigateToParking: ((Double, Double) -> Unit)? = null,
     onClearParking: (() -> Unit)? = null,
+    onEditOdometerClicked: (() -> Unit)? = null,
+    onConfigureVehicleClicked: (() -> Unit)? = null,
     onStartTripClicked: () -> Unit,
     onOpenCockpitClicked: () -> Unit,
     onAddFuelClicked: () -> Unit,
@@ -260,8 +265,11 @@ fun DashboardScreen(
                     vehiclePlate = vehiclePlate,
                     tankCapacityLiters = tankCapacityLiters,
                     primaryFuelType = primaryFuelType,
-                    currentFuelLiters = (tankCapacityLiters * 0.82),
-                    odometerKm = 148520.0 + totalKm
+                    currentFuelLiters = currentFuelLiters,
+                    estimatedKmL = estimatedKmL,
+                    odometerKm = odometerKm,
+                    onEditOdometer = onEditOdometerClicked,
+                    onConfigureVehicle = onConfigureVehicleClicked
                 )
             }
         }
@@ -417,10 +425,13 @@ fun HeroVehicleStatusCard(
     tankCapacityLiters: Double,
     primaryFuelType: String,
     currentFuelLiters: Double,
-    odometerKm: Double
+    estimatedKmL: Double = 12.0,
+    odometerKm: Double,
+    onEditOdometer: (() -> Unit)? = null,
+    onConfigureVehicle: (() -> Unit)? = null
 ) {
     val tankPercent = (currentFuelLiters / tankCapacityLiters).coerceIn(0.0, 1.0)
-    val estimatedRangeKm = (currentFuelLiters * 13.8).toInt()
+    val estimatedRangeKm = (currentFuelLiters * estimatedKmL).toInt()
 
     Box(
         modifier = Modifier
@@ -495,18 +506,33 @@ fun HeroVehicleStatusCard(
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(WandaGreen30.copy(alpha = 0.15f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "82% Tanque",
-                        color = WandaGreen30,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(WandaGreen30.copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "${(tankPercent * 100).toInt()}% Tanque",
+                            color = WandaGreen30,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    if (onConfigureVehicle != null) {
+                        IconButton(
+                            onClick = onConfigureVehicle,
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Tune,
+                                contentDescription = "Configurar Veículo",
+                                tint = WandaInteractive,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -560,16 +586,31 @@ fun HeroVehicleStatusCard(
                         .weight(1f)
                         .clip(RoundedCornerShape(12.dp))
                         .background(WandaCardElevated.copy(alpha = 0.6f))
+                        .clickable(enabled = onEditOdometer != null) { onEditOdometer?.invoke() }
                         .padding(horizontal = 10.dp, vertical = 8.dp)
                 ) {
-                    Column {
-                        Text("ODÔMETRO", fontSize = 10.sp, color = TextMuted, fontWeight = FontWeight.Bold)
-                        Text(
-                            text = "${odometerKm.toInt().toString().replace(Regex("(\\d)(?=(\\d{3})+$)"), "$1.")} km",
-                            fontSize = 14.sp,
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("ODÔMETRO", fontSize = 10.sp, color = TextMuted, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = "${odometerKm.toInt().toString().replace(Regex("(\\d)(?=(\\d{3})+$)"), "$1.")} km",
+                                fontSize = 14.sp,
+                                color = TextPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        if (onEditOdometer != null) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Editar Odômetro",
+                                tint = WandaInteractive,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                     }
                 }
 

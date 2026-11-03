@@ -4,6 +4,9 @@ import android.location.Geocoder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -50,6 +53,7 @@ fun FuelScreen(
     fuelEntries: List<FuelItem>,
     tankCapacityLiters: Double = 50.0,
     currentGps: Pair<Double, Double>? = null,
+    currentVehicleOdometer: Double = 0.0,
     onAddFuel: (
         station: String,
         liters: Double,
@@ -62,7 +66,9 @@ fun FuelScreen(
         latitude: Double?,
         longitude: Double?
     ) -> Unit,
-    onUpdateFuelLocation: (entryId: Long, latitude: Double, longitude: Double) -> Unit = { _, _, _ -> }
+    onUpdateFuelLocation: (entryId: Long, latitude: Double, longitude: Double) -> Unit = { _, _, _ -> },
+    onUpdateFuel: ((id: Long, station: String, liters: Double, price: Double, total: Double, odo: Double, notes: String, isFull: Boolean, fuelType: String) -> Unit)? = null,
+    onDeleteFuel: ((id: Long) -> Unit)? = null
 ) {
     val context = LocalContext.current
     var showAddDialog by remember { mutableStateOf(false) }
@@ -70,6 +76,8 @@ fun FuelScreen(
 
     // State for picking/editing location of an EXISTING fuel entry ("depois do abastecimento")
     var editingLocationEntry by remember { mutableStateOf<FuelItem?>(null) }
+    var editingFuelEntry by remember { mutableStateOf<FuelItem?>(null) }
+    var deletingFuelEntry by remember { mutableStateOf<FuelItem?>(null) }
 
     // Filter states
     var selectedFuelTypeFilter by remember { mutableStateOf("Todos") }
@@ -182,16 +190,19 @@ fun FuelScreen(
 
     // 3. Dialog to add a new fuel entry (With Location Autofill & Smart Suggestions)
     if (showAddDialog) {
-        // Compute realistic odometer estimate based on last recorded entry
-        val lastOdo = remember(fuelEntries) {
-            fuelEntries.map { it.odometerKm }.filter { it > 0 }.maxOrNull() ?: 45220.0
+        val defaultOdo = remember(currentVehicleOdometer, fuelEntries) {
+            if (currentVehicleOdometer > 0) {
+                currentVehicleOdometer.toInt().toString()
+            } else {
+                val lastOdo = fuelEntries.map { it.odometerKm }.filter { it > 0 }.maxOrNull()
+                if (lastOdo != null) (lastOdo + 320.0).toInt().toString() else ""
+            }
         }
-        val estimatedNextOdo = remember(lastOdo) { (lastOdo + 320.0).toInt().toString() }
 
         var station by remember { mutableStateOf("") }
         var litersStr by remember { mutableStateOf("") }
         var priceStr by remember { mutableStateOf("5.89") }
-        var odoStr by remember { mutableStateOf(estimatedNextOdo) }
+        var odoStr by remember { mutableStateOf(defaultOdo) }
         var notes by remember { mutableStateOf("") }
         var isFullTank by remember { mutableStateOf(true) }
         var chosenFuelType by remember { mutableStateOf("Gasolina Comum") }
@@ -514,6 +525,49 @@ fun FuelScreen(
         }
     }
 
+    if (editingFuelEntry != null) {
+        val entry = editingFuelEntry!!
+        EditFuelEntryDialog(
+            entry = entry,
+            onConfirm = { newStation, newLiters, newPrice, newTotal, newOdo, newNotes, newIsFull, newType ->
+                onUpdateFuel?.invoke(entry.id, newStation, newLiters, newPrice, newTotal, newOdo, newNotes, newIsFull, newType)
+                editingFuelEntry = null
+            },
+            onDismiss = { editingFuelEntry = null }
+        )
+    }
+
+    if (deletingFuelEntry != null) {
+        val entry = deletingFuelEntry!!
+        AlertDialog(
+            onDismissRequest = { deletingFuelEntry = null },
+            title = {
+                Text("Excluir Abastecimento", fontWeight = FontWeight.Bold, color = WandaRed10)
+            },
+            text = {
+                Text("Deseja realmente excluir o abastecimento no ${entry.stationName}?", color = TextPrimary)
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val id = entry.id
+                        deletingFuelEntry = null
+                        onDeleteFuel?.invoke(id)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = WandaRed10)
+                ) {
+                    Text("Excluir", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deletingFuelEntry = null }) {
+                    Text("Cancelar", color = TextSecondary)
+                }
+            },
+            containerColor = WandaCardElevated
+        )
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -747,12 +801,45 @@ fun FuelScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = entry.stationName,
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = entry.stationName,
+                                    color = TextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    modifier = Modifier.weight(1f, fill = false)
+                                )
+                                if (onUpdateFuel != null) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    IconButton(
+                                        onClick = { editingFuelEntry = entry },
+                                        modifier = Modifier.size(26.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Editar Posto",
+                                            tint = WandaInteractive,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                    }
+                                }
+                                if (onDeleteFuel != null) {
+                                    IconButton(
+                                        onClick = { deletingFuelEntry = entry },
+                                        modifier = Modifier.size(26.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Excluir Abastecimento",
+                                            tint = WandaRed10,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                    }
+                                }
+                            }
                             Text(
                                 text = sdf.format(Date(entry.dateTime)),
                                 color = TextSecondary,
@@ -904,4 +991,173 @@ fun FuelScreen(
             }
         }
     }
+}
+
+
+@Composable
+fun EditFuelEntryDialog(
+    entry: FuelItem,
+    onConfirm: (
+        station: String,
+        liters: Double,
+        price: Double,
+        total: Double,
+        odo: Double,
+        notes: String,
+        isFull: Boolean,
+        fuelType: String
+    ) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var station by remember { mutableStateOf(entry.stationName) }
+    var litersStr by remember { mutableStateOf(String.format(Locale.US, "%.1f", entry.liters)) }
+    var priceStr by remember { mutableStateOf(String.format(Locale.US, "%.2f", entry.pricePerLiter)) }
+    var odoStr by remember { mutableStateOf(if (entry.odometerKm > 0) String.format(Locale.US, "%.0f", entry.odometerKm) else "") }
+    var notes by remember { mutableStateOf(entry.notes) }
+    var isFullTank by remember { mutableStateOf(entry.isFullTank) }
+    var chosenFuelType by remember { mutableStateOf(entry.fuelType) }
+
+    val commonStations = listOf("Posto Shell", "Posto Ipiranga", "Posto BR Petrobras", "Posto Ale")
+    val fuelTypes = listOf("Gasolina Comum", "Gasolina Aditivada", "Etanol", "Diesel S10", "GNV")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(WandaInteractive.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = WandaInteractive,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Text("Editar Abastecimento", fontWeight = FontWeight.Bold, color = TextPrimary, fontSize = 18.sp)
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = station,
+                    onValueChange = { station = it },
+                    label = { Text("Nome do Posto") },
+                    placeholder = { Text("Ex: Posto Shell Jardins") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(commonStations) { s ->
+                        SuggestionChip(
+                            onClick = { station = s },
+                            label = { Text(s, fontSize = 11.sp) }
+                        )
+                    }
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = litersStr,
+                        onValueChange = { litersStr = it },
+                        label = { Text("Litros (L)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = priceStr,
+                        onValueChange = { priceStr = it },
+                        label = { Text("Preço / Litro") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                OutlinedTextField(
+                    value = odoStr,
+                    onValueChange = { odoStr = it },
+                    label = { Text("Odômetro (km)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text("Tipo de Combustível:", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(fuelTypes) { fType ->
+                        FilterChip(
+                            selected = fType == chosenFuelType,
+                            onClick = { chosenFuelType = fType },
+                            label = { Text(fType, fontSize = 11.sp) }
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(WandaCardElevated)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Tanque Cheio?", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(if (isFullTank) "🟢 Sim (Calcula média km/L)" else "🟡 Abastecimento parcial", color = TextSecondary, fontSize = 11.sp)
+                    }
+                    Switch(
+                        checked = isFullTank,
+                        onCheckedChange = { isFullTank = it }
+                    )
+                }
+
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Observações") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val l = litersStr.replace(',', '.').toDoubleOrNull() ?: entry.liters
+                    val p = priceStr.replace(',', '.').toDoubleOrNull() ?: entry.pricePerLiter
+                    val o = odoStr.replace(',', '.').toDoubleOrNull() ?: entry.odometerKm
+                    val tot = l * p
+                    onConfirm(
+                        if (station.isBlank()) entry.stationName else station.trim(),
+                        l, p, tot, o, notes.trim(), isFullTank, chosenFuelType
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+            ) {
+                Text("Salvar Alterações", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar", color = TextSecondary)
+            }
+        },
+        containerColor = WandaCardElevated
+    )
 }

@@ -42,10 +42,14 @@ fun SettingsScreen(
     vehiclePlate: String = "",
     tankCapacityLiters: Double = 50.0,
     primaryFuelType: String = "Gasolina Comum",
+    currentOdometer: Double = 0.0,
+    estimatedKmL: Double = 12.0,
+    kmSinceLastFull: Double = 0.0,
     isBatteryOptimized: Boolean = false,
     onRequestIgnoreBattery: () -> Unit = {},
     onSaveLocation: (key: String, lat: Double, lon: Double, label: String) -> Unit,
-    onSaveVehicleConfig: (name: String, plate: String, tankCapacity: Double, primaryFuelType: String) -> Unit,
+    onSaveVehicleConfig: (name: String, plate: String, tankCapacity: Double, primaryFuelType: String, odometer: Double, estimatedKmL: Double, kmSinceLastFull: Double) -> Unit,
+    onPurgeDemoData: () -> Unit = {},
     onExportBackup: () -> Unit,
     onImportBackup: (Uri) -> Unit,
     onOpenSystemSettings: () -> Unit
@@ -55,6 +59,10 @@ fun SettingsScreen(
     var vehiclePlateStr by remember(vehiclePlate) { mutableStateOf(vehiclePlate) }
     var tankCapacityStr by remember(tankCapacityLiters) { mutableStateOf(tankCapacityLiters.toInt().toString()) }
     var selectedFuelType by remember(primaryFuelType) { mutableStateOf(primaryFuelType) }
+    var odometerStr by remember(currentOdometer) { mutableStateOf(if (currentOdometer > 0) String.format(java.util.Locale.US, "%.0f", currentOdometer) else "") }
+    var estimatedKmLStr by remember(estimatedKmL) { mutableStateOf(String.format(java.util.Locale.US, "%.1f", estimatedKmL)) }
+    var kmSinceLastFullStr by remember(kmSinceLastFull) { mutableStateOf(if (kmSinceLastFull > 0) String.format(java.util.Locale.US, "%.0f", kmSinceLastFull) else "0") }
+    var showPurgeConfirm by remember { mutableStateOf(false) }
 
     var mapPickerTarget by remember { mutableStateOf<String?>(null) } // "home" or "work"
 
@@ -158,11 +166,7 @@ fun SettingsScreen(
 
                     OutlinedTextField(
                         value = vehicleNameStr,
-                        onValueChange = {
-                            vehicleNameStr = it
-                            val cap = tankCapacityStr.toDoubleOrNull() ?: 50.0
-                            onSaveVehicleConfig(it, vehiclePlateStr.uppercase().trim(), cap, selectedFuelType)
-                        },
+                        onValueChange = { vehicleNameStr = it },
                         label = { Text("Nome ou Modelo do Veículo") },
                         placeholder = { Text("Ex: Toyota Etios 1.5, Honda Civic") },
                         singleLine = true,
@@ -171,11 +175,7 @@ fun SettingsScreen(
 
                     OutlinedTextField(
                         value = vehiclePlateStr,
-                        onValueChange = {
-                            vehiclePlateStr = it.uppercase()
-                            val cap = tankCapacityStr.toDoubleOrNull() ?: 50.0
-                            onSaveVehicleConfig(vehicleNameStr, it.uppercase().trim(), cap, selectedFuelType)
-                        },
+                        onValueChange = { vehiclePlateStr = it.uppercase() },
                         label = { Text("Placa do Veículo (Opcional)") },
                         placeholder = { Text("Ex: BRA2E19 ou ABC-1234") },
                         singleLine = true,
@@ -183,57 +183,83 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
+                    // 1. Odômetro Real
+                    OutlinedTextField(
+                        value = odometerStr,
+                        onValueChange = { odometerStr = it },
+                        label = { Text("Odômetro Real do Painel (km)") },
+                        placeholder = { Text("Ex: 85200") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = WandaBorder)
 
                     Text(
-                        text = "Capacidade do Tanque e Consumo",
+                        text = "Capacidade do Tanque e Autonomia",
                         color = TextPrimary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
 
-                    Text(
-                        text = "Capacidade Total do Tanque (Litros):",
-                        color = TextSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    val quickTanks = listOf(45, 50, 55, 60, 70)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(quickTanks) { capInt ->
-                            val isSelected = (tankCapacityStr.toIntOrNull() == capInt)
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = {
-                                    tankCapacityStr = capInt.toString()
-                                    onSaveVehicleConfig(vehicleNameStr, vehiclePlateStr.uppercase().trim(), capInt.toDouble(), selectedFuelType)
-                                },
-                                label = { Text("${capInt}L", fontSize = 12.sp) },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = WandaPrimary,
-                                    selectedLabelColor = Color.White,
-                                    containerColor = WandaCardElevated,
-                                    labelColor = TextSecondary
-                                ),
-                                border = null
-                            )
-                        }
-                    }
-
                     OutlinedTextField(
                         value = tankCapacityStr,
-                        onValueChange = {
-                            tankCapacityStr = it
-                            val cap = it.toDoubleOrNull() ?: 50.0
-                            onSaveVehicleConfig(vehicleNameStr, vehiclePlateStr.uppercase().trim(), cap, selectedFuelType)
-                        },
-                        label = { Text("Ou digite a capacidade exata (L)") },
+                        onValueChange = { tankCapacityStr = it },
+                        label = { Text("Capacidade Total do Tanque (Litros)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    OutlinedTextField(
+                        value = estimatedKmLStr,
+                        onValueChange = { estimatedKmLStr = it },
+                        label = { Text("Consumo Médio Estimado (km/L)") },
+                        placeholder = { Text("Ex: 11.5") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = kmSinceLastFullStr,
+                        onValueChange = { kmSinceLastFullStr = it },
+                        label = { Text("Km rodados desde o último tanque cheio") },
+                        placeholder = { Text("Ex: 60 (ou 0 se encheu agora)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Autonomy Calculation Preview
+                    val calcCap = tankCapacityStr.toDoubleOrNull() ?: 50.0
+                    val calcKmL = estimatedKmLStr.toDoubleOrNull() ?: 12.0
+                    val calcKmSince = kmSinceLastFullStr.toDoubleOrNull() ?: 0.0
+                    val calcLitersUsed = if (calcKmL > 0) calcKmSince / calcKmL else 0.0
+                    val calcLitersLeft = (calcCap - calcLitersUsed).coerceIn(0.0, calcCap)
+                    val calcRange = (calcLitersLeft * calcKmL).toInt()
+                    val calcPercent = if (calcCap > 0) (calcLitersLeft / calcCap * 100).toInt() else 0
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF141926))
+                            .border(1.dp, Color(0x334589FF), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("Estimativa no Tanque:", fontSize = 11.sp, color = TextMuted)
+                                Text(String.format(java.util.Locale.getDefault(), "%.1f L (%d%%)", calcLitersLeft, calcPercent), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("Autonomia Estimada:", fontSize = 11.sp, color = TextMuted)
+                                Text("~$calcRange km", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = WandaGreen30)
+                            }
+                        }
+                    }
 
                     Text(
                         text = "Combustível Principal:",
@@ -248,11 +274,7 @@ fun SettingsScreen(
                             val isSelected = fType == selectedFuelType
                             FilterChip(
                                 selected = isSelected,
-                                onClick = {
-                                    selectedFuelType = fType
-                                    val cap = tankCapacityStr.toDoubleOrNull() ?: 50.0
-                                    onSaveVehicleConfig(vehicleNameStr, vehiclePlateStr.uppercase().trim(), cap, fType)
-                                },
+                                onClick = { selectedFuelType = fType },
                                 label = { Text(fType, fontSize = 12.sp) },
                                 shape = RoundedCornerShape(12.dp),
                                 colors = FilterChipDefaults.filterChipColors(
@@ -264,6 +286,29 @@ fun SettingsScreen(
                                 border = null
                             )
                         }
+                    }
+
+                    Button(
+                        onClick = {
+                            val cap = tankCapacityStr.toDoubleOrNull() ?: 50.0
+                            val odo = odometerStr.toDoubleOrNull() ?: currentOdometer
+                            val kml = estimatedKmLStr.toDoubleOrNull() ?: 12.0
+                            val kmSince = kmSinceLastFullStr.toDoubleOrNull() ?: 0.0
+                            onSaveVehicleConfig(
+                                vehicleNameStr.trim(),
+                                vehiclePlateStr.uppercase().trim(),
+                                cap,
+                                selectedFuelType,
+                                odo,
+                                kml,
+                                kmSince
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                    ) {
+                        Text("Salvar Dados do Veículo e Odômetro", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -549,6 +594,55 @@ fun SettingsScreen(
             }
         }
 
+        // Section: Limpeza de Dados de Demonstração
+        item {
+            Text(
+                text = "Manutenção e Limpeza",
+                color = WandaCyan20,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(WandaCard)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp)),
+                colors = CardDefaults.cardColors(containerColor = WandaCard)
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Dados Falsos / Demonstração",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Se ainda houver viagens fictícias de teste ou postos falsos gerados anteriormente, você pode apagá-los para começar do zero.",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+                    OutlinedButton(
+                        onClick = { showPurgeConfirm = true },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = WandaRed10),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Apagar Viagens e Postos de Demonstração", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
         // Section: System & Advanced
         item {
             Text(
@@ -602,13 +696,42 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Versão 1.0.14 • Filtro de Kalman • Mapas Offline • Wanda System",
+                        text = "Versão 1.0.15 • Odômetro Real • Autonomia Estimada • Wanda System",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
                 }
             }
         }
+    }
+
+    if (showPurgeConfirm) {
+        AlertDialog(
+            onDismissRequest = { showPurgeConfirm = false },
+            title = {
+                Text("Limpar Dados de Demonstração", fontWeight = FontWeight.Bold, color = WandaRed10)
+            },
+            text = {
+                Text("Isso removerá todas as viagens e abastecimentos simulados. Deseja continuar?", color = TextPrimary)
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showPurgeConfirm = false
+                        onPurgeDemoData()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = WandaRed10)
+                ) {
+                    Text("Limpar", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPurgeConfirm = false }) {
+                    Text("Cancelar", color = TextSecondary)
+                }
+            },
+            containerColor = WandaCardElevated
+        )
     }
 }
 

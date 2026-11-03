@@ -123,10 +123,16 @@ class CarMainActivity : ComponentActivity() {
     }
 
     // Vehicle & Fuel Config
-    private val vehicleNameState = mutableStateOf("Toyota Etios")
+    private val vehicleNameState = mutableStateOf("Meu Carro")
     private val vehiclePlateState = mutableStateOf("")
     private val tankCapacityState = mutableStateOf(50.0)
     private val primaryFuelTypeState = mutableStateOf("Gasolina Comum")
+    private val odometerBaseState = mutableStateOf(0.0)
+    private val estimatedKmLState = mutableStateOf(12.0)
+    private val kmSinceLastFullState = mutableStateOf(0.0)
+    private val initialSetupDoneState = mutableStateOf(false)
+    private val showInitialSetupDialogState = mutableStateOf(false)
+    private val showEditOdometerDialogState = mutableStateOf(false)
 
     private val appLocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
@@ -195,8 +201,8 @@ class CarMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Seed mock data if database is fresh
-        MockDataGenerator.populateMockDataIfEmpty(this)
+        // Clean fake demo trips and mock fuel entries for real-life usage
+        cleanDemoData()
 
         providerUtils = ContentProviderUtils(this)
         fuelDb = FuelDatabaseHelper.getInstance(this)
@@ -266,26 +272,158 @@ class CarMainActivity : ComponentActivity() {
         serviceConnection?.unbind(this)
     }
 
+    private fun cleanDemoData(showToast: Boolean = false) {
+        val prefs = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
+        val alreadyCleaned = prefs.getBoolean("demo_data_purged_v15", false)
+        if (!alreadyCleaned || showToast) {
+            MockDataGenerator.purgeAllMockTrips(this)
+            fuelDb.deleteMockEntries()
+            prefs.edit().putBoolean("demo_data_purged_v15", true).apply()
+            loadTrips()
+            loadFuelEntries()
+            if (showToast) {
+                Toast.makeText(this, "Viagens e postos de demonstração apagados!", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun loadPreferences() {
         val sp = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
-        vehicleNameState.value = sp.getString("vehicle_name", "Toyota Etios") ?: "Toyota Etios"
+        vehicleNameState.value = sp.getString("vehicle_name", "Meu Carro") ?: "Meu Carro"
         vehiclePlateState.value = sp.getString("vehicle_plate", "") ?: ""
         tankCapacityState.value = sp.getFloat("tank_capacity_liters", 50f).toDouble()
         primaryFuelTypeState.value = sp.getString("primary_fuel_type", "Gasolina Comum") ?: "Gasolina Comum"
+        odometerBaseState.value = sp.getFloat("odometer_base_km", 0f).toDouble()
+        estimatedKmLState.value = sp.getFloat("estimated_km_per_liter", 12f).toDouble()
+        kmSinceLastFullState.value = sp.getFloat("km_since_last_full", 0f).toDouble()
+
+        val setupDone = sp.getBoolean("initial_setup_completed", false)
+        initialSetupDoneState.value = setupDone
+        if (!setupDone) {
+            showInitialSetupDialogState.value = true
+        }
     }
 
-    private fun saveVehicleConfig(name: String, plate: String, tankCapacity: Double, primaryFuelType: String) {
+    private fun getCurrentOdometer(): Double {
+        val totalRecordedKm = tripsState.value.sumOf { it.distanceKm }
+        val base = odometerBaseState.value
+        return if (base > 0) base + totalRecordedKm else totalRecordedKm
+    }
+
+    private fun getCurrentFuelLiters(): Double {
+        val cap = tankCapacityState.value
+        val kmL = if (fuelDb.overallRealKmL in 4.0..30.0) fuelDb.overallRealKmL else estimatedKmLState.value
+        val kmSinceFull = kmSinceLastFullState.value + tripsState.value.sumOf { it.distanceKm }
+        val litersUsed = if (kmL > 0) kmSinceFull / kmL else 0.0
+        return (cap - litersUsed).coerceIn(0.0, cap)
+    }
+
+    private fun saveOdometer(newOdometer: Double) {
+        val totalRecordedKm = tripsState.value.sumOf { it.distanceKm }
+        val base = (newOdometer - totalRecordedKm).coerceAtLeast(0.0)
+        getSharedPreferences("CarTracksPrefs", MODE_PRIVATE).edit()
+            .putFloat("odometer_base_km", base.toFloat())
+            .apply()
+        odometerBaseState.value = base
+        showEditOdometerDialogState.value = false
+        Toast.makeText(this, "Odômetro ajustado para ${newOdometer.toInt()} km", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun saveFullVehicleConfig(
+        name: String,
+        plate: String,
+        tankCapacity: Double,
+        primaryFuelType: String,
+        odometer: Double,
+        estimatedKmL: Double,
+        kmSinceLastFull: Double
+    ) {
+        val totalRecordedKm = tripsState.value.sumOf { it.distanceKm }
+        val baseOdo = (odometer - totalRecordedKm).coerceAtLeast(0.0)
         getSharedPreferences("CarTracksPrefs", MODE_PRIVATE).edit()
             .putString("vehicle_name", name)
             .putString("vehicle_plate", plate)
             .putFloat("tank_capacity_liters", tankCapacity.toFloat())
             .putString("primary_fuel_type", primaryFuelType)
+            .putFloat("odometer_base_km", baseOdo.toFloat())
+            .putFloat("estimated_km_per_liter", estimatedKmL.toFloat())
+            .putFloat("km_since_last_full", kmSinceLastFull.toFloat())
+            .putBoolean("initial_setup_completed", true)
             .apply()
+
         vehicleNameState.value = name
         vehiclePlateState.value = plate
         tankCapacityState.value = tankCapacity
         primaryFuelTypeState.value = primaryFuelType
+        odometerBaseState.value = baseOdo
+        estimatedKmLState.value = estimatedKmL
+        kmSinceLastFullState.value = kmSinceLastFull
+        initialSetupDoneState.value = true
+        showInitialSetupDialogState.value = false
         Toast.makeText(this, "Dados do veículo salvos!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun updateTrip(tripId: Long, newName: String, newDescription: String) {
+        try {
+            val track = providerUtils.getTrack(Track.Id(tripId))
+            if (track != null) {
+                val updated = Track(
+                    track.id(),
+                    track.uuid(),
+                    newName,
+                    newDescription,
+                    track.activityTypeLocalized(),
+                    track.activityType(),
+                    track.zoneOffset(),
+                    track.statistics()
+                )
+                providerUtils.updateTrack(updated)
+                loadTrips()
+                Toast.makeText(this, "Viagem atualizada com sucesso!", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(this, "Erro ao atualizar: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun deleteTrip(tripId: Long) {
+        try {
+            providerUtils.deleteTrack(this, Track.Id(tripId))
+            loadTrips()
+            Toast.makeText(this, "Viagem excluída com sucesso!", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Erro ao excluir: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateFuelEntry(
+        id: Long,
+        stationName: String,
+        liters: Double,
+        price: Double,
+        total: Double,
+        odo: Double,
+        notes: String,
+        isFull: Boolean,
+        fuelType: String
+    ) {
+        try {
+            fuelDb.updateEntry(id, stationName, liters, price, total, odo, notes, isFull, fuelType)
+            loadFuelEntries()
+            Toast.makeText(this, "Abastecimento atualizado!", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Erro ao atualizar: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun deleteFuelEntry(id: Long) {
+        try {
+            fuelDb.deleteEntry(id)
+            loadFuelEntries()
+            Toast.makeText(this, "Abastecimento excluído!", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Erro ao excluir: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun loadCustomLocations() {
@@ -686,6 +824,14 @@ class CarMainActivity : ComponentActivity() {
                 },
                 onExportKml = {
                     TrackExportHelper.exportAndShareKML(this@CarMainActivity, activeDetailTrip!!, points)
+                },
+                onUpdateTrip = { tripId, newName, newDesc ->
+                    updateTrip(tripId, newName, newDesc)
+                    activeDetailTrip = activeDetailTrip?.copy(name = newName, description = newDesc)
+                },
+                onDeleteTrip = { tripId ->
+                    deleteTrip(tripId)
+                    activeDetailTrip = null
                 }
             )
             return
@@ -790,6 +936,9 @@ class CarMainActivity : ComponentActivity() {
                         vehiclePlate = vehiclePlate,
                         tankCapacityLiters = tankCapacity,
                         primaryFuelType = primaryFuelType,
+                        currentFuelLiters = getCurrentFuelLiters(),
+                        estimatedKmL = if (fuelDb.overallRealKmL in 4.0..30.0) fuelDb.overallRealKmL else estimatedKmLState.value,
+                        odometerKm = getCurrentOdometer(),
                         parkingInfo = parkingInfoState.value,
                         onNavigateToParking = { lat, lon ->
                             try {
@@ -801,6 +950,8 @@ class CarMainActivity : ComponentActivity() {
                             }
                         },
                         onClearParking = { clearParkingInfo() },
+                        onEditOdometerClicked = { showEditOdometerDialogState.value = true },
+                        onConfigureVehicleClicked = { showInitialSetupDialogState.value = true },
                         onStartTripClicked = {
                             if (liveData.isRecording) {
                                 isCockpitFullscreen = true
@@ -818,12 +969,15 @@ class CarMainActivity : ComponentActivity() {
                         selectedFilter = selectedPeriod,
                         onFilterSelected = { selectedPeriod = it },
                         onTripClicked = { activeDetailTrip = it },
-                        onPeriodMapClicked = { isPeriodMapOpen = true }
+                        onPeriodMapClicked = { isPeriodMapOpen = true },
+                        onDeleteTrip = { tripId -> deleteTrip(tripId) },
+                        onUpdateTrip = { tripId, name, desc -> updateTrip(tripId, name, desc) }
                     )
                     2 -> FuelScreen(
                         fuelEntries = fuelEntries,
                         tankCapacityLiters = tankCapacity,
                         currentGps = currentGps,
+                        currentVehicleOdometer = getCurrentOdometer(),
                         onAddFuel = { station, liters, price, total, odo, notes, isFull, fuelType, lat, lon ->
                             fuelDb.addEntry(station, liters, price, total, odo, notes, isFull, fuelType, lat, lon)
                             loadFuelEntries()
@@ -833,6 +987,12 @@ class CarMainActivity : ComponentActivity() {
                             fuelDb.updateEntryLocation(entryId, lat, lon)
                             loadFuelEntries()
                             Toast.makeText(this@CarMainActivity, "Localização do posto salva no mapa!", Toast.LENGTH_SHORT).show()
+                        },
+                        onUpdateFuel = { entryId, station, liters, price, total, odo, notes, isFull, fuelType ->
+                            updateFuelEntry(entryId, station, liters, price, total, odo, notes, isFull, fuelType)
+                        },
+                        onDeleteFuel = { entryId ->
+                            deleteFuelEntry(entryId)
                         }
                     )
                     3 -> SettingsScreen(
@@ -843,13 +1003,19 @@ class CarMainActivity : ComponentActivity() {
                         vehiclePlate = vehiclePlate,
                         tankCapacityLiters = tankCapacity,
                         primaryFuelType = primaryFuelType,
+                        currentOdometer = getCurrentOdometer(),
+                        estimatedKmL = estimatedKmLState.value,
+                        kmSinceLastFull = kmSinceLastFullState.value,
                         isBatteryOptimized = isBatteryOptimizedState.value,
                         onRequestIgnoreBattery = { requestIgnoreBatteryOptimization() },
                         onSaveLocation = { key, lat, lon, label ->
                             saveCustomLocation(key, lat, lon, label)
                         },
-                        onSaveVehicleConfig = { name, plate, cap, fType ->
-                            saveVehicleConfig(name, plate, cap, fType)
+                        onSaveVehicleConfig = { name, plate, cap, fType, odo, estKmL, kmSince ->
+                            saveFullVehicleConfig(name, plate, cap, fType, odo, estKmL, kmSince)
+                        },
+                        onPurgeDemoData = {
+                            cleanDemoData(showToast = true)
                         },
                         onExportBackup = {
                             CarTracksBackupHelper.exportBackup(this@CarMainActivity)
