@@ -1,9 +1,13 @@
 package de.dennisguse.opentracks.ui.components
 
 import android.content.Context
-import android.graphics.Color as AndroidColor
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.Typeface
+import android.graphics.Path as AndroidPath
+import android.graphics.RectF
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -34,6 +39,7 @@ import de.dennisguse.opentracks.ui.theme.*
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.util.MapTileIndex
@@ -44,27 +50,167 @@ import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.ScaleBarOverlay
 import java.io.File
+import android.graphics.Color as AndroidColor
 
 /**
- * Ultra-Fast High Definition Map Engine.
- * Optimizations:
- * - In-memory tile cache (160 tiles) for instant 60fps panning & zooming.
- * - Multi-thread network downloaders (8 threads).
- * - World wrap repetition disabled to eliminate redundant GPU redraws.
- * - Dynamic Metric Scale Bar Overlay (StreetComplete inspired).
- * - Controls separated: Layer switcher on Top-Start (top left), never overlapping other controls.
+ * Modern Vector-Grade Marker Factory for OpenStreetMap / OsmDroid.
+ * Replaces legacy 2011 pushpins with high-DPI automotive tokens.
  */
-val EsriWorldStreetMapHD = object : OnlineTileSourceBase(
-    "EsriStreetHD",
-    0, 19, 256, ".jpg",
-    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/"),
-    "© Esri, OpenStreetMap contributors"
-) {
-    override fun getTileURLString(pMapTileIndex: Long): String {
-        val zoom = MapTileIndex.getZoom(pMapTileIndex)
-        val x = MapTileIndex.getX(pMapTileIndex)
-        val y = MapTileIndex.getY(pMapTileIndex)
-        return "$baseUrl$zoom/$y/$x.jpg"
+object ModernMarkerFactory {
+    private var cachedStart: Drawable? = null
+    private var cachedEnd: Drawable? = null
+    private var cachedPin: Drawable? = null
+    private var cachedGps: Drawable? = null
+    private var cachedFuel: Drawable? = null
+
+    fun getStartMarker(context: Context): Drawable {
+        if (cachedStart != null) return cachedStart!!
+        val density = context.resources.displayMetrics.density
+        val size = (32 * density).toInt()
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val center = size / 2f
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = AndroidColor.parseColor("#332CBF6F")
+        }
+        canvas.drawCircle(center, center, center - 2 * density, paint)
+
+        paint.color = AndroidColor.WHITE
+        canvas.drawCircle(center, center, center - 5 * density, paint)
+
+        paint.color = AndroidColor.parseColor("#2CBF6F") // Wanda Green
+        canvas.drawCircle(center, center, center - 8 * density, paint)
+
+        paint.color = AndroidColor.WHITE
+        canvas.drawCircle(center, center, 3 * density, paint)
+
+        cachedStart = BitmapDrawable(context.resources, bitmap)
+        return cachedStart!!
+    }
+
+    fun getEndMarker(context: Context): Drawable {
+        if (cachedEnd != null) return cachedEnd!!
+        val density = context.resources.displayMetrics.density
+        val size = (32 * density).toInt()
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val center = size / 2f
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = AndroidColor.parseColor("#33D02A43")
+        }
+        canvas.drawCircle(center, center, center - 2 * density, paint)
+
+        paint.color = AndroidColor.WHITE
+        canvas.drawCircle(center, center, center - 5 * density, paint)
+
+        paint.color = AndroidColor.parseColor("#D02A43") // Wanda Red
+        canvas.drawCircle(center, center, center - 8 * density, paint)
+
+        paint.color = AndroidColor.WHITE
+        val rectSize = 5 * density
+        canvas.drawRect(center - rectSize, center - rectSize, center + rectSize, center + rectSize, paint)
+
+        cachedEnd = BitmapDrawable(context.resources, bitmap)
+        return cachedEnd!!
+    }
+
+    fun getPinnedMarker(context: Context): Drawable {
+        if (cachedPin != null) return cachedPin!!
+        val density = context.resources.displayMetrics.density
+        val width = (36 * density).toInt()
+        val height = (46 * density).toInt()
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = AndroidColor.parseColor("#0062FF") // Wanda Interactive
+        }
+
+        val path = AndroidPath()
+        val r = width / 2.3f
+        path.moveTo(width / 2f, height.toFloat() - 2 * density)
+        path.cubicTo(
+            0f, height * 0.65f,
+            0f, r,
+            width / 2f, 2 * density
+        )
+        path.cubicTo(
+            width.toFloat(), 2 * density,
+            width.toFloat(), height * 0.65f,
+            width / 2f, height.toFloat() - 2 * density
+        )
+        path.close()
+        canvas.drawPath(path, paint)
+
+        // White border
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 2.5f * density
+        paint.color = AndroidColor.WHITE
+        canvas.drawPath(path, paint)
+
+        // Inner white dot
+        paint.style = Paint.Style.FILL
+        paint.color = AndroidColor.WHITE
+        canvas.drawCircle(width / 2f, height * 0.38f, 5 * density, paint)
+
+        cachedPin = BitmapDrawable(context.resources, bitmap)
+        return cachedPin!!
+    }
+
+    fun getMyLocationMarker(context: Context): Drawable {
+        if (cachedGps != null) return cachedGps!!
+        val density = context.resources.displayMetrics.density
+        val size = (30 * density).toInt()
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val center = size / 2f
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = AndroidColor.parseColor("#3357C3D1")
+        }
+        canvas.drawCircle(center, center, center - 1 * density, paint)
+
+        paint.color = AndroidColor.WHITE
+        canvas.drawCircle(center, center, center - 6 * density, paint)
+
+        paint.color = AndroidColor.parseColor("#0062FF")
+        canvas.drawCircle(center, center, center - 8.5f * density, paint)
+
+        cachedGps = BitmapDrawable(context.resources, bitmap)
+        return cachedGps!!
+    }
+
+    fun getFuelMarker(context: Context): Drawable {
+        if (cachedFuel != null) return cachedFuel!!
+        val density = context.resources.displayMetrics.density
+        val size = (28 * density).toInt()
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val center = size / 2f
+
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = AndroidColor.parseColor("#F5A957") // Wanda Amber
+        }
+        canvas.drawCircle(center, center, center - 2 * density, paint)
+
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 2.5f * density
+        paint.color = AndroidColor.WHITE
+        canvas.drawCircle(center, center, center - 2 * density, paint)
+
+        paint.style = Paint.Style.FILL
+        paint.color = AndroidColor.WHITE
+        canvas.drawCircle(center, center, 4 * density, paint)
+
+        cachedFuel = BitmapDrawable(context.resources, bitmap)
+        return cachedFuel!!
     }
 }
 
@@ -107,18 +253,17 @@ private fun ensureOsmDroidConfigured(context: Context) {
     val config = Configuration.getInstance()
     config.load(appCtx, PreferenceManager.getDefaultSharedPreferences(appCtx))
 
-    val baseDir = File(appCtx.cacheDir, "osmdroid_fast_v9").apply { mkdirs() }
+    val baseDir = File(appCtx.cacheDir, "osmdroid_v11").apply { mkdirs() }
     val tileDir = File(baseDir, "tiles").apply { mkdirs() }
     config.osmdroidBasePath = baseDir
     config.osmdroidTileCache = tileDir
 
-    config.userAgentValue = "Mozilla/5.0 (Linux; Android 16; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 CarTracks/1.0.9"
+    config.userAgentValue = "Mozilla/5.0 (Linux; Android 16; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 CarTracks/1.0.11"
 
-    // High performance caching parameters
     config.tileDownloadThreads = 8.toShort()
     config.tileFileSystemThreads = 8.toShort()
-    config.cacheMapTileCount = 160.toShort()
-    config.tileDownloadMaxQueueSize = 60.toShort()
+    config.cacheMapTileCount = 200.toShort()
+    config.tileDownloadMaxQueueSize = 80.toShort()
 }
 
 @Composable
@@ -133,25 +278,28 @@ fun CarMapView(
     onMapTapped: ((Double, Double) -> Unit)? = null,
     showLayerSwitcher: Boolean = true,
     showZoomControls: Boolean = true,
+    floatingControlsBottomPadding: Dp = 24.dp,
     onCenterGpsClicked: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var selectedLayer by remember { mutableStateOf(MapLayer.STREET) }
 
-    // Memory keys to avoid redundant overlay clearing & re-draws on every tick
+    // Memoization keys to eliminate redundant overlay clearing & re-draws on telemetry ticks
     var lastPointsHash by remember { mutableStateOf(0) }
     var lastPinnedCoord by remember { mutableStateOf<Pair<Double, Double>?>(null) }
 
     val mapView = remember {
         ensureOsmDroidConfigured(context)
         MapView(context).apply {
-            setTileSource(EsriWorldStreetMapHD)
+            setTileSource(TileSourceFactory.MAPNIK)
             setUseDataConnection(true)
 
-            // Optimized scale: 1.0f base with zoom level 17.0 gives fast 60fps rendering without software bitmap matrix scaling
-            isTilesScaledToDpi = false
-            tilesScaleFactor = 1.0f
+            // StreetComplete & High-DPI AMOLED Display Optimization:
+            // High DPI scaling enabled + 1.15x factor guarantees crisp, readable street labels
+            isTilesScaledToDpi = true
+            tilesScaleFactor = 1.15f
+
             setDestroyMode(false)
             setMultiTouchControls(true)
             isFlingEnabled = true
@@ -161,37 +309,32 @@ fun CarMapView(
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
             minZoomLevel = 4.0
             maxZoomLevel = 20.0
-            controller.setZoom(17.0) // Natural street level zoom
-            controller.setCenter(GeoPoint(-23.5672, -46.6685))
+            controller.setZoom(17.2)
+            controller.setCenter(GeoPoint(-23.5672, -46.6685)) // São Paulo default
 
-            // Dynamic Metric Scale Bar Overlay
+            // StreetComplete dynamic scale bar overlay
             val scaleBarOverlay = ScaleBarOverlay(this).apply {
                 setCentred(false)
-                setAlignBottom(true)
-                setAlignRight(false)
-                setScaleBarOffset(24, 32)
-                setUnitsOfMeasure(ScaleBarOverlay.UnitsOfMeasure.metric)
-                setLineWidth(4f)
-                setTextSize(34f)
-                barPaint.color = AndroidColor.parseColor("#458BD0") // Wanda Blue 30
-                textPaint.color = AndroidColor.parseColor("#FFFFFF") // Wanda White
-                textPaint.typeface = Typeface.DEFAULT_BOLD
-                setBackgroundPaint(Paint().apply { color = AndroidColor.parseColor("#99101114") })
+                unitsOfMeasure = ScaleBarOverlay.UnitsOfMeasure.metric
+                setScaleBarOffset(36, 40)
+                setTextSize(26f)
+                setBackgroundPaint(Paint().apply {
+                    color = AndroidColor.parseColor("#B3101114")
+                    style = Paint.Style.FILL
+                })
+                textPaint.apply {
+                    color = AndroidColor.WHITE
+                    isAntiAlias = true
+                    isFakeBoldText = true
+                }
+                barPaint.apply {
+                    color = AndroidColor.WHITE
+                    strokeWidth = 4f
+                    isAntiAlias = true
+                }
             }
             overlays.add(scaleBarOverlay)
-
-            onResume()
         }
-    }
-
-    LaunchedEffect(selectedLayer) {
-        val newSource = when (selectedLayer) {
-            MapLayer.STREET -> EsriWorldStreetMapHD
-            MapLayer.DARK -> EsriDarkCanvasHD
-            MapLayer.SATELLITE -> EsriSatelliteHD
-        }
-        mapView.setTileSource(newSource)
-        mapView.invalidate()
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -205,29 +348,34 @@ fun CarMapView(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            mapView.onPause()
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { mapView },
-            update = { map ->
-                map.setUseDataConnection(true)
+    LaunchedEffect(selectedLayer) {
+        when (selectedLayer) {
+            MapLayer.STREET -> mapView.setTileSource(TileSourceFactory.MAPNIK)
+            MapLayer.DARK -> mapView.setTileSource(EsriDarkCanvasHD)
+            MapLayer.SATELLITE -> mapView.setTileSource(EsriSatelliteHD)
+        }
+        mapView.invalidate()
+    }
 
-                val pointsHash = points.hashCode() xor multiRoutes.hashCode() xor extraMarkers.hashCode()
-                val needsOverlayUpdate = (pointsHash != lastPointsHash) || (pinnedLocation != lastPinnedCoord)
+    Box(modifier = modifier) {
+        AndroidView(
+            factory = { mapView },
+            modifier = Modifier.fillMaxSize(),
+            update = { map ->
+                val currentPointsHash = points.hashCode() xor multiRoutes.hashCode() xor extraMarkers.hashCode() xor (currentLocation?.hashCode() ?: 0)
+                val needsOverlayUpdate = (currentPointsHash != lastPointsHash) || (pinnedLocation != lastPinnedCoord)
 
                 if (needsOverlayUpdate) {
-                    lastPointsHash = pointsHash
+                    lastPointsHash = currentPointsHash
                     lastPinnedCoord = pinnedLocation
 
-                    val scaleBar = map.overlays.filterIsInstance<ScaleBarOverlay>().firstOrNull()
+                    // Preserve base ScaleBarOverlay (index 0) and rebuild dynamic route/marker overlays
+                    val baseScale = if (map.overlays.isNotEmpty() && map.overlays[0] is ScaleBarOverlay) map.overlays[0] else null
                     map.overlays.clear()
-                    if (scaleBar != null) {
-                        map.overlays.add(scaleBar)
-                    }
+                    if (baseScale != null) map.overlays.add(baseScale)
 
                     // 1. Map Events Receiver for Tapping / Pinning Location
                     if (onMapTapped != null) {
@@ -245,34 +393,50 @@ fun CarMapView(
                         map.overlays.add(MapEventsOverlay(eventsReceiver))
                     }
 
-                    // 2. Single Route Polyline
+                    // 2. High-Precision Dual-Stroke Polyline (StreetComplete / Apple Maps style)
                     if (points.isNotEmpty()) {
                         val geoPoints = points.map { GeoPoint(it.lat, it.lon) }
-                        val polyline = Polyline(map).apply {
+
+                        // 2a. Outer Casing / Contrast Outline (usePath = true connects all points continuously!)
+                        val casing = Polyline(map, true).apply {
                             setPoints(geoPoints)
-                            outlinePaint.color = AndroidColor.parseColor("#458BD0") // Wanda Primary Blue
-                            outlinePaint.strokeWidth = 14f
+                            outlinePaint.color = AndroidColor.parseColor("#142238")
+                            outlinePaint.strokeWidth = 20f
                             outlinePaint.strokeCap = Paint.Cap.ROUND
                             outlinePaint.strokeJoin = Paint.Join.ROUND
+                            outlinePaint.isAntiAlias = true
                         }
-                        map.overlays.add(polyline)
+                        map.overlays.add(casing)
 
-                        // Start Marker
+                        // 2b. Inner Vibrant Core Stroke
+                        val core = Polyline(map, true).apply {
+                            setPoints(geoPoints)
+                            outlinePaint.color = AndroidColor.parseColor("#0084FF") // High-contrast Wanda Blue
+                            outlinePaint.strokeWidth = 12f
+                            outlinePaint.strokeCap = Paint.Cap.ROUND
+                            outlinePaint.strokeJoin = Paint.Join.ROUND
+                            outlinePaint.isAntiAlias = true
+                        }
+                        map.overlays.add(core)
+
+                        // Start Modern Marker
                         val startPt = points.first()
                         val startMarker = Marker(map).apply {
                             position = GeoPoint(startPt.lat, startPt.lon)
                             title = "Partida"
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            icon = ModernMarkerFactory.getStartMarker(map.context)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                         }
                         map.overlays.add(startMarker)
 
-                        // End Marker
+                        // End Modern Marker
                         if (points.size > 1) {
                             val endPt = points.last()
                             val endMarker = Marker(map).apply {
                                 position = GeoPoint(endPt.lat, endPt.lon)
                                 title = "Chegada"
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                icon = ModernMarkerFactory.getEndMarker(map.context)
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                             }
                             map.overlays.add(endMarker)
                         }
@@ -287,10 +451,10 @@ fun CarMapView(
                         }
                     }
 
-                    // 3. Multi-Routes (for Period Overview)
+                    // 3. Multi-Routes (for Period Overview) with continuous double-stroke
                     if (multiRoutes.isNotEmpty()) {
                         val routeColors = listOf(
-                            "#458BD0", "#2CBF6F", "#F5A957", "#C480C7", "#D02A43", "#3BABBA"
+                            "#0084FF", "#2CBF6F", "#F5A957", "#C480C7", "#D02A43", "#3BABBA"
                         )
                         val allPoints = mutableListOf<GeoPoint>()
 
@@ -299,13 +463,28 @@ fun CarMapView(
                                 val geoPts = route.map { GeoPoint(it.lat, it.lon) }
                                 allPoints.addAll(geoPts)
                                 val colorHex = routeColors[index % routeColors.size]
-                                val poly = Polyline(map).apply {
+
+                                // Casing
+                                val polyCasing = Polyline(map, true).apply {
+                                    setPoints(geoPts)
+                                    outlinePaint.color = AndroidColor.parseColor("#142238")
+                                    outlinePaint.strokeWidth = 16f
+                                    outlinePaint.strokeCap = Paint.Cap.ROUND
+                                    outlinePaint.strokeJoin = Paint.Join.ROUND
+                                    outlinePaint.isAntiAlias = true
+                                }
+                                map.overlays.add(polyCasing)
+
+                                // Core
+                                val polyCore = Polyline(map, true).apply {
                                     setPoints(geoPts)
                                     outlinePaint.color = AndroidColor.parseColor(colorHex)
                                     outlinePaint.strokeWidth = 10f
                                     outlinePaint.strokeCap = Paint.Cap.ROUND
+                                    outlinePaint.strokeJoin = Paint.Join.ROUND
+                                    outlinePaint.isAntiAlias = true
                                 }
-                                map.overlays.add(poly)
+                                map.overlays.add(polyCore)
                             }
                         }
 
@@ -331,7 +510,8 @@ fun CarMapView(
                                 position = pt
                                 title = item.title
                                 snippet = item.snippet
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                icon = ModernMarkerFactory.getFuelMarker(map.context)
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                             }
                             map.overlays.add(m)
                         }
@@ -358,7 +538,8 @@ fun CarMapView(
                         val curMarker = Marker(map).apply {
                             position = curPoint
                             title = "Posição Atual"
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            icon = ModernMarkerFactory.getMyLocationMarker(map.context)
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
                         }
                         map.overlays.add(curMarker)
                     }
@@ -369,6 +550,7 @@ fun CarMapView(
                         val pinMarker = Marker(map).apply {
                             position = pinPt
                             title = pinnedTitle
+                            icon = ModernMarkerFactory.getPinnedMarker(map.context)
                             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         }
                         map.overlays.add(pinMarker)
@@ -381,7 +563,6 @@ fun CarMapView(
         )
 
         // Wanda Layer Switcher - PLACED AT TOP-START (TOP LEFT)
-        // This guarantees it will NEVER collide with controls on the top-right (like Maximizar Mapa)!
         if (showLayerSwitcher) {
             Row(
                 modifier = Modifier
@@ -413,10 +594,11 @@ fun CarMapView(
         }
 
         // Floating One-Handed Controls (Zoom & GPS) - Bottom End
+        // Configurable bottom padding ensures they are NEVER covered by overlays or bottom sheets!
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 24.dp, end = 16.dp),
+                .padding(bottom = floatingControlsBottomPadding, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (onCenterGpsClicked != null) {

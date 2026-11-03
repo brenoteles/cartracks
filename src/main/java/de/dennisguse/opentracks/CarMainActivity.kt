@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -58,6 +59,8 @@ class CarMainActivity : ComponentActivity() {
     private val currentGpsState = mutableStateOf<Pair<Double, Double>?>(null)
 
     // Vehicle & Fuel Config
+    private val vehicleNameState = mutableStateOf("Toyota Etios")
+    private val vehiclePlateState = mutableStateOf("")
     private val tankCapacityState = mutableStateOf(50.0)
     private val primaryFuelTypeState = mutableStateOf("Gasolina Comum")
 
@@ -121,18 +124,24 @@ class CarMainActivity : ComponentActivity() {
 
     private fun loadPreferences() {
         val sp = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
+        vehicleNameState.value = sp.getString("vehicle_name", "Toyota Etios") ?: "Toyota Etios"
+        vehiclePlateState.value = sp.getString("vehicle_plate", "") ?: ""
         tankCapacityState.value = sp.getFloat("tank_capacity_liters", 50f).toDouble()
         primaryFuelTypeState.value = sp.getString("primary_fuel_type", "Gasolina Comum") ?: "Gasolina Comum"
     }
 
-    private fun saveVehicleConfig(tankCapacity: Double, primaryFuelType: String) {
+    private fun saveVehicleConfig(name: String, plate: String, tankCapacity: Double, primaryFuelType: String) {
         getSharedPreferences("CarTracksPrefs", MODE_PRIVATE).edit()
+            .putString("vehicle_name", name)
+            .putString("vehicle_plate", plate)
             .putFloat("tank_capacity_liters", tankCapacity.toFloat())
             .putString("primary_fuel_type", primaryFuelType)
             .apply()
+        vehicleNameState.value = name
+        vehiclePlateState.value = plate
         tankCapacityState.value = tankCapacity
         primaryFuelTypeState.value = primaryFuelType
-        Toast.makeText(this, "Parâmetros do veículo salvos!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Dados do veículo salvos!", Toast.LENGTH_SHORT).show()
     }
 
     private fun loadCustomLocations() {
@@ -455,8 +464,27 @@ class CarMainActivity : ComponentActivity() {
         val homeLoc by homeLocationState
         val workLoc by workLocationState
         val currentGps by currentGpsState
+        val vehicleName by vehicleNameState
+        val vehiclePlate by vehiclePlateState
         val tankCapacity by tankCapacityState
         val primaryFuelType by primaryFuelTypeState
+
+        // System Back Gesture Handlers - Never accidentally closes the app!
+        BackHandler(enabled = isCockpitFullscreen) {
+            isCockpitFullscreen = false
+        }
+
+        BackHandler(enabled = activeDetailTrip != null) {
+            activeDetailTrip = null
+        }
+
+        BackHandler(enabled = isPeriodMapOpen) {
+            isPeriodMapOpen = false
+        }
+
+        BackHandler(enabled = !isCockpitFullscreen && activeDetailTrip == null && !isPeriodMapOpen && selectedTab != 0) {
+            selectedTab = 0
+        }
 
         // Auto-open cockpit if user just started a trip
         LaunchedEffect(liveData.isRecording) {
@@ -593,6 +621,10 @@ class CarMainActivity : ComponentActivity() {
                         trips = trips,
                         fuelEntries = fuelEntries,
                         liveData = liveData,
+                        vehicleName = vehicleName,
+                        vehiclePlate = vehiclePlate,
+                        tankCapacityLiters = tankCapacity,
+                        primaryFuelType = primaryFuelType,
                         onStartTripClicked = {
                             if (liveData.isRecording) {
                                 isCockpitFullscreen = true
@@ -631,13 +663,15 @@ class CarMainActivity : ComponentActivity() {
                         homeLoc = homeLoc,
                         workLoc = workLoc,
                         currentGps = currentGps,
+                        vehicleName = vehicleName,
+                        vehiclePlate = vehiclePlate,
                         tankCapacityLiters = tankCapacity,
                         primaryFuelType = primaryFuelType,
                         onSaveLocation = { key, lat, lon, label ->
                             saveCustomLocation(key, lat, lon, label)
                         },
-                        onSaveVehicleConfig = { cap, fType ->
-                            saveVehicleConfig(cap, fType)
+                        onSaveVehicleConfig = { name, plate, cap, fType ->
+                            saveVehicleConfig(name, plate, cap, fType)
                         },
                         onOpenSystemSettings = {
                             startActivity(Intent(this@CarMainActivity, SettingsActivity::class.java))

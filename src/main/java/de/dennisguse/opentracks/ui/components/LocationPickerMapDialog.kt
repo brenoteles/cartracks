@@ -161,6 +161,7 @@ fun LocationPickerMapDialog(
                         updateReverseGeocode(currentGps.first, currentGps.second)
                     }
                 },
+                floatingControlsBottomPadding = 185.dp,
                 modifier = Modifier.fillMaxSize()
             )
 

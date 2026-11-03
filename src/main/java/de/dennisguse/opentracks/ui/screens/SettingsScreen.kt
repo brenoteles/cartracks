@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,12 +30,16 @@ fun SettingsScreen(
     homeLoc: CustomLocation,
     workLoc: CustomLocation,
     currentGps: Pair<Double, Double>?,
-    tankCapacityLiters: Double,
-    primaryFuelType: String,
+    vehicleName: String = "Toyota Etios",
+    vehiclePlate: String = "",
+    tankCapacityLiters: Double = 50.0,
+    primaryFuelType: String = "Gasolina Comum",
     onSaveLocation: (key: String, lat: Double, lon: Double, label: String) -> Unit,
-    onSaveVehicleConfig: (tankCapacity: Double, primaryFuelType: String) -> Unit,
+    onSaveVehicleConfig: (name: String, plate: String, tankCapacity: Double, primaryFuelType: String) -> Unit,
     onOpenSystemSettings: () -> Unit
 ) {
+    var vehicleNameStr by remember(vehicleName) { mutableStateOf(vehicleName) }
+    var vehiclePlateStr by remember(vehiclePlate) { mutableStateOf(vehiclePlate) }
     var tankCapacityStr by remember(tankCapacityLiters) { mutableStateOf(tankCapacityLiters.toInt().toString()) }
     var selectedFuelType by remember(primaryFuelType) { mutableStateOf(primaryFuelType) }
 
@@ -80,61 +85,17 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Personalize seus locais favoritos e parâmetros do veículo",
+                    text = "Personalize seus dados do veículo e locais favoritos",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
             }
         }
 
-        // Section: Favorite Locations
+        // Section: Vehicle & Fuel Parameters (Custom Vehicle Name & Plate!)
         item {
             Text(
-                text = "Locais Favoritos (Detecção Inteligente)",
-                color = WandaCyan20,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        // Home Location Card
-        item {
-            LocationCard(
-                title = "Casa",
-                icon = "🏠",
-                isConfigured = homeLoc.isSet,
-                lat = if (homeLoc.isSet) homeLoc.lat else null,
-                lon = if (homeLoc.isSet) homeLoc.lon else null,
-                onOpenMapPicker = { mapPickerTarget = "home" },
-                onUseGps = {
-                    currentGps?.let { (lat, lon) ->
-                        onSaveLocation("home", lat, lon, "Casa")
-                    }
-                }
-            )
-        }
-
-        // Work Location Card
-        item {
-            LocationCard(
-                title = "Trabalho",
-                icon = "🏢",
-                isConfigured = workLoc.isSet,
-                lat = if (workLoc.isSet) workLoc.lat else null,
-                lon = if (workLoc.isSet) workLoc.lon else null,
-                onOpenMapPicker = { mapPickerTarget = "work" },
-                onUseGps = {
-                    currentGps?.let { (lat, lon) ->
-                        onSaveLocation("work", lat, lon, "Trabalho")
-                    }
-                }
-            )
-        }
-
-        // Section: Vehicle & Fuel Parameters
-        item {
-            Text(
-                text = "Parâmetros do Veículo",
+                text = "Identificação do Veículo",
                 color = WandaCyan20,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
@@ -151,6 +112,44 @@ fun SettingsScreen(
                     .padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    // Vehicle Name Input
+                    OutlinedTextField(
+                        value = vehicleNameStr,
+                        onValueChange = {
+                            vehicleNameStr = it
+                            val cap = tankCapacityStr.toDoubleOrNull() ?: 50.0
+                            onSaveVehicleConfig(it, vehiclePlateStr.uppercase().trim(), cap, selectedFuelType)
+                        },
+                        label = { Text("Nome / Modelo do Veículo") },
+                        placeholder = { Text("Ex: Toyota Etios 1.5, Honda Civic...") },
+                        leadingIcon = {
+                            Icon(Icons.Default.DirectionsCar, contentDescription = null, tint = WandaInteractive)
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Vehicle License Plate Input
+                    OutlinedTextField(
+                        value = vehiclePlateStr,
+                        onValueChange = {
+                            val upper = it.uppercase().trim()
+                            vehiclePlateStr = upper
+                            val cap = tankCapacityStr.toDoubleOrNull() ?: 50.0
+                            onSaveVehicleConfig(vehicleNameStr, upper, cap, selectedFuelType)
+                        },
+                        label = { Text("Placa do Veículo") },
+                        placeholder = { Text("Ex: BRA2E19 ou ABC-1234") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Pin, contentDescription = null, tint = WandaCyan20)
+                        },
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Divider(color = WandaBorderSubtle, thickness = 1.dp)
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -159,7 +158,7 @@ fun SettingsScreen(
                         Text(
                             text = "Capacidade do Tanque",
                             color = TextPrimary,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
@@ -179,7 +178,7 @@ fun SettingsScreen(
                                 selected = sel,
                                 onClick = {
                                     tankCapacityStr = p
-                                    onSaveVehicleConfig(p.toDouble(), selectedFuelType)
+                                    onSaveVehicleConfig(vehicleNameStr, vehiclePlateStr.uppercase().trim(), p.toDouble(), selectedFuelType)
                                 },
                                 label = { Text("${p}L", fontSize = 12.sp) },
                                 shape = RoundedCornerShape(12.dp),
@@ -199,15 +198,13 @@ fun SettingsScreen(
                         onValueChange = {
                             tankCapacityStr = it
                             val cap = it.toDoubleOrNull() ?: 50.0
-                            onSaveVehicleConfig(cap, selectedFuelType)
+                            onSaveVehicleConfig(vehicleNameStr, vehiclePlateStr.uppercase().trim(), cap, selectedFuelType)
                         },
                         label = { Text("Ou digite a capacidade exata (L)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-
-                    Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
                         text = "Combustível Principal:",
@@ -225,7 +222,7 @@ fun SettingsScreen(
                                 onClick = {
                                     selectedFuelType = fType
                                     val cap = tankCapacityStr.toDoubleOrNull() ?: 50.0
-                                    onSaveVehicleConfig(cap, fType)
+                                    onSaveVehicleConfig(vehicleNameStr, vehiclePlateStr.uppercase().trim(), cap, fType)
                                 },
                                 label = { Text(fType, fontSize = 12.sp) },
                                 shape = RoundedCornerShape(12.dp),
@@ -241,6 +238,40 @@ fun SettingsScreen(
                     }
                 }
             }
+        }
+
+        // Section: Favorite Locations
+        item {
+            Text(
+                text = "Locais Favoritos (Detecção Inteligente)",
+                color = WandaCyan20,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Home Location Card (Removed "Usar Posição Atual" button - map picker handles everything!)
+        item {
+            LocationCard(
+                title = "Casa",
+                icon = "🏠",
+                isConfigured = homeLoc.isSet,
+                lat = if (homeLoc.isSet) homeLoc.lat else null,
+                lon = if (homeLoc.isSet) homeLoc.lon else null,
+                onOpenMapPicker = { mapPickerTarget = "home" }
+            )
+        }
+
+        // Work Location Card
+        item {
+            LocationCard(
+                title = "Trabalho",
+                icon = "🏢",
+                isConfigured = workLoc.isSet,
+                lat = if (workLoc.isSet) workLoc.lat else null,
+                lon = if (workLoc.isSet) workLoc.lon else null,
+                onOpenMapPicker = { mapPickerTarget = "work" }
+            )
         }
 
         // Section: System & Advanced
@@ -296,7 +327,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Versão 1.0.10 • Wanda Design System • Mapa HD Nativo",
+                        text = "Versão 1.0.11 • Wanda Design System • Mapa HD Nativo",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
@@ -313,8 +344,7 @@ fun LocationCard(
     isConfigured: Boolean,
     lat: Double? = null,
     lon: Double? = null,
-    onOpenMapPicker: () -> Unit,
-    onUseGps: () -> Unit
+    onOpenMapPicker: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -367,55 +397,27 @@ fun LocationCard(
                 lineHeight = 18.sp
             )
 
-            // Clean full-width stacked action buttons: Never overflow, never break!
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            // Single primary full-width button to open map picker: No clutter, seamless!
+            Button(
+                onClick = onOpenMapPicker,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
             ) {
-                Button(
-                    onClick = onOpenMapPicker,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Map,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isConfigured) "Alterar Local no Mapa ou Endereço" else "Definir Local no Mapa ou Buscar",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        maxLines = 1
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onUseGps,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(42.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = WandaCardElevated)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MyLocation,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = WandaCyan20
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Usar Posição Atual (GPS)",
-                        fontSize = 13.sp,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Map,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isConfigured) "Alterar Local no Mapa ou Buscar" else "Definir Local no Mapa ou Buscar",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    maxLines = 1
+                )
             }
         }
     }

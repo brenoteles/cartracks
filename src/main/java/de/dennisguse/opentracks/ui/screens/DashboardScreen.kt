@@ -32,6 +32,10 @@ fun DashboardScreen(
     trips: List<TripItem>,
     fuelEntries: List<FuelItem>,
     liveData: LiveCockpitData,
+    vehicleName: String = "Toyota Etios",
+    vehiclePlate: String = "",
+    tankCapacityLiters: Double = 50.0,
+    primaryFuelType: String = "Gasolina Comum",
     onStartTripClicked: () -> Unit,
     onOpenCockpitClicked: () -> Unit,
     onAddFuelClicked: () -> Unit,
@@ -148,8 +152,11 @@ fun DashboardScreen(
 
                 // Vibrant Hero Vehicle Cockpit Card
                 HeroVehicleStatusCard(
-                    tankCapacityLiters = 50.0,
-                    currentFuelLiters = 41.0,
+                    vehicleName = vehicleName,
+                    vehiclePlate = vehiclePlate,
+                    tankCapacityLiters = tankCapacityLiters,
+                    primaryFuelType = primaryFuelType,
+                    currentFuelLiters = (tankCapacityLiters * 0.82),
                     odometerKm = 148520.0 + totalKm
                 )
             }
@@ -301,7 +308,10 @@ fun DashboardScreen(
 
 @Composable
 fun HeroVehicleStatusCard(
+    vehicleName: String,
+    vehiclePlate: String,
     tankCapacityLiters: Double,
+    primaryFuelType: String,
     currentFuelLiters: Double,
     odometerKm: Double
 ) {
@@ -347,14 +357,34 @@ fun HeroVehicleStatusCard(
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = vehicleName.ifBlank { "Meu Veículo" },
+                                color = TextPrimary,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (vehiclePlate.isNotBlank()) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(Color.White)
+                                        .border(1.dp, Color(0xFF003399), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = vehiclePlate.uppercase(),
+                                        color = Color.Black,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 1.sp
+                                    )
+                                }
+                            }
+                        }
                         Text(
-                            text = "Toyota Etios 1.5 Dual VVT-i",
-                            color = TextPrimary,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Tanque: ${tankCapacityLiters.toInt()}L • Gasolina Comum",
+                            text = "Tanque: ${tankCapacityLiters.toInt()}L • $primaryFuelType",
                             color = TextSecondary,
                             fontSize = 12.sp
                         )
