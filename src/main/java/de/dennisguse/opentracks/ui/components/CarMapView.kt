@@ -304,9 +304,23 @@ fun CarMapView(
     var lastPinnedCoord by remember { mutableStateOf<Pair<Double, Double>?>(null) }
     var hasAutoCentered by remember { mutableStateOf(false) }
 
+    // Camera ownership: once the user touches/zooms the map, we NEVER move the camera
+    // automatically again (until they press the GPS button to re-enable follow mode).
+    var userInteracted by remember { mutableStateOf(false) }
+    var lastFitKey by remember { mutableStateOf<Any?>(null) }
+    var lastAnimatedPin by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+
     val mapView = remember {
         ensureOsmDroidConfigured(context)
         MapView(context).apply {
+            setOnTouchListener { _, ev ->
+                if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN ||
+                    ev.actionMasked == android.view.MotionEvent.ACTION_POINTER_DOWN
+                ) {
+                    userInteracted = true
+                }
+                false // let osmdroid handle the gesture normally
+            }
             setTileSource(EsriWorldStreetMapHD)
             setUseDataConnection(true)
 
@@ -359,12 +373,22 @@ fun CarMapView(
     }
 
     LaunchedEffect(currentLocation) {
-        if (currentLocation != null && (!hasAutoCentered || points.size <= 2)) {
+        if (currentLocation == null) return@LaunchedEffect
+        val gp = GeoPoint(currentLocation.first, currentLocation.second)
+        if (!hasAutoCentered) {
+            // First fix only: center + set zoom once (fixes the "Australia" start).
             hasAutoCentered = true
-            mapView.post {
-                mapView.controller.setZoom(17.5)
-                mapView.controller.animateTo(GeoPoint(currentLocation.first, currentLocation.second))
+            val hasOwnFraming = pinnedLocation != null || multiRoutes.isNotEmpty() ||
+                extraMarkers.isNotEmpty() || points.size >= 2
+            if (!hasOwnFraming && !userInteracted) {
+                mapView.post {
+                    mapView.controller.setZoom(17.5)
+                    mapView.controller.setCenter(gp)
+                }
             }
+        } else if (!userInteracted && points.isNotEmpty()) {
+            // Live follow mode while recording: pan only, NEVER touch the zoom level.
+            mapView.post { mapView.controller.animateTo(gp) }
         }
     }
 
@@ -402,6 +426,17 @@ fun CarMapView(
                 if (needsOverlayUpdate) {
                     lastPointsHash = currentPointsHash
                     lastPinnedCoord = pinnedLocation
+
+                    // Camera framing key: only changes when a DIFFERENT route / marker set is shown,
+                    // NOT on GPS ticks or on new breadcrumbs appended during live recording.
+                    val fitKey: Any? = when {
+                        points.isNotEmpty() -> "route:" + points.first().let { "${it.lat},${it.lon},${it.timeMs}" }
+                        multiRoutes.isNotEmpty() -> "multi:" + multiRoutes.size + ":" + multiRoutes.sumOf { it.size }
+                        extraMarkers.isNotEmpty() -> "markers:" + extraMarkers.size
+                        else -> null
+                    }
+                    val shouldFit = fitKey != null && fitKey != lastFitKey && !userInteracted
+                    if (shouldFit) lastFitKey = fitKey
 
                     // Preserve base ScaleBarOverlay (index 0) and rebuild dynamic route/marker overlays
                     val baseScale = if (map.overlays.isNotEmpty() && map.overlays[0] is ScaleBarOverlay) map.overlays[0] else null
@@ -472,13 +507,22 @@ fun CarMapView(
                             map.overlays.add(endMarker)
                         }
 
-                        try {
-                            val box = BoundingBox.fromGeoPoints(geoPoints)
-                            map.post {
-                                map.zoomToBoundingBox(box.increaseByScale(1.15f), true)
+                        if (shouldFit) {
+                            if (geoPoints.size < 2) {
+                                map.post {
+                                    map.controller.setZoom(17.5)
+                                    map.controller.setCenter(geoPoints.first())
+                                }
+                            } else {
+                                try {
+                                    val box = BoundingBox.fromGeoPoints(geoPoints)
+                                    map.post {
+                                        map.zoomToBoundingBox(box.increaseByScale(1.15f), true)
+                                    }
+                                } catch (e: Exception) {
+                                    map.controller.setCenter(geoPoints.first())
+                                }
                             }
-                        } catch (e: Exception) {
-                            map.controller.setCenter(geoPoints.first())
                         }
                     }
 
@@ -519,7 +563,7 @@ fun CarMapView(
                             }
                         }
 
-                        if (allPoints.isNotEmpty()) {
+                        if (shouldFit && allPoints.isNotEmpty()) {
                             try {
                                 val box = BoundingBox.fromGeoPoints(allPoints)
                                 map.post {
@@ -546,7 +590,7 @@ fun CarMapView(
                             }
                             map.overlays.add(m)
                         }
-                        if (points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null) {
+                        if (shouldFit && points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null) {
                             if (markerGeoPoints.size == 1) {
                                 map.controller.setZoom(17.0)
                                 map.controller.setCenter(markerGeoPoints.first())
@@ -585,7 +629,11 @@ fun CarMapView(
                             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         }
                         map.overlays.add(pinMarker)
-                        map.controller.animateTo(pinPt)
+                        // Only move the camera when the pin itself changed (not on GPS ticks)
+                        if (pinnedLocation != lastAnimatedPin) {
+                            lastAnimatedPin = pinnedLocation
+                            map.controller.animateTo(pinPt)
+                        }
                     }
 
                     map.invalidate()
@@ -640,7 +688,9 @@ fun CarMapView(
                         .background(WandaCardElevated.copy(alpha = 0.94f))
                         .clickable {
                             if (currentLocation != null) {
-                                mapView.controller.setZoom(17.5)
+                                // Re-enable follow mode; keep the user's zoom unless very far out
+                                userInteracted = false
+                                if (mapView.zoomLevelDouble < 15.0) mapView.controller.setZoom(17.5)
                                 mapView.controller.animateTo(GeoPoint(currentLocation.first, currentLocation.second))
                             }
                             onCenterGpsClicked()
@@ -662,7 +712,7 @@ fun CarMapView(
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(WandaCardElevated.copy(alpha = 0.94f))
-                        .clickable { mapView.controller.zoomIn() },
+                        .clickable { userInteracted = true; mapView.controller.zoomIn() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -678,7 +728,7 @@ fun CarMapView(
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(WandaCardElevated.copy(alpha = 0.94f))
-                        .clickable { mapView.controller.zoomOut() },
+                        .clickable { userInteracted = true; mapView.controller.zoomOut() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
