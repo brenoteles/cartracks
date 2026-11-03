@@ -88,3 +88,22 @@ data class LiveCockpitData(
     val currentAlt: Double? = null,
     val breadcrumbPoints: List<TripPoint> = emptyList()
 )
+
+data class ParkingInfo(
+    val lat: Double,
+    val lon: Double,
+    val timeMs: Long,
+    val address: String = "Último local de estacionamento"
+)
+
+data class MonthlyReportSummary(
+    val monthYear: String, // e.g. "Novembro 2026"
+    val totalTrips: Int,
+    val totalDistanceKm: Double,
+    val totalDurationHours: Double,
+    val totalFuelLiters: Double,
+    val totalTripCost: Double,
+    val totalFuelExpense: Double,
+    val costPerKm: Double,
+    val commuteTripsCount: Int
+)

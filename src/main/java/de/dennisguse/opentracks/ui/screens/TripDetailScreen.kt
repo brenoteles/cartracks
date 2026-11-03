@@ -1,6 +1,9 @@
 package de.dennisguse.opentracks.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,7 +15,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -262,6 +270,12 @@ fun TripDetailScreen(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
+                    // Interactive Telemetry Profile (OsmAnd Style Speed & Altitude Graph)
+                    if (points.size >= 2) {
+                        TripTelemetryProfileChart(points = points)
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
                     // Feature 6: Route Export Buttons (GPX & KML)
                     Text(
                         text = "Exportar Trajeto",
@@ -320,6 +334,176 @@ fun TripDetailScreen(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TripTelemetryProfileChart(points: List<TripPoint>) {
+    if (points.size < 2) return
+
+    var selectedMetric by remember { mutableStateOf(0) } // 0: Velocidade, 1: Altitude
+
+    val values = remember(points, selectedMetric) {
+        if (selectedMetric == 0) {
+            points.map { it.speedKmh.toFloat().coerceAtLeast(0f) }
+        } else {
+            points.map { it.altitudeM.toFloat() }
+        }
+    }
+
+    val maxVal = remember(values) { (values.maxOrNull() ?: 100f).coerceAtLeast(10f) }
+    val minVal = remember(values, selectedMetric) {
+        if (selectedMetric == 0) 0f else (values.minOrNull() ?: 0f)
+    }
+    val range = (maxVal - minVal).coerceAtLeast(1f)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(WandaCardElevated)
+            .border(1.dp, WandaBorder, RoundedCornerShape(20.dp)),
+        colors = CardDefaults.cardColors(containerColor = WandaCardElevated)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (selectedMetric == 0) "Perfil de Velocidade" else "Perfil Altimétrico",
+                    color = TextPrimary,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(WandaBackground)
+                        .padding(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (selectedMetric == 0) WandaPrimary else Color.Transparent)
+                            .clickable { selectedMetric = 0 }
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = "⚡ Velocidade",
+                            color = if (selectedMetric == 0) Color.White else TextSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(if (selectedMetric == 1) WandaGreen30 else Color.Transparent)
+                            .clickable { selectedMetric = 1 }
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = "⛰️ Altitude",
+                            color = if (selectedMetric == 1) Color.White else TextSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            val primaryColor = if (selectedMetric == 0) WandaCyan20 else WandaGreen30
+            val gradientBrush = Brush.verticalGradient(
+                colors = listOf(primaryColor.copy(alpha = 0.45f), primaryColor.copy(alpha = 0.02f))
+            )
+
+            Box(modifier = Modifier.fillMaxWidth().height(140.dp)) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val w = size.width
+                    val h = size.height
+                    val n = values.size
+                    val dx = w / (n - 1).toFloat()
+
+                    // Guide Lines
+                    val steps = 3
+                    for (s in 0..steps) {
+                        val y = h - (h / steps) * s
+                        drawLine(
+                            color = Color(0x22FFFFFF),
+                            start = Offset(0f, y),
+                            end = Offset(w, y),
+                            strokeWidth = 1f
+                        )
+                    }
+
+                    val linePath = Path()
+                    val areaPath = Path()
+
+                    values.forEachIndexed { i, v ->
+                        val x = i * dx
+                        val norm = (v - minVal) / range
+                        val y = h - (norm * (h - 16f)) - 8f
+
+                        if (i == 0) {
+                            linePath.moveTo(x, y)
+                            areaPath.moveTo(x, h)
+                            areaPath.lineTo(x, y)
+                        } else {
+                            linePath.lineTo(x, y)
+                            areaPath.lineTo(x, y)
+                        }
+
+                        if (i == n - 1) {
+                            areaPath.lineTo(x, h)
+                            areaPath.close()
+                        }
+                    }
+
+                    drawPath(areaPath, brush = gradientBrush)
+                    drawPath(linePath, color = primaryColor, style = Stroke(width = 3.5f, cap = StrokeCap.Round))
+                }
+
+                Text(
+                    text = if (selectedMetric == 0) "${maxVal.toInt()} km/h" else "${maxVal.toInt()} m",
+                    color = primaryColor,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.TopStart).padding(start = 4.dp, top = 2.dp)
+                )
+
+                Text(
+                    text = if (selectedMetric == 0) "0 km/h" else "${minVal.toInt()} m",
+                    color = TextSecondary,
+                    fontSize = 10.sp,
+                    modifier = Modifier.align(Alignment.BottomStart).padding(start = 4.dp, bottom = 2.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                if (selectedMetric == 0) {
+                    val avg = values.average()
+                    Text("Pico: ${maxVal.toInt()} km/h", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Média: ${avg.toInt()} km/h", color = TextSecondary, fontSize = 12.sp)
+                    Text("${points.size} pontos", color = TextSecondary, fontSize = 12.sp)
+                } else {
+                    val gain = (maxVal - minVal).toInt()
+                    Text("Ponto Mais Alto: ${maxVal.toInt()} m", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Desnível: ${gain} m", color = WandaGreen30, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

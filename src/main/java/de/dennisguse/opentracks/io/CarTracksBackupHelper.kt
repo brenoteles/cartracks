@@ -17,6 +17,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.*
+import kotlin.math.abs
 
 object CarTracksBackupHelper {
 
@@ -24,136 +25,185 @@ object CarTracksBackupHelper {
         val tripsCount: Int,
         val fuelCount: Int,
         val vehicleName: String?,
-        val vehiclePlate: String?
+        val vehiclePlate: String?,
+        val skippedCount: Int = 0
     )
+
+    fun generateBackupJsonObject(context: Context): JSONObject {
+        val root = JSONObject()
+        root.put("version", 1)
+        root.put("appName", "CarTracks")
+        root.put("exportDateEpochMs", System.currentTimeMillis())
+
+        // 1. Vehicle Config & Preferences
+        val sp = context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
+        val vehicleObj = JSONObject().apply {
+            put("name", sp.getString("vehicle_name", "Toyota Etios"))
+            put("plate", sp.getString("vehicle_plate", ""))
+            put("tankCapacity", sp.getFloat("tank_capacity_liters", 50f).toDouble())
+            put("primaryFuel", sp.getString("primary_fuel_type", "Gasolina Comum"))
+        }
+        root.put("vehicle", vehicleObj)
+
+        // 2. Custom Locations (Casa & Trabalho)
+        val spLoc = context.getSharedPreferences("CarTracksLocations", Context.MODE_PRIVATE)
+        val locObj = JSONObject().apply {
+            val homeObj = JSONObject().apply {
+                put("lat", spLoc.getString("home_lat", "-23.6015")?.toDoubleOrNull() ?: -23.6015)
+                put("lon", spLoc.getString("home_lon", "-46.6900")?.toDoubleOrNull() ?: -46.6900)
+                put("label", spLoc.getString("home_label", "Casa") ?: "Casa")
+                put("isSet", spLoc.contains("home_lat"))
+            }
+            put("home", homeObj)
+
+            val workObj = JSONObject().apply {
+                put("lat", spLoc.getString("work_lat", "-23.5615")?.toDoubleOrNull() ?: -23.5615)
+                put("lon", spLoc.getString("work_lon", "-46.6559")?.toDoubleOrNull() ?: -46.6559)
+                put("label", spLoc.getString("work_label", "Trabalho") ?: "Trabalho")
+                put("isSet", spLoc.contains("work_lat"))
+            }
+            put("work", workObj)
+        }
+        root.put("locations", locObj)
+
+        // 3. Fuel Logs
+        val fuelDb = FuelDatabaseHelper.getInstance(context)
+        val fuelArray = JSONArray()
+        fuelDb.allEntries.forEach { f ->
+            val fObj = JSONObject().apply {
+                put("stationName", f.stationName)
+                put("liters", f.liters)
+                put("pricePerLiter", f.pricePerLiter)
+                put("totalCost", f.totalCost)
+                put("odometerKm", f.odometerKm)
+                put("dateTime", f.dateTime)
+                put("notes", f.notes)
+                put("isFullTank", f.isFullTank)
+                put("fuelType", f.fuelType)
+                if (f.latitude != null) put("latitude", f.latitude)
+                if (f.longitude != null) put("longitude", f.longitude)
+            }
+            fuelArray.put(fObj)
+        }
+        root.put("fuelEntries", fuelArray)
+
+        // 4. Trips with full GPS TrackPoints
+        val provider = ContentProviderUtils(context)
+        val tripsArray = JSONArray()
+
+        provider.searchTracks(null)?.use { iterator ->
+            while (iterator.hasNext()) {
+                val item = iterator.next()
+                val track = provider.getTrack(item.id())
+
+                val tObj = JSONObject().apply {
+                    put("id", item.id().id())
+                    put("name", item.name() ?: "Viagem")
+                    put("description", item.description() ?: "")
+                    put("activityType", item.activityTypeLocalized() ?: "Condução")
+                    put("startTimeEpochMs", item.startTime().toEpochMilli())
+                    put("totalDistanceMeters", item.totalDistance().toM())
+                    put("totalDurationSeconds", item.totalTime().seconds)
+
+                    val stats = track?.statistics()
+                    if (stats != null) {
+                        put("stopTimeEpochMs", stats.stopTime().toEpochMilli())
+                        if (stats.maxSpeed() != null) {
+                            put("maxSpeedMps", stats.maxSpeed().toMPS())
+                        }
+                    }
+
+                    // Collect TrackPoints
+                    val ptsArray = JSONArray()
+                    try {
+                        provider.getTrackPointIterator(item.id(), null)?.use { ptIter ->
+                            while (ptIter.hasNext()) {
+                                val pt = ptIter.next()
+                                val pos = pt?.position()
+                                if (pos != null && pos.hasLocation()) {
+                                    val pObj = JSONObject().apply {
+                                        put("lat", pos.latitude() ?: 0.0)
+                                        put("lon", pos.longitude() ?: 0.0)
+                                        if (pos.hasAltitude() && pos.altitude() != null) {
+                                            put("alt", pos.altitude()!!.toM())
+                                        }
+                                        if (pos.hasSpeed() && pos.speed() != null) {
+                                            put("spd", pos.speed()!!.toMPS())
+                                        }
+                                        if (pos.time() != null) {
+                                            put("timeMs", pos.time()!!.toEpochMilli())
+                                        }
+                                    }
+                                    ptsArray.put(pObj)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                    put("points", ptsArray)
+                }
+                tripsArray.put(tObj)
+            }
+        }
+        root.put("trips", tripsArray)
+        return root
+    }
+
+    /**
+     * Automatic background backup called when a trip completes.
+     * Retains the latest backup and keeps up to 5 historical rotating backups.
+     */
+    fun saveAutoBackup(context: Context): File? {
+        val sp = context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
+        val isAutoEnabled = sp.getBoolean("auto_backup_enabled", true)
+        if (!isAutoEnabled) return null
+
+        return try {
+            val root = generateBackupJsonObject(context)
+            val jsonStr = root.toString(2)
+
+            // 1. Internal latest
+            val internalDir = File(context.filesDir, "backups").apply { mkdirs() }
+            val latestFile = File(internalDir, "auto_backup_latest.json")
+            latestFile.writeText(jsonStr, Charsets.UTF_8)
+
+            // 2. External app storage (accessible to user)
+            val externalDir = context.getExternalFilesDir("backups")?.apply { mkdirs() }
+            if (externalDir != null) {
+                val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                val backupFile = File(externalDir, "CarTracks_AutoBackup_$timeStamp.json")
+                backupFile.writeText(jsonStr, Charsets.UTF_8)
+
+                // Clean up older than last 5
+                val files = externalDir.listFiles { _, name -> name.startsWith("CarTracks_AutoBackup_") && name.endsWith(".json") }
+                if (files != null && files.size > 5) {
+                    files.sortBy { it.lastModified() }
+                    for (i in 0 until (files.size - 5)) {
+                        files[i].delete()
+                    }
+                }
+                backupFile
+            } else {
+                latestFile
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
 
     fun exportBackup(context: Context): Boolean {
         try {
-            val root = JSONObject()
-            root.put("version", 1)
-            root.put("appName", "CarTracks")
-            root.put("exportDateEpochMs", System.currentTimeMillis())
+            val root = generateBackupJsonObject(context)
 
-            // 1. Vehicle Config & Preferences
-            val sp = context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
-            val vehicleObj = JSONObject().apply {
-                put("name", sp.getString("vehicle_name", "Toyota Etios"))
-                put("plate", sp.getString("vehicle_plate", ""))
-                put("tankCapacity", sp.getFloat("tank_capacity_liters", 50f).toDouble())
-                put("primaryFuel", sp.getString("primary_fuel_type", "Gasolina Comum"))
-            }
-            root.put("vehicle", vehicleObj)
-
-            // 2. Custom Locations (Casa & Trabalho)
-            val spLoc = context.getSharedPreferences("CarTracksLocations", Context.MODE_PRIVATE)
-            val locObj = JSONObject().apply {
-                val homeObj = JSONObject().apply {
-                    put("lat", spLoc.getString("home_lat", "-23.6015")?.toDoubleOrNull() ?: -23.6015)
-                    put("lon", spLoc.getString("home_lon", "-46.6900")?.toDoubleOrNull() ?: -46.6900)
-                    put("label", spLoc.getString("home_label", "Casa") ?: "Casa")
-                    put("isSet", spLoc.contains("home_lat"))
-                }
-                put("home", homeObj)
-
-                val workObj = JSONObject().apply {
-                    put("lat", spLoc.getString("work_lat", "-23.5615")?.toDoubleOrNull() ?: -23.5615)
-                    put("lon", spLoc.getString("work_lon", "-46.6559")?.toDoubleOrNull() ?: -46.6559)
-                    put("label", spLoc.getString("work_label", "Trabalho") ?: "Trabalho")
-                    put("isSet", spLoc.contains("work_lat"))
-                }
-                put("work", workObj)
-            }
-            root.put("locations", locObj)
-
-            // 3. Fuel Logs
-            val fuelDb = FuelDatabaseHelper.getInstance(context)
-            val fuelArray = JSONArray()
-            fuelDb.allEntries.forEach { f ->
-                val fObj = JSONObject().apply {
-                    put("stationName", f.stationName)
-                    put("liters", f.liters)
-                    put("pricePerLiter", f.pricePerLiter)
-                    put("totalCost", f.totalCost)
-                    put("odometerKm", f.odometerKm)
-                    put("dateTime", f.dateTime)
-                    put("notes", f.notes)
-                    put("isFullTank", f.isFullTank)
-                    put("fuelType", f.fuelType)
-                    if (f.latitude != null) put("latitude", f.latitude)
-                    if (f.longitude != null) put("longitude", f.longitude)
-                }
-                fuelArray.put(fObj)
-            }
-            root.put("fuelEntries", fuelArray)
-
-            // 4. Trips with full GPS TrackPoints
-            val provider = ContentProviderUtils(context)
-            val tripsArray = JSONArray()
-
-            provider.searchTracks(null)?.use { iterator ->
-                while (iterator.hasNext()) {
-                    val item = iterator.next()
-                    val track = provider.getTrack(item.id())
-
-                    val tObj = JSONObject().apply {
-                        put("id", item.id().id())
-                        put("name", item.name() ?: "Viagem")
-                        put("description", item.description() ?: "")
-                        put("activityType", item.activityTypeLocalized() ?: "Condução")
-                        put("startTimeEpochMs", item.startTime().toEpochMilli())
-                        put("totalDistanceMeters", item.totalDistance().toM())
-                        put("totalDurationSeconds", item.totalTime().seconds)
-
-                        val stats = track?.statistics()
-                        if (stats != null) {
-                            put("stopTimeEpochMs", stats.stopTime().toEpochMilli())
-                            if (stats.maxSpeed() != null) {
-                                put("maxSpeedMps", stats.maxSpeed().toMPS())
-                            }
-                        }
-
-                        // Collect TrackPoints
-                        val ptsArray = JSONArray()
-                        try {
-                            provider.getTrackPointIterator(item.id(), null)?.use { ptIter ->
-                                while (ptIter.hasNext()) {
-                                    val pt = ptIter.next()
-                                    val pos = pt?.position()
-                                    if (pos != null && pos.hasLocation()) {
-                                        val pObj = JSONObject().apply {
-                                            put("lat", pos.latitude() ?: 0.0)
-                                            put("lon", pos.longitude() ?: 0.0)
-                                            if (pos.hasAltitude() && pos.altitude() != null) {
-                                                put("alt", pos.altitude()!!.toM())
-                                            }
-                                            if (pos.hasSpeed() && pos.speed() != null) {
-                                                put("spd", pos.speed()!!.toMPS())
-                                            }
-                                            if (pos.time() != null) {
-                                                put("timeMs", pos.time()!!.toEpochMilli())
-                                            }
-                                        }
-                                        ptsArray.put(pObj)
-                                    }
-                                }
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                        put("points", ptsArray)
-                    }
-                    tripsArray.put(tObj)
-                }
-            }
-            root.put("trips", tripsArray)
-
-            // 5. Write to File in Cache/exports
+            // Write to File in Cache/exports
             val exportDir = File(context.cacheDir, "exports").apply { mkdirs() }
             val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
             val exportFile = File(exportDir, "CarTracks_Backup_$timeStamp.json")
             exportFile.writeText(root.toString(2), Charsets.UTF_8)
 
-            // 6. Share via Android Sharesheet
+            // Share via Android Sharesheet
             val fileUri: Uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
@@ -249,11 +299,21 @@ object CarTracksBackupHelper {
             }
         }
 
-        // 4. Restore Trips & TrackPoints
+        // 4. Restore Trips & TrackPoints with Smart Deduplication
         var tripsCount = 0
+        var skippedCount = 0
         if (root.has("trips")) {
             val provider = ContentProviderUtils(context)
             val tArray = root.getJSONArray("trips")
+
+            // Index existing trips by start time and distance
+            val existingTrips = mutableListOf<Pair<Long, Double>>() // startMs to distM
+            provider.searchTracks(null)?.use { iter ->
+                while (iter.hasNext()) {
+                    val itm = iter.next()
+                    existingTrips.add(Pair(itm.startTime().toEpochMilli(), itm.totalDistance().toM()))
+                }
+            }
 
             for (i in 0 until tArray.length()) {
                 val tObj = tArray.getJSONObject(i)
@@ -264,6 +324,17 @@ object CarTracksBackupHelper {
                 val durSec = tObj.optLong("totalDurationSeconds", 900)
                 val startMs = tObj.optLong("startTimeEpochMs", System.currentTimeMillis())
                 val maxSpd = tObj.optDouble("maxSpeedMps", 20.0)
+
+                // DEDUPLICATION CHECK:
+                // If a trip already exists with same startTime (within 3s) or same distance & close time, skip
+                val isDuplicate = existingTrips.any { (exTime, exDist) ->
+                    abs(exTime - startMs) < 3000L || (abs(exTime - startMs) < 60000L && abs(exDist - distM) < 50.0)
+                }
+
+                if (isDuplicate) {
+                    skippedCount++
+                    continue
+                }
 
                 val startInstant = Instant.ofEpochMilli(startMs)
                 val stopInstant = startInstant.plusSeconds(durSec)
@@ -294,6 +365,7 @@ object CarTracksBackupHelper {
 
                 val newTrackId = provider.insertTrack(track)
                 tripsCount++
+                existingTrips.add(Pair(startMs, distM))
 
                 // Restore Points
                 if (tObj.has("points")) {
@@ -334,6 +406,6 @@ object CarTracksBackupHelper {
             }
         }
 
-        return ImportResult(tripsCount, fuelCount, vehicleName, vehiclePlate)
+        return ImportResult(tripsCount, fuelCount, vehicleName, vehiclePlate, skippedCount)
     }
 }

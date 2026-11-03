@@ -174,6 +174,7 @@ dependencies {
     implementation 'androidx.work:work-runtime:2.12.0'
     implementation 'androidx.health.connect:connect-client:1.1.0'
     implementation 'org.osmdroid:osmdroid-android:6.1.18'
+    implementation 'org.maplibre.gl:android-sdk:11.5.2'
 
     androidTestImplementation 'androidx.test:core:1.7.0'
     androidTestImplementation 'androidx.test.ext:junit:1.3.0'

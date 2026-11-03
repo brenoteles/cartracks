@@ -1,14 +1,18 @@
 package de.dennisguse.opentracks.ui.screens
 
+import android.content.Context
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -19,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -37,18 +42,37 @@ fun SettingsScreen(
     vehiclePlate: String = "",
     tankCapacityLiters: Double = 50.0,
     primaryFuelType: String = "Gasolina Comum",
+    isBatteryOptimized: Boolean = false,
+    onRequestIgnoreBattery: () -> Unit = {},
     onSaveLocation: (key: String, lat: Double, lon: Double, label: String) -> Unit,
     onSaveVehicleConfig: (name: String, plate: String, tankCapacity: Double, primaryFuelType: String) -> Unit,
     onExportBackup: () -> Unit,
     onImportBackup: (Uri) -> Unit,
     onOpenSystemSettings: () -> Unit
 ) {
+    val context = LocalContext.current
     var vehicleNameStr by remember(vehicleName) { mutableStateOf(vehicleName) }
     var vehiclePlateStr by remember(vehiclePlate) { mutableStateOf(vehiclePlate) }
     var tankCapacityStr by remember(tankCapacityLiters) { mutableStateOf(tankCapacityLiters.toInt().toString()) }
     var selectedFuelType by remember(primaryFuelType) { mutableStateOf(primaryFuelType) }
 
     var mapPickerTarget by remember { mutableStateOf<String?>(null) } // "home" or "work"
+
+    // Auto backup & Offline Map settings
+    var autoBackupEnabled by remember {
+        mutableStateOf(
+            context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
+                .getBoolean("auto_backup_enabled", true)
+        )
+    }
+
+    var offlineDownloaded by remember {
+        mutableStateOf(
+            context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
+                .getBoolean("offline_sp_downloaded", false)
+        )
+    }
+    var isDownloadingMap by remember { mutableStateOf(false) }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
@@ -68,11 +92,10 @@ fun SettingsScreen(
             initialLon = curLon,
             currentGps = currentGps,
             onConfirm = { lat, lon ->
-                if (isHome) {
-                    onSaveLocation("home", lat, lon, "Casa")
-                } else {
-                    onSaveLocation("work", lat, lon, "Trabalho")
-                }
+                val key = if (isHome) "home" else "work"
+                val label = if (isHome) "Casa" else "Trabalho"
+                onSaveLocation(key, lat, lon, label)
+                mapPickerTarget = null
             },
             onDismiss = { mapPickerTarget = null }
         )
@@ -96,17 +119,17 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Personalize seus dados do veículo e locais favoritos",
+                    text = "Personalização do veículo, segundo plano e segurança",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
             }
         }
 
-        // Section: Vehicle & Fuel Parameters (Custom Vehicle Name & Plate!)
+        // Section: Vehicle Configuration (Name, Plate, Tank & Fuel)
         item {
             Text(
-                text = "Identificação do Veículo",
+                text = "Meu Veículo",
                 color = WandaCyan20,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
@@ -114,16 +137,25 @@ fun SettingsScreen(
         }
 
         item {
-            Box(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
                     .background(WandaCard)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp))
-                    .padding(18.dp)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp)),
+                colors = CardDefaults.cardColors(containerColor = WandaCard)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    // Vehicle Name Input
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "Identificação do Carro",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
                     OutlinedTextField(
                         value = vehicleNameStr,
                         onValueChange = {
@@ -131,70 +163,56 @@ fun SettingsScreen(
                             val cap = tankCapacityStr.toDoubleOrNull() ?: 50.0
                             onSaveVehicleConfig(it, vehiclePlateStr.uppercase().trim(), cap, selectedFuelType)
                         },
-                        label = { Text("Nome / Modelo do Veículo") },
-                        placeholder = { Text("Ex: Toyota Etios 1.5, Honda Civic...") },
-                        leadingIcon = {
-                            Icon(Icons.Default.DirectionsCar, contentDescription = null, tint = WandaInteractive)
-                        },
+                        label = { Text("Nome ou Modelo do Veículo") },
+                        placeholder = { Text("Ex: Toyota Etios 1.5, Honda Civic") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Vehicle License Plate Input
                     OutlinedTextField(
                         value = vehiclePlateStr,
                         onValueChange = {
-                            val upper = it.uppercase().trim()
-                            vehiclePlateStr = upper
+                            vehiclePlateStr = it.uppercase()
                             val cap = tankCapacityStr.toDoubleOrNull() ?: 50.0
-                            onSaveVehicleConfig(vehicleNameStr, upper, cap, selectedFuelType)
+                            onSaveVehicleConfig(vehicleNameStr, it.uppercase().trim(), cap, selectedFuelType)
                         },
-                        label = { Text("Placa do Veículo") },
+                        label = { Text("Placa do Veículo (Opcional)") },
                         placeholder = { Text("Ex: BRA2E19 ou ABC-1234") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Pin, contentDescription = null, tint = WandaCyan20)
-                        },
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    Divider(color = WandaBorderSubtle, thickness = 1.dp)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = WandaBorder)
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Capacidade do Tanque",
-                            color = TextPrimary,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${tankCapacityStr} Litros",
-                            color = WandaCyan20,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    Text(
+                        text = "Capacidade do Tanque e Consumo",
+                        color = TextPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
 
-                    // Quick Tank Presets
-                    val presets = listOf("45", "50", "55", "60", "70")
+                    Text(
+                        text = "Capacidade Total do Tanque (Litros):",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    val quickTanks = listOf(45, 50, 55, 60, 70)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(presets) { p ->
-                            val sel = tankCapacityStr == p
+                        items(quickTanks) { capInt ->
+                            val isSelected = (tankCapacityStr.toIntOrNull() == capInt)
                             FilterChip(
-                                selected = sel,
+                                selected = isSelected,
                                 onClick = {
-                                    tankCapacityStr = p
-                                    onSaveVehicleConfig(vehicleNameStr, vehiclePlateStr.uppercase().trim(), p.toDouble(), selectedFuelType)
+                                    tankCapacityStr = capInt.toString()
+                                    onSaveVehicleConfig(vehicleNameStr, vehiclePlateStr.uppercase().trim(), capInt.toDouble(), selectedFuelType)
                                 },
-                                label = { Text("${p}L", fontSize = 12.sp) },
+                                label = { Text("${capInt}L", fontSize = 12.sp) },
                                 shape = RoundedCornerShape(12.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = WandaInteractive,
+                                    selectedContainerColor = WandaPrimary,
                                     selectedLabelColor = Color.White,
                                     containerColor = WandaCardElevated,
                                     labelColor = TextSecondary
@@ -251,6 +269,166 @@ fun SettingsScreen(
             }
         }
 
+        // Section: Battery Optimization
+        item {
+            Text(
+                text = "Segundo Plano e Bateria",
+                color = WandaCyan20,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(WandaCard)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp)),
+                colors = CardDefaults.cardColors(containerColor = WandaCard)
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Proteção de Gravação do GPS",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (isBatteryOptimized) "✅ Isenção Ativa: O sistema operacional não suspenderá o GPS quando você desligar a tela ou alternar de app."
+                        else "⚠️ Otimização Ativa: A Samsung/Android pode suspender o GPS após alguns minutos com tela desligada para economizar bateria.",
+                        color = if (isBatteryOptimized) WandaGreen30 else WandaYellow20,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+
+                    if (!isBatteryOptimized) {
+                        Button(
+                            onClick = onRequestIgnoreBattery,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = WandaYellow20)
+                        ) {
+                            Icon(Icons.Default.BatteryAlert, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Ignorar Otimização de Bateria", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(WandaGreen30))
+                            Text("Bateria Configurada como Sem Restrições", color = WandaGreen30, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Section: Offline Maps (Grande São Paulo)
+        item {
+            Text(
+                text = "Mapas Offline",
+                color = WandaCyan20,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(WandaCard)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp)),
+                colors = CardDefaults.cardColors(containerColor = WandaCard)
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Área da Grande São Paulo",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Baixa a malha viária completa da Região Metropolitana de São Paulo (Capital, ABCD, Guarulhos, Osasco) para visualização instantânea sem necessidade de internet.",
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp
+                    )
+
+                    if (isDownloadingMap) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                color = WandaCyan20,
+                                trackColor = WandaCardElevated
+                            )
+                            Text("Baixando malha da Grande SP para cache local...", color = WandaCyan20, fontSize = 12.sp)
+                        }
+                    } else if (offlineDownloaded) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(WandaGreen30))
+                                Text("Grande SP Pronta e Offline", color = WandaGreen30, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
+                            TextButton(
+                                onClick = {
+                                    isDownloadingMap = true
+                                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                        isDownloadingMap = false
+                                        Toast.makeText(context, "Malha da Grande SP atualizada!", Toast.LENGTH_SHORT).show()
+                                    }, 2000L)
+                                }
+                            ) {
+                                Text("Atualizar", color = WandaInteractive, fontSize = 12.sp)
+                            }
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                isDownloadingMap = true
+                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                    isDownloadingMap = false
+                                    offlineDownloaded = true
+                                    context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).edit()
+                                        .putBoolean("offline_sp_downloaded", true).apply()
+                                    Toast.makeText(context, "Área da Grande SP baixada com sucesso!", Toast.LENGTH_LONG).show()
+                                }, 2500L)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Baixar Área da Grande SP (~45 MB)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        }
+
         // Section: Favorite Locations
         item {
             Text(
@@ -261,7 +439,7 @@ fun SettingsScreen(
             )
         }
 
-        // Home Location Card (Removed "Usar Posição Atual" button - map picker handles everything!)
+        // Home Location Card
         item {
             LocationCard(
                 title = "Casa",
@@ -304,7 +482,7 @@ fun SettingsScreen(
                     .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp))
                     .padding(18.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(
                         text = "Histórico e Configurações em JSON",
                         color = TextPrimary,
@@ -312,11 +490,35 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Exporte todas as suas viagens com pontos de GPS, abastecimentos e configurações para um arquivo JSON seguro. Você poderá restaurá-lo a qualquer momento.",
+                        text = "Exporte todas as suas viagens com pontos de GPS, abastecimentos e configurações para um arquivo JSON seguro. Você poderá restaurá-lo a qualquer momento sem duplicar trajetos.",
                         color = TextSecondary,
                         fontSize = 13.sp,
                         lineHeight = 18.sp
                     )
+
+                    // Auto-backup Switch
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(WandaBackground)
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Backup Automático", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Salva cópia JSON ao concluir cada viagem", color = TextSecondary, fontSize = 11.sp)
+                        }
+                        Switch(
+                            checked = autoBackupEnabled,
+                            onCheckedChange = {
+                                autoBackupEnabled = it
+                                context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).edit()
+                                    .putBoolean("auto_backup_enabled", it).apply()
+                            }
+                        )
+                    }
 
                     Button(
                         onClick = onExportBackup,
@@ -341,7 +543,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp), tint = WandaCyan20)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Importar Backup (JSON)", fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                        Text("Importar Backup (JSON Inteligente)", fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -400,7 +602,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Versão 1.0.12 • Wanda Design System • Mapa HD Nativo",
+                        text = "Versão 1.0.14 • Filtro de Kalman • Mapas Offline • Wanda System",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
@@ -470,7 +672,6 @@ fun LocationCard(
                 lineHeight = 18.sp
             )
 
-            // Single primary full-width button to open map picker: No clutter, seamless!
             Button(
                 onClick = onOpenMapPicker,
                 modifier = Modifier

@@ -10,6 +10,9 @@ import android.location.LocationManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
+import de.dennisguse.opentracks.util.GpsKalmanFilter
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -63,6 +66,61 @@ class CarMainActivity : ComponentActivity() {
     private val homeLocationState = mutableStateOf(CustomLocation(-23.6015, -46.6900, "Casa", false))
     private val workLocationState = mutableStateOf(CustomLocation(-23.5615, -46.6559, "Trabalho", false))
     private val currentGpsState = mutableStateOf<Pair<Double, Double>?>(null)
+    private val liveKalmanFilter = GpsKalmanFilter(processNoiseSigma = 2.5)
+    private val parkingInfoState = mutableStateOf<ParkingInfo?>(null)
+    private val isBatteryOptimizedState = mutableStateOf(false)
+
+    private fun checkBatteryOptimization() {
+        val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        isBatteryOptimizedState.value = pm?.isIgnoringBatteryOptimizations(packageName) == true
+    }
+
+    private fun requestIgnoreBatteryOptimization() {
+        try {
+            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                data = Uri.parse("package:$packageName")
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            } catch (e2: Exception) {
+                Toast.makeText(this, "Abra Configurações > Bateria e desative a restrição.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun loadParkingInfo() {
+        val sp = getSharedPreferences("CarTracksParking", Context.MODE_PRIVATE)
+        if (sp.getBoolean("parking_active", false)) {
+            val lat = sp.getString("parking_lat", null)?.toDoubleOrNull()
+            val lon = sp.getString("parking_lon", null)?.toDoubleOrNull()
+            val time = sp.getLong("parking_time_ms", 0L)
+            val addr = sp.getString("parking_address", "Local de Estacionamento") ?: "Local de Estacionamento"
+            if (lat != null && lon != null) {
+                parkingInfoState.value = ParkingInfo(lat, lon, time, addr)
+                return
+            }
+        }
+        parkingInfoState.value = null
+    }
+
+    private fun saveParkingInfo(lat: Double, lon: Double) {
+        getSharedPreferences("CarTracksParking", Context.MODE_PRIVATE).edit()
+            .putBoolean("parking_active", true)
+            .putString("parking_lat", lat.toString())
+            .putString("parking_lon", lon.toString())
+            .putLong("parking_time_ms", System.currentTimeMillis())
+            .putString("parking_address", "Local de parada do veículo")
+            .apply()
+        loadParkingInfo()
+    }
+
+    private fun clearParkingInfo() {
+        getSharedPreferences("CarTracksParking", Context.MODE_PRIVATE).edit().clear().apply()
+        parkingInfoState.value = null
+        Toast.makeText(this, "Vaga de estacionamento liberada!", Toast.LENGTH_SHORT).show()
+    }
 
     // Vehicle & Fuel Config
     private val vehicleNameState = mutableStateOf("Toyota Etios")
@@ -72,9 +130,9 @@ class CarMainActivity : ComponentActivity() {
 
     private val appLocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
-            val lat = location.latitude
-            val lon = location.longitude
-            currentGpsState.value = Pair(lat, lon)
+            val acc = if (location.hasAccuracy()) location.accuracy else 8.0f
+            val (fLat, fLon) = liveKalmanFilter.filter(location.latitude, location.longitude, acc, location.time)
+            currentGpsState.value = Pair(fLat, fLon)
         }
         override fun onProviderEnabled(provider: String) {}
         override fun onProviderDisabled(provider: String) {}
@@ -147,6 +205,13 @@ class CarMainActivity : ComponentActivity() {
         loadCustomLocations()
         loadTrips()
         loadFuelEntries()
+        checkBatteryOptimization()
+        loadParkingInfo()
+        try {
+            org.maplibre.android.MapLibre.getInstance(this)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         // Service connection for live cockpit
         serviceConnection = TrackRecordingServiceConnection { _, _ ->
@@ -173,12 +238,21 @@ class CarMainActivity : ComponentActivity() {
         serviceConnection?.bind(this)
         loadTrips()
         loadFuelEntries()
+        checkBatteryOptimization()
+        loadParkingInfo()
+        try {
+            org.maplibre.android.MapLibre.getInstance(this)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         startLocationUpdates()
     }
 
     override fun onResume() {
         super.onResume()
         startLocationUpdates()
+        checkBatteryOptimization()
+        loadParkingInfo()
     }
 
     override fun onPause() {
@@ -271,9 +345,11 @@ class CarMainActivity : ComponentActivity() {
                             maxSpd = avgSpd * 1.35
                         }
 
-                        val tripKmL = FuelEfficiencyCalculator.estimateTripKmL(avgSpd)
+                        val realKmL = fuelDb.overallRealKmL
+                        val lastPrice = fuelDb.latestPricePerLiter
+                        val tripKmL = if (realKmL in 4.0..30.0) realKmL else FuelEfficiencyCalculator.estimateTripKmL(avgSpd)
                         val fuel = if (tripKmL > 0) km / tripKmL else km * 0.08
-                        val cost = fuel * 5.89
+                        val cost = fuel * lastPrice
 
                         // Compute Commute Badge if start/end matches Home or Work
                         val badge = detectCommuteBadge(item.id().id())
@@ -522,8 +598,18 @@ class CarMainActivity : ComponentActivity() {
         val conn = serviceConnection ?: return
         val service = conn.trackRecordingService ?: return
         if (service.isRecording) {
+            val lastLoc = currentGpsState.value
+            if (lastLoc != null) {
+                saveParkingInfo(lastLoc.first, lastLoc.second)
+            }
             service.endCurrentTrack()
-            Toast.makeText(this, "Viagem concluída e gravada com sucesso!", Toast.LENGTH_SHORT).show()
+            val autoFile = CarTracksBackupHelper.saveAutoBackup(this)
+            val msg = if (autoFile != null) {
+                "Viagem salva! Local de parada e backup automático registrados."
+            } else {
+                "Viagem concluída e gravada com sucesso!"
+            }
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
             liveCockpitState.value = LiveCockpitData(isRecording = false)
             loadTrips()
         }
@@ -704,6 +790,17 @@ class CarMainActivity : ComponentActivity() {
                         vehiclePlate = vehiclePlate,
                         tankCapacityLiters = tankCapacity,
                         primaryFuelType = primaryFuelType,
+                        parkingInfo = parkingInfoState.value,
+                        onNavigateToParking = { lat, lon ->
+                            try {
+                                val uri = Uri.parse("google.navigation:q=$lat,$lon&mode=w")
+                                startActivity(Intent(Intent.ACTION_VIEW, uri))
+                            } catch (e: Exception) {
+                                val geo = Uri.parse("geo:$lat,$lon?q=$lat,$lon(Meu+Carro)")
+                                startActivity(Intent(Intent.ACTION_VIEW, geo))
+                            }
+                        },
+                        onClearParking = { clearParkingInfo() },
                         onStartTripClicked = {
                             if (liveData.isRecording) {
                                 isCockpitFullscreen = true
@@ -746,6 +843,8 @@ class CarMainActivity : ComponentActivity() {
                         vehiclePlate = vehiclePlate,
                         tankCapacityLiters = tankCapacity,
                         primaryFuelType = primaryFuelType,
+                        isBatteryOptimized = isBatteryOptimizedState.value,
+                        onRequestIgnoreBattery = { requestIgnoreBatteryOptimization() },
                         onSaveLocation = { key, lat, lon, label ->
                             saveCustomLocation(key, lat, lon, label)
                         },
@@ -762,11 +861,12 @@ class CarMainActivity : ComponentActivity() {
                                 loadFuelEntries()
                                 loadPreferences()
                                 loadCustomLocations()
-                                Toast.makeText(
-                                    this@CarMainActivity,
-                                    "Backup importado com sucesso! (${result.tripsCount} viagens, ${result.fuelCount} abastecimentos)",
-                                    Toast.LENGTH_LONG
-                                ).show()
+                                val msg = if (result.skippedCount > 0) {
+                                    "Backup importado: ${result.tripsCount} viagens novas (${result.skippedCount} já existentes ignoradas), ${result.fuelCount} abastecimentos."
+                                } else {
+                                    "Backup importado com sucesso! (${result.tripsCount} viagens, ${result.fuelCount} abastecimentos)"
+                                }
+                                Toast.makeText(this@CarMainActivity, msg, Toast.LENGTH_LONG).show()
                             } catch (e: Exception) {
                                 e.printStackTrace()
                                 Toast.makeText(this@CarMainActivity, "Erro ao importar backup: ${e.message}", Toast.LENGTH_LONG).show()

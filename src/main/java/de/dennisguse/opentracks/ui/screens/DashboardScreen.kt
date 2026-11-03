@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.dennisguse.opentracks.ui.model.FuelItem
 import de.dennisguse.opentracks.ui.model.LiveCockpitData
+import de.dennisguse.opentracks.ui.model.ParkingInfo
 import de.dennisguse.opentracks.ui.model.TripItem
 import de.dennisguse.opentracks.ui.theme.*
 
@@ -36,6 +37,9 @@ fun DashboardScreen(
     vehiclePlate: String = "",
     tankCapacityLiters: Double = 50.0,
     primaryFuelType: String = "Gasolina Comum",
+    parkingInfo: ParkingInfo? = null,
+    onNavigateToParking: ((Double, Double) -> Unit)? = null,
+    onClearParking: (() -> Unit)? = null,
     onStartTripClicked: () -> Unit,
     onOpenCockpitClicked: () -> Unit,
     onAddFuelClicked: () -> Unit,
@@ -97,6 +101,106 @@ fun DashboardScreen(
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
+                }
+            }
+        }
+
+        // Parking Spot Card ("Onde Estacionei")
+        if (parkingInfo != null) {
+            item {
+                val elapsedMs = System.currentTimeMillis() - parkingInfo.timeMs
+                val elapsedMinutes = (elapsedMs / (1000 * 60)).coerceAtLeast(0)
+                val elapsedHours = elapsedMinutes / 60
+                val timeText = if (elapsedHours > 0) {
+                    "Estacionado há ${elapsedHours}h ${elapsedMinutes % 60}m"
+                } else {
+                    "Estacionado há ${elapsedMinutes} min"
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(WandaCardElevated)
+                        .border(1.dp, WandaCyan20.copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(WandaCyan20.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DirectionsCar,
+                                contentDescription = "Onde Estacionei",
+                                tint = WandaCyan20,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Onde Estacionei",
+                                color = TextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                            Text(
+                                text = timeText,
+                                color = WandaCyan20,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = String.format(java.util.Locale.getDefault(), "Lat: %.4f, Lon: %.4f", parkingInfo.lat, parkingInfo.lon),
+                                color = TextSecondary,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Button(
+                            onClick = { onNavigateToParking?.invoke(parkingInfo.lat, parkingInfo.lon) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = WandaPrimary),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Navigation,
+                                contentDescription = "Ir até o carro",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Navegar",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { onClearParking?.invoke() },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Liberar vaga",
+                                tint = TextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

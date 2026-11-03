@@ -206,4 +206,55 @@ public class FuelDatabaseHelper extends SQLiteOpenHelper {
         cv.put(COL_LONGITUDE, longitude);
         db.update(TABLE_NAME, cv, COL_ID + " = ?", new String[]{String.valueOf(id)});
     }
+
+    public double getLatestPricePerLiter() {
+        List<FuelEntry> list = getAllEntries();
+        if (!list.isEmpty() && list.get(0).pricePerLiter > 0) {
+            return list.get(0).pricePerLiter;
+        }
+        return 5.89;
+    }
+
+    /**
+     * Computes the real average fuel efficiency (km/L) using full-to-full tank odometer deltas.
+     */
+    public double getOverallRealKmL() {
+        List<FuelEntry> list = getAllEntries();
+        if (list.size() < 2) return 12.8;
+
+        // Sort ascending by odometer
+        list.sort((a, b) -> Double.compare(a.odometerKm, b.odometerKm));
+
+        int firstFullIdx = -1;
+        for (int i = 0; i < list.size(); i++) {
+            if (list.get(i).isFullTank && list.get(i).odometerKm > 0) {
+                firstFullIdx = i;
+                break;
+            }
+        }
+        if (firstFullIdx == -1) return 12.8;
+
+        int lastFullIdx = -1;
+        for (int i = list.size() - 1; i > firstFullIdx; i--) {
+            if (list.get(i).isFullTank && list.get(i).odometerKm > 0) {
+                lastFullIdx = i;
+                break;
+            }
+        }
+        if (lastFullIdx == -1 || lastFullIdx <= firstFullIdx) return 12.8;
+
+        double deltaKm = list.get(lastFullIdx).odometerKm - list.get(firstFullIdx).odometerKm;
+        double sumLiters = 0.0;
+        for (int i = firstFullIdx + 1; i <= lastFullIdx; i++) {
+            sumLiters += list.get(i).liters;
+        }
+
+        if (deltaKm > 0 && sumLiters > 0) {
+            double kmL = deltaKm / sumLiters;
+            if (kmL >= 4.0 && kmL <= 30.0) {
+                return kmL;
+            }
+        }
+        return 12.8;
+    }
 }

@@ -9,6 +9,7 @@ import android.graphics.RectF
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -474,16 +475,65 @@ fun CarMapView(
                         }
                         map.overlays.add(casing)
 
-                        // 2b. Inner Vibrant Core Stroke
-                        val core = Polyline(map, true).apply {
-                            setPoints(geoPoints)
-                            outlinePaint.color = AndroidColor.parseColor("#0084FF") // High-contrast Wanda Blue
-                            outlinePaint.strokeWidth = 12f
-                            outlinePaint.strokeCap = Paint.Cap.ROUND
-                            outlinePaint.strokeJoin = Paint.Join.ROUND
-                            outlinePaint.isAntiAlias = true
+                        // 2b. OsmAnd-Grade Speed Gradient Core Strokes
+                        // Colors route segments dynamically: Red (<30) -> Amber (30-60) -> Green (60-90) -> Blue (90-115) -> Purple (>115)
+                        fun getSpeedColor(spd: Double): Int {
+                            return when {
+                                spd < 30.0 -> AndroidColor.parseColor("#D02A43") // Red / Slow
+                                spd < 60.0 -> AndroidColor.parseColor("#F5A957") // Amber / Urban
+                                spd < 90.0 -> AndroidColor.parseColor("#2CBF6F") // Green / Cruising
+                                spd < 115.0 -> AndroidColor.parseColor("#0084FF") // Blue / Fast Avenue
+                                else -> AndroidColor.parseColor("#C480C7") // Purple / Highway speed
+                            }
                         }
-                        map.overlays.add(core)
+
+                        if (points.size >= 2) {
+                            var currentBatchColor = getSpeedColor(points[0].speedKmh)
+                            var currentBatchPoints = mutableListOf(geoPoints[0])
+
+                            for (i in 1 until points.size) {
+                                val segSpeed = (points[i - 1].speedKmh + points[i].speedKmh) / 2.0
+                                val segColor = getSpeedColor(segSpeed)
+
+                                if (segColor != currentBatchColor && currentBatchPoints.size >= 2) {
+                                    val poly = Polyline(map, true).apply {
+                                        setPoints(currentBatchPoints)
+                                        outlinePaint.color = currentBatchColor
+                                        outlinePaint.strokeWidth = 12f
+                                        outlinePaint.strokeCap = Paint.Cap.ROUND
+                                        outlinePaint.strokeJoin = Paint.Join.ROUND
+                                        outlinePaint.isAntiAlias = true
+                                    }
+                                    map.overlays.add(poly)
+                                    val lastPt = currentBatchPoints.last()
+                                    currentBatchPoints = mutableListOf(lastPt, geoPoints[i])
+                                    currentBatchColor = segColor
+                                } else {
+                                    currentBatchPoints.add(geoPoints[i])
+                                }
+                            }
+                            if (currentBatchPoints.size >= 2) {
+                                val poly = Polyline(map, true).apply {
+                                    setPoints(currentBatchPoints)
+                                    outlinePaint.color = currentBatchColor
+                                    outlinePaint.strokeWidth = 12f
+                                    outlinePaint.strokeCap = Paint.Cap.ROUND
+                                    outlinePaint.strokeJoin = Paint.Join.ROUND
+                                    outlinePaint.isAntiAlias = true
+                                }
+                                map.overlays.add(poly)
+                            }
+                        } else {
+                            val core = Polyline(map, true).apply {
+                                setPoints(geoPoints)
+                                outlinePaint.color = AndroidColor.parseColor("#0084FF")
+                                outlinePaint.strokeWidth = 12f
+                                outlinePaint.strokeCap = Paint.Cap.ROUND
+                                outlinePaint.strokeJoin = Paint.Join.ROUND
+                                outlinePaint.isAntiAlias = true
+                            }
+                            map.overlays.add(core)
+                        }
 
                         // Start Modern Marker
                         val startPt = points.first()
@@ -666,6 +716,47 @@ fun CarMapView(
                             color = if (isSelected) Color.White else TextSecondary,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
+
+        // OsmAnd Speed Gradient Legend (Top Center) when route is displayed
+        if (points.size >= 2) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(WandaCardElevated.copy(alpha = 0.94f))
+                    .border(1.dp, WandaBorder, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                listOf(
+                    Pair(Color(0xFFD02A43), "<30"),
+                    Pair(Color(0xFFF5A957), "60"),
+                    Pair(Color(0xFF2CBF6F), "90"),
+                    Pair(Color(0xFF0084FF), "110"),
+                    Pair(Color(0xFFC480C7), "120+")
+                ).forEach { (color, label) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                        )
+                        Text(
+                            text = label,
+                            color = TextSecondary,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }

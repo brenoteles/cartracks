@@ -1,20 +1,26 @@
 package de.dennisguse.opentracks.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -23,6 +29,8 @@ import de.dennisguse.opentracks.ui.model.DestinationFilter
 import de.dennisguse.opentracks.ui.model.PeriodFilter
 import de.dennisguse.opentracks.ui.model.TripItem
 import de.dennisguse.opentracks.ui.theme.*
+import java.text.SimpleDateFormat
+import java.util.*
 
 @Composable
 fun TripsScreen(
@@ -34,6 +42,7 @@ fun TripsScreen(
 ) {
     val now = System.currentTimeMillis()
     var selectedDestination by remember { mutableStateOf(DestinationFilter.TODOS) }
+    var showMonthlyReport by remember { mutableStateOf(false) }
 
     val filteredTrips = remember(trips, selectedFilter, selectedDestination) {
         val byPeriod = when (selectedFilter) {
@@ -67,6 +76,13 @@ fun TripsScreen(
     val periodFuel = filteredTrips.sumOf { it.fuelLiters }
     val periodCost = filteredTrips.sumOf { it.fuelCost }
 
+    if (showMonthlyReport) {
+        MonthlyReportDialog(
+            trips = trips,
+            onDismiss = { showMonthlyReport = false }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -75,20 +91,47 @@ fun TripsScreen(
         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Header
+        // Header with Monthly Report Action
         item {
-            Column {
-                Text(
-                    text = "Histórico de Viagens",
-                    color = TextPrimary,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black
-                )
-                Text(
-                    text = "Filtros por período e destino com mapa HD",
-                    color = TextSecondary,
-                    fontSize = 14.sp
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Histórico de Viagens",
+                        color = TextPrimary,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        text = "Filtros por período e destino com mapa HD",
+                        color = TextSecondary,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Button(
+                    onClick = { showMonthlyReport = true },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = WandaCardElevated),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Assessment,
+                        contentDescription = "Relatórios",
+                        tint = WandaCyan20,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Relatório",
+                        color = TextPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
@@ -146,10 +189,10 @@ fun TripsScreen(
                                     fontSize = 13.sp
                                 )
                             },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(20.dp),
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = ApplePurple,
-                                selectedLabelColor = Color.White,
+                                selectedContainerColor = AppleBlue,
+                                selectedLabelColor = TextPrimary,
                                 containerColor = AppleCard,
                                 labelColor = TextSecondary
                             ),
@@ -160,65 +203,77 @@ fun TripsScreen(
             }
         }
 
-        // Summary Card for Selected Filters
+        // Summary Card
         item {
-            Box(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(WandaCard)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
-                    .padding(16.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(AppleCard),
+                colors = CardDefaults.cardColors(containerColor = AppleCard)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Resumo: ${selectedFilter.label} • ${selectedDestination.label}",
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Text(
+                            text = "Resumo (${selectedFilter.label})",
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            text = "${filteredTrips.size} viagens",
+                            color = TextSecondary,
+                            fontSize = 13.sp
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Column {
+                            Text("Distância", color = TextSecondary, fontSize = 12.sp)
                             Text(
                                 text = String.format(java.util.Locale.getDefault(), "%.1f km", periodKm),
-                                color = TextPrimary,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${filteredTrips.size} viagens encontradas",
-                                color = TextSecondary,
-                                fontSize = 12.sp
+                                color = AppleBlue,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp
                             )
                         }
-                        Column(horizontalAlignment = Alignment.End) {
+                        Column {
+                            Text("Consumo", color = TextSecondary, fontSize = 12.sp)
+                            Text(
+                                text = String.format(java.util.Locale.getDefault(), "%.1f L", periodFuel),
+                                color = AppleGreen,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp
+                            )
+                        }
+                        Column {
+                            Text("Custo Estimado", color = TextSecondary, fontSize = 12.sp)
                             Text(
                                 text = String.format(java.util.Locale.getDefault(), "R$ %.2f", periodCost),
-                                color = AppleGreen,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = String.format(java.util.Locale.getDefault(), "%.1f L consumidos", periodFuel),
-                                color = TextSecondary,
-                                fontSize = 12.sp
+                                color = AppleYellow,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // Button to view all filtered routes on HD Map
+                    // Period Map Preview Action
                     Button(
                         onClick = onPeriodMapClicked,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
+                            .height(44.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated)
                     ) {
                         Icon(
@@ -265,4 +320,145 @@ fun TripsScreen(
             }
         }
     }
+}
+
+@Composable
+fun MonthlyReportDialog(
+    trips: List<TripItem>,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val monthFormat = remember { SimpleDateFormat("MMMM yyyy", Locale("pt", "BR")) }
+
+    // Group trips by Month Year
+    val monthGroups = remember(trips) {
+        trips.groupBy { trip ->
+            monthFormat.format(Date(trip.startTimeMs)).replaceFirstChar { it.uppercase() }
+        }
+    }
+
+    val availableMonths = remember(monthGroups) {
+        if (monthGroups.isEmpty()) listOf("Mês Atual") else monthGroups.keys.toList()
+    }
+
+    var selectedMonth by remember { mutableStateOf(availableMonths.first()) }
+    val monthTrips = monthGroups[selectedMonth] ?: emptyList()
+
+    val totalKm = monthTrips.sumOf { it.distanceKm }
+    val totalLiters = monthTrips.sumOf { it.fuelLiters }
+    val totalCost = monthTrips.sumOf { it.fuelCost }
+    val totalHours = monthTrips.sumOf { it.durationMin } / 60.0
+    val costPerKm = if (totalKm > 0) totalCost / totalKm else 0.0
+    val commuteCount = monthTrips.count { it.commuteBadge != null }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Relatório Consolidado",
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    fontSize = 18.sp
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Fechar", tint = TextSecondary)
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Month selector chips
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(availableMonths) { m ->
+                        val isSel = m == selectedMonth
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSel) WandaPrimary else WandaCardElevated)
+                                .clickable { selectedMonth = m }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = m,
+                                color = if (isSel) Color.White else TextSecondary,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+
+                // Metrics Grid
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = WandaBackground)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Total de Viagens:", color = TextSecondary, fontSize = 13.sp)
+                            Text("${monthTrips.size} viagens", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Quilometragem Total:", color = TextSecondary, fontSize = 13.sp)
+                            Text(String.format(Locale.getDefault(), "%.1f km", totalKm), color = WandaCyan20, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Tempo ao Volante:", color = TextSecondary, fontSize = 13.sp)
+                            Text(String.format(Locale.getDefault(), "%.1f horas", totalHours), color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Consumo Estimado:", color = TextSecondary, fontSize = 13.sp)
+                            Text(String.format(Locale.getDefault(), "%.1f Litros", totalLiters), color = WandaGreen30, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Gasto em Viagens:", color = TextSecondary, fontSize = 13.sp)
+                            Text(String.format(Locale.getDefault(), "R$ %.2f", totalCost), color = WandaYellow20, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Custo Médio / km:", color = TextSecondary, fontSize = 13.sp)
+                            Text(String.format(Locale.getDefault(), "R$ %.2f / km", costPerKm), color = WandaPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Trajetos Casa ↔ Trab.:", color = TextSecondary, fontSize = 13.sp)
+                            Text("$commuteCount viagens", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val summaryText = buildString {
+                        appendLine("📊 RELATÓRIO MENSAL - CARTRACKS ($selectedMonth)")
+                        appendLine("• Viagens Registradas: ${monthTrips.size}")
+                        appendLine("• Distância Total: ${String.format(Locale.getDefault(), "%.1f km", totalKm)}")
+                        appendLine("• Tempo ao Volante: ${String.format(Locale.getDefault(), "%.1f h", totalHours)}")
+                        appendLine("• Combustível Estimado: ${String.format(Locale.getDefault(), "%.1f L", totalLiters)}")
+                        appendLine("• Custo Total Estimado: R$ ${String.format(Locale.getDefault(), "%.2f", totalCost)}")
+                        appendLine("• Custo Médio: R$ ${String.format(Locale.getDefault(), "%.2f/km", costPerKm)}")
+                        appendLine("• Trajetos Casa/Trabalho: $commuteCount")
+                    }
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "Relatório Mensal CarTracks - $selectedMonth")
+                        putExtra(Intent.EXTRA_TEXT, summaryText)
+                    }
+                    context.startActivity(Intent.createChooser(intent, "Compartilhar Relatório"))
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = WandaPrimary)
+            ) {
+                Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Compartilhar Resumo", fontWeight = FontWeight.Bold)
+            }
+        },
+        containerColor = WandaCardElevated
+    )
 }
