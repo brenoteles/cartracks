@@ -147,6 +147,7 @@ fun LocationPickerMapDialog(
             CarMapView(
                 pinnedLocation = Pair(pinnedLat, pinnedLon),
                 pinnedTitle = title,
+                currentLocation = currentGps,
                 onMapTapped = { lat, lon ->
                     pinnedLat = lat
                     pinnedLon = lon
@@ -154,11 +155,21 @@ fun LocationPickerMapDialog(
                     updateReverseGeocode(lat, lon)
                 },
                 onCenterGpsClicked = {
-                    if (currentGps != null) {
-                        pinnedLat = currentGps.first
-                        pinnedLon = currentGps.second
+                    val latLon = if (currentGps != null) {
+                        currentGps
+                    } else {
+                        try {
+                            val lm = context.getSystemService(android.content.Context.LOCATION_SERVICE) as? android.location.LocationManager
+                            val lastLoc = lm?.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
+                                ?: lm?.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+                            if (lastLoc != null) Pair(lastLoc.latitude, lastLoc.longitude) else null
+                        } catch (e: SecurityException) { null }
+                    }
+                    if (latLon != null) {
+                        pinnedLat = latLon.first
+                        pinnedLon = latLon.second
                         searchError = null
-                        updateReverseGeocode(currentGps.first, currentGps.second)
+                        updateReverseGeocode(latLon.first, latLon.second)
                     }
                 },
                 floatingControlsBottomPadding = 185.dp,
@@ -267,24 +278,34 @@ fun LocationPickerMapDialog(
                         Text("Buscar no Mapa", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
 
-                    if (currentGps != null) {
-                        OutlinedButton(
-                            onClick = {
-                                pinnedLat = currentGps.first
-                                pinnedLon = currentGps.second
+                    OutlinedButton(
+                        onClick = {
+                            val latLon = if (currentGps != null) {
+                                currentGps
+                            } else {
+                                try {
+                                    val lm = context.getSystemService(android.content.Context.LOCATION_SERVICE) as? android.location.LocationManager
+                                    val lastLoc = lm?.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
+                                        ?: lm?.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+                                    if (lastLoc != null) Pair(lastLoc.latitude, lastLoc.longitude) else null
+                                } catch (e: SecurityException) { null }
+                            }
+                            if (latLon != null) {
+                                pinnedLat = latLon.first
+                                pinnedLon = latLon.second
                                 searchError = null
-                                updateReverseGeocode(currentGps.first, currentGps.second)
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = WandaCard)
-                        ) {
-                            Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(16.dp), tint = WandaCyan20)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Meu GPS", fontSize = 12.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                        }
+                                updateReverseGeocode(latLon.first, latLon.second)
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = WandaCard)
+                    ) {
+                        Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(16.dp), tint = WandaCyan20)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Meu GPS", fontSize = 12.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
                     }
                 }
 

@@ -1,8 +1,13 @@
 package de.dennisguse.opentracks
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -28,6 +33,7 @@ import de.dennisguse.opentracks.data.TrackListIterator
 import de.dennisguse.opentracks.data.TrackPointIterator
 import de.dennisguse.opentracks.data.models.Track
 import de.dennisguse.opentracks.data.models.TrackPoint
+import de.dennisguse.opentracks.io.CarTracksBackupHelper
 import de.dennisguse.opentracks.io.TrackExportHelper
 import de.dennisguse.opentracks.services.RecordingData
 import de.dennisguse.opentracks.services.TrackRecordingService
@@ -64,12 +70,64 @@ class CarMainActivity : ComponentActivity() {
     private val tankCapacityState = mutableStateOf(50.0)
     private val primaryFuelTypeState = mutableStateOf("Gasolina Comum")
 
+    private val appLocationListener = object : LocationListener {
+        override fun onLocationChanged(location: Location) {
+            val lat = location.latitude
+            val lon = location.longitude
+            currentGpsState.value = Pair(lat, lon)
+        }
+        override fun onProviderEnabled(provider: String) {}
+        override fun onProviderDisabled(provider: String) {}
+    }
+
+    private fun startLocationUpdates() {
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        ) {
+            val locManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return
+            try {
+                val lastGps = locManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+                val lastNet = locManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                val bestLast = lastGps ?: lastNet
+                if (bestLast != null) {
+                    currentGpsState.value = Pair(bestLast.latitude, bestLast.longitude)
+                }
+                locManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    1000L,
+                    1.0f,
+                    appLocationListener
+                )
+                locManager.requestLocationUpdates(
+                    LocationManager.NETWORK_PROVIDER,
+                    2000L,
+                    2.0f,
+                    appLocationListener
+                )
+            } catch (e: SecurityException) {
+                // Ignore if not permitted yet
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun stopLocationUpdates() {
+        val locManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return
+        try {
+            locManager.removeUpdates(appLocationListener)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
         val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (fineGranted || coarseGranted) {
+            startLocationUpdates()
             doStartTrip()
         } else {
             Toast.makeText(this, "Permissão de GPS necessária para gravar o trajeto.", Toast.LENGTH_LONG).show()
@@ -115,10 +173,22 @@ class CarMainActivity : ComponentActivity() {
         serviceConnection?.bind(this)
         loadTrips()
         loadFuelEntries()
+        startLocationUpdates()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        startLocationUpdates()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopLocationUpdates()
     }
 
     override fun onStop() {
         super.onStop()
+        stopLocationUpdates()
         serviceConnection?.unbind(this)
     }
 
@@ -430,7 +500,16 @@ class CarMainActivity : ComponentActivity() {
                 if (!service.isRecording) {
                     val trackId = service.startNewTrack()
                     Toast.makeText(this, "Viagem iniciada no Live Cockpit!", Toast.LENGTH_SHORT).show()
-                    liveCockpitState.value = LiveCockpitData(isRecording = true, trackId = trackId.id())
+                    val currentLoc = currentGpsState.value
+                    liveCockpitState.value = LiveCockpitData(
+                        isRecording = true,
+                        trackId = trackId.id(),
+                        currentLat = currentLoc?.first,
+                        currentLon = currentLoc?.second,
+                        breadcrumbPoints = if (currentLoc != null) {
+                            listOf(TripPoint(currentLoc.first, currentLoc.second, 0.0, 0.0, System.currentTimeMillis()))
+                        } else emptyList()
+                    )
                 }
             }
         } catch (e: Exception) {
@@ -672,6 +751,26 @@ class CarMainActivity : ComponentActivity() {
                         },
                         onSaveVehicleConfig = { name, plate, cap, fType ->
                             saveVehicleConfig(name, plate, cap, fType)
+                        },
+                        onExportBackup = {
+                            CarTracksBackupHelper.exportBackup(this@CarMainActivity)
+                        },
+                        onImportBackup = { uri ->
+                            try {
+                                val result = CarTracksBackupHelper.importBackup(this@CarMainActivity, uri)
+                                loadTrips()
+                                loadFuelEntries()
+                                loadPreferences()
+                                loadCustomLocations()
+                                Toast.makeText(
+                                    this@CarMainActivity,
+                                    "Backup importado com sucesso! (${result.tripsCount} viagens, ${result.fuelCount} abastecimentos)",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                Toast.makeText(this@CarMainActivity, "Erro ao importar backup: ${e.message}", Toast.LENGTH_LONG).show()
+                            }
                         },
                         onOpenSystemSettings = {
                             startActivity(Intent(this@CarMainActivity, SettingsActivity::class.java))

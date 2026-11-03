@@ -95,12 +95,16 @@ fun LiveCockpitScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top Header (Live Cockpit)
+        // Top Header (Live Cockpit with Real-time GPS Satellite Indicator)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            val curLoc = if (liveData.currentLat != null && liveData.currentLon != null) {
+                Pair(liveData.currentLat, liveData.currentLon)
+            } else null
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -109,12 +113,29 @@ fun LiveCockpitScreen(
                         .background(WandaRed30)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Live Cockpit",
-                    color = TextPrimary,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Column {
+                    Text(
+                        text = "Live Cockpit",
+                        color = TextPrimary,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(if (curLoc != null) WandaGreen30 else WandaYellow20)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (curLoc != null) "GPS Preciso Conectado" else "Buscando Satélites...",
+                            color = if (curLoc != null) WandaGreen30 else WandaYellow20,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
 
             IconButton(
@@ -219,6 +240,7 @@ fun LiveCockpitScreen(
             CarMapView(
                 points = liveData.breadcrumbPoints,
                 currentLocation = curLoc,
+                onCenterGpsClicked = {},
                 modifier = Modifier.fillMaxSize()
             )
 

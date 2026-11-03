@@ -1,5 +1,8 @@
 package de.dennisguse.opentracks.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -36,6 +39,8 @@ fun SettingsScreen(
     primaryFuelType: String = "Gasolina Comum",
     onSaveLocation: (key: String, lat: Double, lon: Double, label: String) -> Unit,
     onSaveVehicleConfig: (name: String, plate: String, tankCapacity: Double, primaryFuelType: String) -> Unit,
+    onExportBackup: () -> Unit,
+    onImportBackup: (Uri) -> Unit,
     onOpenSystemSettings: () -> Unit
 ) {
     var vehicleNameStr by remember(vehicleName) { mutableStateOf(vehicleName) }
@@ -44,6 +49,12 @@ fun SettingsScreen(
     var selectedFuelType by remember(primaryFuelType) { mutableStateOf(primaryFuelType) }
 
     var mapPickerTarget by remember { mutableStateOf<String?>(null) } // "home" or "work"
+
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            onImportBackup(uri)
+        }
+    }
 
     // Map Location Picker Modal (Full address search & GPS picker)
     if (mapPickerTarget != null) {
@@ -274,6 +285,68 @@ fun SettingsScreen(
             )
         }
 
+        // Section: Backup & Restore
+        item {
+            Text(
+                text = "Backup e Restauração de Dados",
+                color = WandaCyan20,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(WandaCard)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp))
+                    .padding(18.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Histórico e Configurações em JSON",
+                        color = TextPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Exporte todas as suas viagens com pontos de GPS, abastecimentos e configurações para um arquivo JSON seguro. Você poderá restaurá-lo a qualquer momento.",
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp
+                    )
+
+                    Button(
+                        onClick = onExportBackup,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                    ) {
+                        Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Exportar Backup Completo (JSON)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = WandaCardElevated)
+                    ) {
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp), tint = WandaCyan20)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Importar Backup (JSON)", fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+
         // Section: System & Advanced
         item {
             Text(
@@ -327,7 +400,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Versão 1.0.11 • Wanda Design System • Mapa HD Nativo",
+                        text = "Versão 1.0.12 • Wanda Design System • Mapa HD Nativo",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )

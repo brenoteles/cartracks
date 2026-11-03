@@ -214,6 +214,20 @@ object ModernMarkerFactory {
     }
 }
 
+val EsriWorldStreetMapHD = object : OnlineTileSourceBase(
+    "EsriStreetHD",
+    0, 19, 256, ".jpg",
+    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/"),
+    "© Esri, OpenStreetMap contributors"
+) {
+    override fun getTileURLString(pMapTileIndex: Long): String {
+        val zoom = MapTileIndex.getZoom(pMapTileIndex)
+        val x = MapTileIndex.getX(pMapTileIndex)
+        val y = MapTileIndex.getY(pMapTileIndex)
+        return "$baseUrl$zoom/$y/$x.jpg"
+    }
+}
+
 val EsriDarkCanvasHD = object : OnlineTileSourceBase(
     "EsriDarkHD",
     0, 19, 256, ".jpg",
@@ -288,17 +302,18 @@ fun CarMapView(
     // Memoization keys to eliminate redundant overlay clearing & re-draws on telemetry ticks
     var lastPointsHash by remember { mutableStateOf(0) }
     var lastPinnedCoord by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    var hasAutoCentered by remember { mutableStateOf(false) }
 
     val mapView = remember {
         ensureOsmDroidConfigured(context)
         MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
+            setTileSource(EsriWorldStreetMapHD)
             setUseDataConnection(true)
 
-            // StreetComplete & High-DPI AMOLED Display Optimization:
-            // High DPI scaling enabled + 1.15x factor guarantees crisp, readable street labels
-            isTilesScaledToDpi = true
-            tilesScaleFactor = 1.15f
+            // High Definition Native GIS Resolution:
+            // 1.0f scale factor eliminates blurry digital upscaling on 1440p/1080p screens
+            isTilesScaledToDpi = false
+            tilesScaleFactor = 1.0f
 
             setDestroyMode(false)
             setMultiTouchControls(true)
@@ -309,8 +324,14 @@ fun CarMapView(
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
             minZoomLevel = 4.0
             maxZoomLevel = 20.0
-            controller.setZoom(17.2)
-            controller.setCenter(GeoPoint(-23.5672, -46.6685)) // São Paulo default
+
+            post {
+                val initialPt = currentLocation?.let { GeoPoint(it.first, it.second) }
+                    ?: pinnedLocation?.let { GeoPoint(it.first, it.second) }
+                    ?: GeoPoint(-23.5672, -46.6685)
+                controller.setZoom(17.2)
+                controller.setCenter(initialPt)
+            }
 
             // StreetComplete dynamic scale bar overlay
             val scaleBarOverlay = ScaleBarOverlay(this).apply {
@@ -337,6 +358,16 @@ fun CarMapView(
         }
     }
 
+    LaunchedEffect(currentLocation) {
+        if (currentLocation != null && (!hasAutoCentered || points.size <= 2)) {
+            hasAutoCentered = true
+            mapView.post {
+                mapView.controller.setZoom(17.5)
+                mapView.controller.animateTo(GeoPoint(currentLocation.first, currentLocation.second))
+            }
+        }
+    }
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -353,7 +384,7 @@ fun CarMapView(
 
     LaunchedEffect(selectedLayer) {
         when (selectedLayer) {
-            MapLayer.STREET -> mapView.setTileSource(TileSourceFactory.MAPNIK)
+            MapLayer.STREET -> mapView.setTileSource(EsriWorldStreetMapHD)
             MapLayer.DARK -> mapView.setTileSource(EsriDarkCanvasHD)
             MapLayer.SATELLITE -> mapView.setTileSource(EsriSatelliteHD)
         }
@@ -607,7 +638,13 @@ fun CarMapView(
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(WandaCardElevated.copy(alpha = 0.94f))
-                        .clickable { onCenterGpsClicked() },
+                        .clickable {
+                            if (currentLocation != null) {
+                                mapView.controller.setZoom(17.5)
+                                mapView.controller.animateTo(GeoPoint(currentLocation.first, currentLocation.second))
+                            }
+                            onCenterGpsClicked()
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
