@@ -75,6 +75,7 @@ val WandaBrand = WandaSupportBrand          // #E00000
 val TextPrimary = WandaSupportWhite         // #FFFFFF
 val TextSecondary = WandaPrimary30          // #9DA4B2 (Wanda Dimmed 6)
 val TextTertiary = WandaPrimary50           // #727988 (Wanda Dimmed 5)
+val TextMuted = TextTertiary
 
 // Compatibility Aliases mapped directly to Wanda Design System Tokens
 val AppleBlack = WandaBackground

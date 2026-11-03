@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,11 +46,13 @@ import org.osmdroid.views.overlay.ScaleBarOverlay
 import java.io.File
 
 /**
- * High Definition ESRI Map Tile Sources.
- * StreetComplete & Wanda inspired map view:
- * - Proper tile scale factor (1.35x) for balanced readability on high-DPI screens.
- * - Dynamic metric ScaleBarOverlay showing real distances (50m, 100m, 500m, 1km, etc.).
- * - Street navigation default zoom 17.2.
+ * Ultra-Fast High Definition Map Engine.
+ * Optimizations:
+ * - In-memory tile cache (160 tiles) for instant 60fps panning & zooming.
+ * - Multi-thread network downloaders (8 threads).
+ * - World wrap repetition disabled to eliminate redundant GPU redraws.
+ * - Dynamic Metric Scale Bar Overlay (StreetComplete inspired).
+ * - Controls separated: Layer switcher on Top-Start (top left), never overlapping other controls.
  */
 val EsriWorldStreetMapHD = object : OnlineTileSourceBase(
     "EsriStreetHD",
@@ -94,8 +97,8 @@ val EsriSatelliteHD = object : OnlineTileSourceBase(
 }
 
 enum class MapLayer(val label: String) {
-    STREET("Ruas HD"),
-    DARK("Noturno"),
+    STREET("Ruas"),
+    DARK("Escuro"),
     SATELLITE("Satélite")
 }
 
@@ -104,14 +107,18 @@ private fun ensureOsmDroidConfigured(context: Context) {
     val config = Configuration.getInstance()
     config.load(appCtx, PreferenceManager.getDefaultSharedPreferences(appCtx))
 
-    val baseDir = File(appCtx.cacheDir, "osmdroid_hd_v8").apply { mkdirs() }
+    val baseDir = File(appCtx.cacheDir, "osmdroid_fast_v9").apply { mkdirs() }
     val tileDir = File(baseDir, "tiles").apply { mkdirs() }
     config.osmdroidBasePath = baseDir
     config.osmdroidTileCache = tileDir
 
-    config.userAgentValue = "Mozilla/5.0 (Linux; Android 16; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 CarTracks/1.0.8"
-    config.tileDownloadThreads = 4.toShort()
-    config.tileFileSystemThreads = 4.toShort()
+    config.userAgentValue = "Mozilla/5.0 (Linux; Android 16; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 CarTracks/1.0.9"
+
+    // High performance caching parameters
+    config.tileDownloadThreads = 8.toShort()
+    config.tileFileSystemThreads = 8.toShort()
+    config.cacheMapTileCount = 160.toShort()
+    config.tileDownloadMaxQueueSize = 60.toShort()
 }
 
 @Composable
@@ -124,11 +131,17 @@ fun CarMapView(
     pinnedLocation: Pair<Double, Double>? = null,
     pinnedTitle: String = "Local Selecionado",
     onMapTapped: ((Double, Double) -> Unit)? = null,
-    showLayerSwitcher: Boolean = true
+    showLayerSwitcher: Boolean = true,
+    showZoomControls: Boolean = true,
+    onCenterGpsClicked: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var selectedLayer by remember { mutableStateOf(MapLayer.STREET) }
+
+    // Memory keys to avoid redundant overlay clearing & re-draws on every tick
+    var lastPointsHash by remember { mutableStateOf(0) }
+    var lastPinnedCoord by remember { mutableStateOf<Pair<Double, Double>?>(null) }
 
     val mapView = remember {
         ensureOsmDroidConfigured(context)
@@ -136,19 +149,22 @@ fun CarMapView(
             setTileSource(EsriWorldStreetMapHD)
             setUseDataConnection(true)
 
-            // StreetComplete & Wanda inspired scale configuration:
-            // 1.35x tile scale factor provides legible street labels and roads on high-density AMOLED screens.
+            // Optimized scale: 1.0f base with zoom level 17.0 gives fast 60fps rendering without software bitmap matrix scaling
             isTilesScaledToDpi = false
-            tilesScaleFactor = 1.35f
+            tilesScaleFactor = 1.0f
             setDestroyMode(false)
             setMultiTouchControls(true)
+            isFlingEnabled = true
+            isHorizontalMapRepetitionEnabled = false
+            isVerticalMapRepetitionEnabled = false
+
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
             minZoomLevel = 4.0
             maxZoomLevel = 20.0
-            controller.setZoom(17.2) // Street-level default zoom
-            controller.setCenter(GeoPoint(-23.5672, -46.6685)) // São Paulo (Jardins / Paulista)
+            controller.setZoom(17.0) // Natural street level zoom
+            controller.setCenter(GeoPoint(-23.5672, -46.6685))
 
-            // Dynamic Metric Scale Bar Overlay (Distance scale directly on map)
+            // Dynamic Metric Scale Bar Overlay
             val scaleBarOverlay = ScaleBarOverlay(this).apply {
                 setCentred(false)
                 setAlignBottom(true)
@@ -168,7 +184,6 @@ fun CarMapView(
         }
     }
 
-    // Switch layer when user changes selection
     LaunchedEffect(selectedLayer) {
         val newSource = when (selectedLayer) {
             MapLayer.STREET -> EsriWorldStreetMapHD
@@ -201,173 +216,177 @@ fun CarMapView(
             update = { map ->
                 map.setUseDataConnection(true)
 
-                // Preserve scale bar overlay when refreshing overlays
-                val scaleBar = map.overlays.filterIsInstance<ScaleBarOverlay>().firstOrNull()
-                map.overlays.clear()
-                if (scaleBar != null) {
-                    map.overlays.add(scaleBar)
-                }
+                val pointsHash = points.hashCode() xor multiRoutes.hashCode() xor extraMarkers.hashCode()
+                val needsOverlayUpdate = (pointsHash != lastPointsHash) || (pinnedLocation != lastPinnedCoord)
 
-                // 1. Map Events Receiver for Tapping / Pinning Location
-                if (onMapTapped != null) {
-                    val eventsReceiver = object : MapEventsReceiver {
-                        override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
-                            onMapTapped(p.latitude, p.longitude)
-                            return true
+                if (needsOverlayUpdate) {
+                    lastPointsHash = pointsHash
+                    lastPinnedCoord = pinnedLocation
+
+                    val scaleBar = map.overlays.filterIsInstance<ScaleBarOverlay>().firstOrNull()
+                    map.overlays.clear()
+                    if (scaleBar != null) {
+                        map.overlays.add(scaleBar)
+                    }
+
+                    // 1. Map Events Receiver for Tapping / Pinning Location
+                    if (onMapTapped != null) {
+                        val eventsReceiver = object : MapEventsReceiver {
+                            override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
+                                onMapTapped(p.latitude, p.longitude)
+                                return true
+                            }
+
+                            override fun longPressHelper(p: GeoPoint): Boolean {
+                                onMapTapped(p.latitude, p.longitude)
+                                return true
+                            }
                         }
+                        map.overlays.add(MapEventsOverlay(eventsReceiver))
+                    }
 
-                        override fun longPressHelper(p: GeoPoint): Boolean {
-                            onMapTapped(p.latitude, p.longitude)
-                            return true
+                    // 2. Single Route Polyline
+                    if (points.isNotEmpty()) {
+                        val geoPoints = points.map { GeoPoint(it.lat, it.lon) }
+                        val polyline = Polyline(map).apply {
+                            setPoints(geoPoints)
+                            outlinePaint.color = AndroidColor.parseColor("#458BD0") // Wanda Primary Blue
+                            outlinePaint.strokeWidth = 14f
+                            outlinePaint.strokeCap = Paint.Cap.ROUND
+                            outlinePaint.strokeJoin = Paint.Join.ROUND
                         }
-                    }
-                    map.overlays.add(MapEventsOverlay(eventsReceiver))
-                }
+                        map.overlays.add(polyline)
 
-                // 2. Single Route Polyline
-                if (points.isNotEmpty()) {
-                    val geoPoints = points.map { GeoPoint(it.lat, it.lon) }
-                    val polyline = Polyline(map).apply {
-                        setPoints(geoPoints)
-                        outlinePaint.color = AndroidColor.parseColor("#458BD0") // Wanda Primary Blue
-                        outlinePaint.strokeWidth = 14f
-                        outlinePaint.strokeCap = Paint.Cap.ROUND
-                        outlinePaint.strokeJoin = Paint.Join.ROUND
-                    }
-                    map.overlays.add(polyline)
-
-                    // Start Marker
-                    val startPt = points.first()
-                    val startMarker = Marker(map).apply {
-                        position = GeoPoint(startPt.lat, startPt.lon)
-                        title = "Partida"
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                    }
-                    map.overlays.add(startMarker)
-
-                    // End Marker
-                    if (points.size > 1) {
-                        val endPt = points.last()
-                        val endMarker = Marker(map).apply {
-                            position = GeoPoint(endPt.lat, endPt.lon)
-                            title = "Chegada"
+                        // Start Marker
+                        val startPt = points.first()
+                        val startMarker = Marker(map).apply {
+                            position = GeoPoint(startPt.lat, startPt.lon)
+                            title = "Partida"
                             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                         }
-                        map.overlays.add(endMarker)
-                    }
+                        map.overlays.add(startMarker)
 
-                    try {
-                        val box = BoundingBox.fromGeoPoints(geoPoints)
-                        map.post {
-                            // Tighter margin 1.15f for comfortable route framing
-                            map.zoomToBoundingBox(box.increaseByScale(1.15f), true)
-                        }
-                    } catch (e: Exception) {
-                        map.controller.setCenter(geoPoints.first())
-                    }
-                }
-
-                // 3. Multi-Routes (for Period Overview)
-                if (multiRoutes.isNotEmpty()) {
-                    val routeColors = listOf(
-                        "#458BD0", "#2CBF6F", "#F5A957", "#C480C7", "#D02A43", "#3BABBA"
-                    )
-                    val allPoints = mutableListOf<GeoPoint>()
-
-                    multiRoutes.forEachIndexed { index, route ->
-                        if (route.isNotEmpty()) {
-                            val geoPts = route.map { GeoPoint(it.lat, it.lon) }
-                            allPoints.addAll(geoPts)
-                            val colorHex = routeColors[index % routeColors.size]
-                            val poly = Polyline(map).apply {
-                                setPoints(geoPts)
-                                outlinePaint.color = AndroidColor.parseColor(colorHex)
-                                outlinePaint.strokeWidth = 10f
-                                outlinePaint.strokeCap = Paint.Cap.ROUND
+                        // End Marker
+                        if (points.size > 1) {
+                            val endPt = points.last()
+                            val endMarker = Marker(map).apply {
+                                position = GeoPoint(endPt.lat, endPt.lon)
+                                title = "Chegada"
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                             }
-                            map.overlays.add(poly)
+                            map.overlays.add(endMarker)
                         }
-                    }
 
-                    if (allPoints.isNotEmpty()) {
                         try {
-                            val box = BoundingBox.fromGeoPoints(allPoints)
+                            val box = BoundingBox.fromGeoPoints(geoPoints)
                             map.post {
                                 map.zoomToBoundingBox(box.increaseByScale(1.15f), true)
                             }
                         } catch (e: Exception) {
-                            map.controller.setCenter(allPoints.first())
+                            map.controller.setCenter(geoPoints.first())
                         }
                     }
-                }
 
-                // 4. Extra Markers (e.g. Fuel Stations on Map)
-                if (extraMarkers.isNotEmpty()) {
-                    val markerGeoPoints = mutableListOf<GeoPoint>()
-                    extraMarkers.forEach { item ->
-                        val pt = GeoPoint(item.lat, item.lon)
-                        markerGeoPoints.add(pt)
-                        val m = Marker(map).apply {
-                            position = pt
-                            title = item.title
-                            snippet = item.snippet
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    // 3. Multi-Routes (for Period Overview)
+                    if (multiRoutes.isNotEmpty()) {
+                        val routeColors = listOf(
+                            "#458BD0", "#2CBF6F", "#F5A957", "#C480C7", "#D02A43", "#3BABBA"
+                        )
+                        val allPoints = mutableListOf<GeoPoint>()
+
+                        multiRoutes.forEachIndexed { index, route ->
+                            if (route.isNotEmpty()) {
+                                val geoPts = route.map { GeoPoint(it.lat, it.lon) }
+                                allPoints.addAll(geoPts)
+                                val colorHex = routeColors[index % routeColors.size]
+                                val poly = Polyline(map).apply {
+                                    setPoints(geoPts)
+                                    outlinePaint.color = AndroidColor.parseColor(colorHex)
+                                    outlinePaint.strokeWidth = 10f
+                                    outlinePaint.strokeCap = Paint.Cap.ROUND
+                                }
+                                map.overlays.add(poly)
+                            }
                         }
-                        map.overlays.add(m)
-                    }
-                    if (points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null) {
-                        if (markerGeoPoints.size == 1) {
-                            map.controller.setZoom(17.2)
-                            map.controller.setCenter(markerGeoPoints.first())
-                        } else {
+
+                        if (allPoints.isNotEmpty()) {
                             try {
-                                val box = BoundingBox.fromGeoPoints(markerGeoPoints)
+                                val box = BoundingBox.fromGeoPoints(allPoints)
                                 map.post {
-                                    map.zoomToBoundingBox(box.increaseByScale(1.2f), true)
+                                    map.zoomToBoundingBox(box.increaseByScale(1.15f), true)
                                 }
                             } catch (e: Exception) {
-                                map.controller.setCenter(markerGeoPoints.first())
+                                map.controller.setCenter(allPoints.first())
                             }
                         }
                     }
-                }
 
-                // 5. Current Location Marker
-                currentLocation?.let { (lat, lon) ->
-                    val curPoint = GeoPoint(lat, lon)
-                    val curMarker = Marker(map).apply {
-                        position = curPoint
-                        title = "Posição Atual"
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    // 4. Extra Markers (e.g. Fuel Stations on Map)
+                    if (extraMarkers.isNotEmpty()) {
+                        val markerGeoPoints = mutableListOf<GeoPoint>()
+                        extraMarkers.forEach { item ->
+                            val pt = GeoPoint(item.lat, item.lon)
+                            markerGeoPoints.add(pt)
+                            val m = Marker(map).apply {
+                                position = pt
+                                title = item.title
+                                snippet = item.snippet
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            }
+                            map.overlays.add(m)
+                        }
+                        if (points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null) {
+                            if (markerGeoPoints.size == 1) {
+                                map.controller.setZoom(17.0)
+                                map.controller.setCenter(markerGeoPoints.first())
+                            } else {
+                                try {
+                                    val box = BoundingBox.fromGeoPoints(markerGeoPoints)
+                                    map.post {
+                                        map.zoomToBoundingBox(box.increaseByScale(1.2f), true)
+                                    }
+                                } catch (e: Exception) {
+                                    map.controller.setCenter(markerGeoPoints.first())
+                                }
+                            }
+                        }
                     }
-                    map.overlays.add(curMarker)
-                    if (points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null && extraMarkers.isEmpty()) {
-                        map.controller.animateTo(curPoint)
-                    }
-                }
 
-                // 6. Pinned Location Marker
-                pinnedLocation?.let { (lat, lon) ->
-                    val pinPt = GeoPoint(lat, lon)
-                    val pinMarker = Marker(map).apply {
-                        position = pinPt
-                        title = pinnedTitle
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    // 5. Current Location Marker
+                    currentLocation?.let { (lat, lon) ->
+                        val curPoint = GeoPoint(lat, lon)
+                        val curMarker = Marker(map).apply {
+                            position = curPoint
+                            title = "Posição Atual"
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        }
+                        map.overlays.add(curMarker)
                     }
-                    map.overlays.add(pinMarker)
-                    map.controller.animateTo(pinPt)
-                }
 
-                map.invalidate()
+                    // 6. Pinned Location Marker
+                    pinnedLocation?.let { (lat, lon) ->
+                        val pinPt = GeoPoint(lat, lon)
+                        val pinMarker = Marker(map).apply {
+                            position = pinPt
+                            title = pinnedTitle
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                        }
+                        map.overlays.add(pinMarker)
+                        map.controller.animateTo(pinPt)
+                    }
+
+                    map.invalidate()
+                }
             }
         )
 
-        // Wanda Layer Switcher (Top End)
+        // Wanda Layer Switcher - PLACED AT TOP-START (TOP LEFT)
+        // This guarantees it will NEVER collide with controls on the top-right (like Maximizar Mapa)!
         if (showLayerSwitcher) {
             Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 16.dp, end = 16.dp)
+                    .align(Alignment.TopStart)
+                    .padding(top = 12.dp, start = 12.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(WandaCardElevated.copy(alpha = 0.94f))
                     .padding(horizontal = 4.dp, vertical = 4.dp),
@@ -393,43 +412,63 @@ fun CarMapView(
             }
         }
 
-        // Floating One-Handed Zoom Controls (+ and - buttons, Bottom End)
+        // Floating One-Handed Controls (Zoom & GPS) - Bottom End
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 24.dp, end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(WandaCardElevated.copy(alpha = 0.94f))
-                    .clickable { mapView.controller.zoomIn() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Aproximar",
-                    tint = TextPrimary,
-                    modifier = Modifier.size(20.dp)
-                )
+            if (onCenterGpsClicked != null) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(WandaCardElevated.copy(alpha = 0.94f))
+                        .clickable { onCenterGpsClicked() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MyLocation,
+                        contentDescription = "Meu GPS",
+                        tint = WandaCyan20,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
 
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(WandaCardElevated.copy(alpha = 0.94f))
-                    .clickable { mapView.controller.zoomOut() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Remove,
-                    contentDescription = "Afastar",
-                    tint = TextPrimary,
-                    modifier = Modifier.size(20.dp)
-                )
+            if (showZoomControls) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(WandaCardElevated.copy(alpha = 0.94f))
+                        .clickable { mapView.controller.zoomIn() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Aproximar",
+                        tint = TextPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(WandaCardElevated.copy(alpha = 0.94f))
+                        .clickable { mapView.controller.zoomOut() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Remove,
+                        contentDescription = "Afastar",
+                        tint = TextPrimary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
         }
     }

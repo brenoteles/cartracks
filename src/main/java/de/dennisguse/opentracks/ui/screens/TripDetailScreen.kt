@@ -104,9 +104,9 @@ fun TripDetailScreen(
                     onClick = { isMapMaximized = false },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(16.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated)
+                        .padding(12.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = WandaCardElevated.copy(alpha = 0.94f))
                 ) {
                     Icon(
                         imageVector = Icons.Default.FullscreenExit,
@@ -150,8 +150,8 @@ fun TripDetailScreen(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(12.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated.copy(alpha = 0.92f))
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = WandaCardElevated.copy(alpha = 0.94f))
                     ) {
                         Icon(
                             imageVector = Icons.Default.Fullscreen,

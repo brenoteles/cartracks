@@ -420,7 +420,7 @@ class CarMainActivity : ComponentActivity() {
             TrackRecordingServiceConnection.executeForeground(this) { service, _ ->
                 if (!service.isRecording) {
                     val trackId = service.startNewTrack()
-                    Toast.makeText(this, "Viagem iniciada no Apple Live Cockpit!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Viagem iniciada no Live Cockpit!", Toast.LENGTH_SHORT).show()
                     liveCockpitState.value = LiveCockpitData(isRecording = true, trackId = trackId.id())
                 }
             }

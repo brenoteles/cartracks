@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -44,7 +45,7 @@ fun DashboardScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppleBlack)
+            .background(WandaBackground)
             .padding(horizontal = 16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -56,7 +57,8 @@ fun DashboardScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
-                        .background(AppleCardElevated)
+                        .background(WandaCardElevated)
+                        .border(1.dp, WandaRed30.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
                         .clickable { onOpenCockpitClicked() }
                         .padding(horizontal = 18.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -67,7 +69,7 @@ fun DashboardScreen(
                             modifier = Modifier
                                 .size(12.dp)
                                 .clip(CircleShape)
-                                .background(AppleRed)
+                                .background(WandaRed30)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
@@ -79,39 +81,81 @@ fun DashboardScreen(
                             )
                             Text(
                                 text = "${liveData.currentSpeedKmh.toInt()} km/h • ${String.format(java.util.Locale.getDefault(), "%.1f", liveData.distanceKm)} km",
-                                color = AppleTeal,
-                                fontSize = 12.sp
+                                color = WandaCyan20,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
                     Text(
                         text = "Abrir Cockpit ➔",
-                        color = AppleBlue,
-                        fontWeight = FontWeight.SemiBold,
+                        color = WandaInteractive,
+                        fontWeight = FontWeight.Bold,
                         fontSize = 13.sp
                     )
                 }
             }
         }
 
-        // 2. Header
+        // 2. Header & Vehicle Hero Status Card (Vibrant & High-Tech)
         item {
-            Column {
-                Text(
-                    text = "CarTracks",
-                    color = TextPrimary,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black
-                )
-                Text(
-                    text = "Painel Veicular Inteligente",
-                    color = TextSecondary,
-                    fontSize = 14.sp
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "CarTracks",
+                            color = TextPrimary,
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "Painel Veicular Inteligente",
+                            color = TextSecondary,
+                            fontSize = 14.sp
+                        )
+                    }
+
+                    // Active GPS Chip
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(WandaGreen30.copy(alpha = 0.15f))
+                            .border(1.dp, WandaGreen30.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(WandaGreen30)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "GPS ATIVO",
+                                color = WandaGreen30,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.sp
+                            )
+                        }
+                    }
+                }
+
+                // Vibrant Hero Vehicle Cockpit Card
+                HeroVehicleStatusCard(
+                    tankCapacityLiters = 50.0,
+                    currentFuelLiters = 41.0,
+                    odometerKm = 148520.0 + totalKm
                 )
             }
         }
 
-        // 3. Metric Cards Grid (2x2)
+        // 3. Metric Cards Grid (2x2 with Vibrant Top Accent Lines)
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
@@ -122,14 +166,14 @@ fun DashboardScreen(
                         title = "Distância Total",
                         value = String.format(java.util.Locale.getDefault(), "%.1f km", totalKm),
                         icon = Icons.Default.Speed,
-                        tint = AppleBlue,
+                        tint = WandaCyan20,
                         modifier = Modifier.weight(1f)
                     )
                     MetricCard(
                         title = "Combustível",
                         value = String.format(java.util.Locale.getDefault(), "%.1f L", totalFuel),
                         icon = Icons.Default.LocalGasStation,
-                        tint = AppleOrange,
+                        tint = WandaYellow20,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -141,21 +185,21 @@ fun DashboardScreen(
                         title = "Custo Estimado",
                         value = String.format(java.util.Locale.getDefault(), "R$ %.2f", totalCost),
                         icon = Icons.Default.AttachMoney,
-                        tint = AppleGreen,
+                        tint = WandaGreen30,
                         modifier = Modifier.weight(1f)
                     )
                     MetricCard(
                         title = "Total de Viagens",
                         value = "${trips.size} viagens",
                         icon = Icons.Default.DirectionsCar,
-                        tint = ApplePurple,
+                        tint = WandaPurple30,
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
 
-        // 4. Primary Actions
+        // 4. Primary Actions (Vibrant High-Contrast Buttons)
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
@@ -164,12 +208,12 @@ fun DashboardScreen(
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(18.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppleBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(26.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -185,20 +229,21 @@ fun DashboardScreen(
                         .fillMaxWidth()
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
-                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(AppleBorder))
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = WandaCard),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(WandaBorderSubtle))
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = Icons.Default.LocalGasStation,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp),
-                        tint = AppleOrange
+                        tint = WandaYellow20
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Registrar Abastecimento",
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
                     )
                 }
             }
@@ -218,8 +263,8 @@ fun DashboardScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Ver Todas",
-                    color = AppleBlue,
+                    text = "Ver Todas (${trips.size})",
+                    color = WandaInteractive,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.clickable { onViewAllTripsClicked() }
@@ -232,8 +277,9 @@ fun DashboardScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(AppleCard)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(WandaCard)
+                        .border(1.dp, WandaBorderSubtle, RoundedCornerShape(18.dp))
                         .padding(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -246,8 +292,188 @@ fun DashboardScreen(
                 }
             }
         } else {
-            items(trips.take(3)) { trip ->
+            items(trips.take(4)) { trip ->
                 TripRowCard(trip = trip, onClick = { onTripClicked(trip) })
+            }
+        }
+    }
+}
+
+@Composable
+fun HeroVehicleStatusCard(
+    tankCapacityLiters: Double,
+    currentFuelLiters: Double,
+    odometerKm: Double
+) {
+    val tankPercent = (currentFuelLiters / tankCapacityLiters).coerceIn(0.0, 1.0)
+    val estimatedRangeKm = (currentFuelLiters * 13.8).toInt()
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(
+                Brush.horizontalGradient(
+                    listOf(
+                        Color(0xFF121624),
+                        Color(0xFF1B2338)
+                    )
+                )
+            )
+            .border(1.dp, Color(0x334589FF), RoundedCornerShape(22.dp))
+            .padding(18.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            // Vehicle Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(WandaInteractive.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsCar,
+                            contentDescription = null,
+                            tint = WandaInteractive,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Toyota Etios 1.5 Dual VVT-i",
+                            color = TextPrimary,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Tanque: ${tankCapacityLiters.toInt()}L • Gasolina Comum",
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(WandaGreen30.copy(alpha = 0.15f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "82% Tanque",
+                        color = WandaGreen30,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            // Fuel Level Gauge Bar (Gradient Cyan -> Green)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Nível de Combustível",
+                        color = TextSecondary,
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        text = "%.1f L restantes".format(java.util.Locale.US, currentFuelLiters),
+                        color = WandaCyan20,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF232838))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction = tankPercent.toFloat())
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(WandaCyan20, WandaGreen30)
+                                )
+                            )
+                    )
+                }
+            }
+
+            // Bottom Vehicle Badges
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(WandaCardElevated.copy(alpha = 0.6f))
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Column {
+                        Text("ODÔMETRO", fontSize = 10.sp, color = TextMuted, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "${odometerKm.toInt().toString().replace(Regex("(\\d)(?=(\\d{3})+$)"), "$1.")} km",
+                            fontSize = 14.sp,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(WandaCardElevated.copy(alpha = 0.6f))
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Column {
+                        Text("AUTONOMIA EST.", fontSize = 10.sp, color = TextMuted, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "~$estimatedRangeKm km",
+                            fontSize = 14.sp,
+                            color = WandaGreen30,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(WandaCardElevated.copy(alpha = 0.6f))
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Column {
+                        Text("MÉDIA GERAL", fontSize = 10.sp, color = TextMuted, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "13.8 km/L",
+                            fontSize = 14.sp,
+                            color = WandaYellow20,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }
@@ -265,41 +491,50 @@ fun MetricCard(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
             .background(WandaCard)
-            .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
-            .padding(14.dp)
+            .border(1.dp, WandaBorderSubtle, RoundedCornerShape(18.dp))
     ) {
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(tint.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = tint,
-                        modifier = Modifier.size(18.dp)
+            // Vibrant Top Accent Stripe
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(tint)
+            )
+
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(tint.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = tint,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = title,
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Text(
-                    text = title,
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1
+                    text = value,
+                    color = TextPrimary,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = value,
-                color = TextPrimary,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
         }
     }
 }
@@ -309,12 +544,18 @@ fun TripRowCard(
     trip: TripItem,
     onClick: () -> Unit
 ) {
+    val commuteColor = when {
+        trip.commuteBadge?.contains("Casa", ignoreCase = true) == true -> WandaCyan20
+        trip.commuteBadge?.contains("Trabalho", ignoreCase = true) == true -> WandaPurple30
+        else -> WandaInteractive
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(WandaCard)
-            .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
+            .border(1.dp, WandaBorderSubtle, RoundedCornerShape(18.dp))
             .clickable { onClick() }
             .padding(14.dp)
     ) {
@@ -332,14 +573,15 @@ fun TripRowCard(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(AppleBlue.copy(alpha = 0.15f))
+                                .background(commuteColor.copy(alpha = 0.16f))
+                                .border(1.dp, commuteColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = trip.commuteBadge,
-                                color = AppleBlue,
+                                color = commuteColor,
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -366,7 +608,7 @@ fun TripRowCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -377,7 +619,7 @@ fun TripRowCard(
                     text = String.format(java.util.Locale.getDefault(), "%.1f km", trip.distanceKm),
                     color = TextPrimary,
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Black
                 )
                 Text(
                     text = "${trip.durationMin} min",
@@ -391,9 +633,9 @@ fun TripRowCard(
                 )
                 Text(
                     text = String.format(java.util.Locale.getDefault(), "R$ %.2f", trip.fuelCost),
-                    color = AppleGreen,
+                    color = WandaGreen30,
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
             }
         }

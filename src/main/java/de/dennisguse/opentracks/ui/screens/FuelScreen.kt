@@ -448,7 +448,8 @@ fun FuelScreen(
                                     Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(15.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = if (selectedLat != null) "Alterar no Mapa" else "Escolher no Mapa",
+                                        text = if (selectedLat != null) "Alterar no Mapa" else "Definir no Mapa",
+                                        maxLines = 1,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )

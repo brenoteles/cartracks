@@ -40,7 +40,7 @@ fun SettingsScreen(
 
     var mapPickerTarget by remember { mutableStateOf<String?>(null) } // "home" or "work"
 
-    // Map Location Picker Modal (No manual typing of coordinates!)
+    // Map Location Picker Modal (Full address search & GPS picker)
     if (mapPickerTarget != null) {
         val isHome = mapPickerTarget == "home"
         val curLat = if (isHome) homeLoc.lat else workLoc.lat
@@ -65,7 +65,7 @@ fun SettingsScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppleBlack)
+            .background(WandaBackground)
             .padding(horizontal = 16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -80,18 +80,18 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Personalize seus locais favoritos e consumo do veículo",
+                    text = "Personalize seus locais favoritos e parâmetros do veículo",
                     color = TextSecondary,
                     fontSize = 14.sp
                 )
             }
         }
 
-        // Section: Favorite Locations (Apple Style - Zero Manual Coordinates)
+        // Section: Favorite Locations
         item {
             Text(
                 text = "Locais Favoritos (Detecção Inteligente)",
-                color = AppleBlue,
+                color = WandaCyan20,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -99,10 +99,12 @@ fun SettingsScreen(
 
         // Home Location Card
         item {
-            AppleLocationCard(
+            LocationCard(
                 title = "Casa",
                 icon = "🏠",
                 isConfigured = homeLoc.isSet,
+                lat = if (homeLoc.isSet) homeLoc.lat else null,
+                lon = if (homeLoc.isSet) homeLoc.lon else null,
                 onOpenMapPicker = { mapPickerTarget = "home" },
                 onUseGps = {
                     currentGps?.let { (lat, lon) ->
@@ -114,10 +116,12 @@ fun SettingsScreen(
 
         // Work Location Card
         item {
-            AppleLocationCard(
+            LocationCard(
                 title = "Trabalho",
                 icon = "🏢",
                 isConfigured = workLoc.isSet,
+                lat = if (workLoc.isSet) workLoc.lat else null,
+                lon = if (workLoc.isSet) workLoc.lon else null,
                 onOpenMapPicker = { mapPickerTarget = "work" },
                 onUseGps = {
                     currentGps?.let { (lat, lon) ->
@@ -131,7 +135,7 @@ fun SettingsScreen(
         item {
             Text(
                 text = "Parâmetros do Veículo",
-                color = AppleBlue,
+                color = WandaCyan20,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -143,7 +147,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
                     .background(WandaCard)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp))
                     .padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -160,7 +164,7 @@ fun SettingsScreen(
                         )
                         Text(
                             text = "${tankCapacityStr} Litros",
-                            color = AppleTeal,
+                            color = WandaCyan20,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -180,9 +184,9 @@ fun SettingsScreen(
                                 label = { Text("${p}L", fontSize = 12.sp) },
                                 shape = RoundedCornerShape(12.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = AppleBlue,
+                                    selectedContainerColor = WandaInteractive,
                                     selectedLabelColor = Color.White,
-                                    containerColor = AppleCardElevated,
+                                    containerColor = WandaCardElevated,
                                     labelColor = TextSecondary
                                 ),
                                 border = null
@@ -226,9 +230,9 @@ fun SettingsScreen(
                                 label = { Text(fType, fontSize = 12.sp) },
                                 shape = RoundedCornerShape(12.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = AppleBlue,
+                                    selectedContainerColor = WandaInteractive,
                                     selectedLabelColor = Color.White,
-                                    containerColor = AppleCardElevated,
+                                    containerColor = WandaCardElevated,
                                     labelColor = TextSecondary
                                 ),
                                 border = null
@@ -243,7 +247,7 @@ fun SettingsScreen(
         item {
             Text(
                 text = "Sistema e Sensores",
-                color = AppleBlue,
+                color = WandaCyan20,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -256,7 +260,7 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated)
+                colors = ButtonDefaults.buttonColors(containerColor = WandaCardElevated)
             ) {
                 Icon(
                     imageVector = Icons.Default.Settings,
@@ -280,7 +284,8 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(AppleCard)
+                    .background(WandaCard)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(18.dp))
                     .padding(16.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -291,7 +296,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Versão 1.0.6 • Mapa HD Nativo • Apple HIG Dark Design",
+                        text = "Versão 1.0.10 • Wanda Design System • Mapa HD Nativo",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
@@ -302,10 +307,12 @@ fun SettingsScreen(
 }
 
 @Composable
-fun AppleLocationCard(
+fun LocationCard(
     title: String,
     icon: String,
     isConfigured: Boolean,
+    lat: Double? = null,
+    lon: Double? = null,
     onOpenMapPicker: () -> Unit,
     onUseGps: () -> Unit
 ) {
@@ -314,7 +321,7 @@ fun AppleLocationCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(WandaCard)
-            .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
+            .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp))
             .padding(18.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -324,12 +331,12 @@ fun AppleLocationCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(icon, fontSize = 22.sp)
+                    Text(icon, fontSize = 24.sp)
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = title,
                         color = TextPrimary,
-                        fontSize = 17.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -337,12 +344,12 @@ fun AppleLocationCard(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isConfigured) AppleGreen.copy(alpha = 0.15f) else AppleOrange.copy(alpha = 0.15f))
+                        .background(if (isConfigured) WandaGreen30.copy(alpha = 0.15f) else WandaYellow20.copy(alpha = 0.15f))
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = if (isConfigured) "🟢 Configurado no Mapa" else "⚪ Não Definido",
-                        color = if (isConfigured) AppleGreen else AppleOrange,
+                        text = if (isConfigured) "🟢 Configurado" else "⚪ Não Definido",
+                        color = if (isConfigured) WandaGreen30 else WandaYellow20,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -350,52 +357,64 @@ fun AppleLocationCard(
             }
 
             Text(
-                text = "Identifica automaticamente viagens com partida ou destino em $title.",
+                text = if (isConfigured && lat != null && lon != null) {
+                    String.format(java.util.Locale.US, "Identifica automaticamente viagens em $title (Lat: %.4f, Lon: %.4f).", lat, lon)
+                } else {
+                    "Identifica automaticamente viagens com partida ou destino em $title."
+                },
                 color = TextSecondary,
                 fontSize = 13.sp,
-                lineHeight = 17.sp
+                lineHeight = 18.sp
             )
 
-            Row(
+            // Clean full-width stacked action buttons: Never overflow, never break!
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
                     onClick = onOpenMapPicker,
                     modifier = Modifier
-                        .weight(1.3f)
-                        .height(44.dp),
+                        .fillMaxWidth()
+                        .height(46.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppleBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Map,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (isConfigured) "Alterar no Mapa" else "Escolher no Mapa",
+                        text = if (isConfigured) "Alterar Local no Mapa ou Endereço" else "Definir Local no Mapa ou Buscar",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
+                        fontSize = 13.sp,
+                        maxLines = 1
                     )
                 }
 
                 OutlinedButton(
                     onClick = onUseGps,
                     modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
-                    shape = RoundedCornerShape(12.dp)
+                        .fillMaxWidth()
+                        .height(42.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = WandaCardElevated)
                 ) {
                     Icon(
                         imageVector = Icons.Default.MyLocation,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = AppleTeal
+                        tint = WandaCyan20
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Usar GPS", fontSize = 12.sp, color = TextPrimary)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Usar Posição Atual (GPS)",
+                        fontSize = 13.sp,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }

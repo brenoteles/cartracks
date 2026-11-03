@@ -1,6 +1,7 @@
 package de.dennisguse.opentracks.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,6 +43,13 @@ fun LiveCockpitScreen(
         FuelEfficiencyCalculator.estimateTripKmL(liveData.currentSpeedKmh)
     }
 
+    val speedColor = when {
+        liveData.currentSpeedKmh > 120 -> WandaRed30
+        liveData.currentSpeedKmh > 90 -> WandaYellow20
+        liveData.currentSpeedKmh > 50 -> WandaGreen30
+        else -> WandaCyan20
+    }
+
     if (showConfirmStop) {
         AlertDialog(
             onDismissRequest = { showConfirmStop = false },
@@ -64,30 +72,30 @@ fun LiveCockpitScreen(
                         showConfirmStop = false
                         onStopTripClicked()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = AppleRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = WandaRed30)
                 ) {
                     Text("Sim, Encerrar", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmStop = false }) {
-                    Text("Continuar Gravando", color = AppleBlue)
+                    Text("Continuar Gravando", color = WandaInteractive)
                 }
             },
-            containerColor = AppleCardElevated
+            containerColor = WandaCardElevated
         )
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppleBlack)
+            .background(WandaBackground)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top Header
+        // Top Header (Live Cockpit)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -98,11 +106,11 @@ fun LiveCockpitScreen(
                     modifier = Modifier
                         .size(12.dp)
                         .clip(CircleShape)
-                        .background(AppleRed)
+                        .background(WandaRed30)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Apple Live Cockpit",
+                    text = "Live Cockpit",
                     color = TextPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
@@ -113,7 +121,7 @@ fun LiveCockpitScreen(
                 onClick = onMinimizeClicked,
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(AppleCardElevated)
+                    .background(WandaCardElevated)
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
@@ -124,62 +132,73 @@ fun LiveCockpitScreen(
         }
 
         if (!isMapExpanded) {
-            // Clean Speedometer Display (No Waze alerts, pure telemetry)
+            // Speedometer Display (Pure High-Contrast Automotive Telemetry)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "${liveData.currentSpeedKmh.toInt()}",
                     color = TextPrimary,
-                    fontSize = 86.sp,
+                    fontSize = 82.sp,
                     fontWeight = FontWeight.Black,
-                    lineHeight = 88.sp
+                    lineHeight = 84.sp
                 )
                 Text(
                     text = "KM/H",
-                    color = AppleTeal,
+                    color = speedColor,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 2.sp
                 )
             }
 
-            // Telemetry Grid
-            Row(
+            // High Readability 2x2 Telemetry Grid (Eliminates squished cards)
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                MetricCard(
-                    title = "Distância",
-                    value = String.format(java.util.Locale.getDefault(), "%.2f km", liveData.distanceKm),
-                    icon = Icons.Default.Speed,
-                    tint = AppleBlue,
-                    modifier = Modifier.weight(1f)
-                )
-                MetricCard(
-                    title = "Tempo",
-                    value = durationText,
-                    icon = Icons.Default.Timer,
-                    tint = AppleOrange,
-                    modifier = Modifier.weight(1f)
-                )
-                MetricCard(
-                    title = "Vel. Máx",
-                    value = "${liveData.maxSpeedKmh.toInt()} km/h",
-                    icon = Icons.Default.TrendingUp,
-                    tint = AppleRed,
-                    modifier = Modifier.weight(1f)
-                )
-                MetricCard(
-                    title = "Consumo Est.",
-                    value = String.format(java.util.Locale.getDefault(), "%.1f km/L", currentKmL),
-                    icon = Icons.Default.LocalGasStation,
-                    tint = AppleGreen,
-                    modifier = Modifier.weight(1f)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MetricCard(
+                        title = "Distância",
+                        value = String.format(java.util.Locale.getDefault(), "%.2f km", liveData.distanceKm),
+                        icon = Icons.Default.Speed,
+                        tint = WandaCyan20,
+                        modifier = Modifier.weight(1f)
+                    )
+                    MetricCard(
+                        title = "Tempo",
+                        value = durationText,
+                        icon = Icons.Default.Timer,
+                        tint = WandaYellow20,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MetricCard(
+                        title = "Vel. Máx",
+                        value = "${liveData.maxSpeedKmh.toInt()} km/h",
+                        icon = Icons.Default.TrendingUp,
+                        tint = WandaRed30,
+                        modifier = Modifier.weight(1f)
+                    )
+                    MetricCard(
+                        title = "Consumo Est.",
+                        value = String.format(java.util.Locale.getDefault(), "%.1f km/L", currentKmL),
+                        icon = Icons.Default.LocalGasStation,
+                        tint = WandaGreen30,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
 
@@ -188,9 +207,10 @@ fun LiveCockpitScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(vertical = 10.dp)
+                .padding(vertical = 8.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(AppleCard)
+                .background(WandaCard)
+                .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp))
         ) {
             val curLoc = if (liveData.currentLat != null && liveData.currentLon != null) {
                 Pair(liveData.currentLat, liveData.currentLon)
@@ -202,24 +222,24 @@ fun LiveCockpitScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Prominent Maximize / Reduce Toggle on Map
+            // Prominent Maximize / Reduce Toggle on Map (Positioned TopEnd, away from TopStart layer switcher!)
             Button(
                 onClick = { isMapExpanded = !isMapExpanded },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(10.dp),
                 shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated.copy(alpha = 0.92f))
+                colors = ButtonDefaults.buttonColors(containerColor = WandaCardElevated.copy(alpha = 0.94f))
             ) {
                 Icon(
                     imageVector = if (isMapExpanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
                     contentDescription = null,
-                    tint = AppleBlue,
+                    tint = WandaInteractive,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = if (isMapExpanded) "Mostrar Velocímetro" else "Maximizar Mapa HD",
+                    text = if (isMapExpanded) "Mostrar Cockpit" else "Maximizar Mapa",
                     color = TextPrimary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
@@ -233,12 +253,13 @@ fun LiveCockpitScreen(
                         .align(Alignment.BottomStart)
                         .padding(16.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(AppleCardElevated.copy(alpha = 0.94f))
+                        .background(WandaCardElevated.copy(alpha = 0.94f))
+                        .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
                         .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = "${liveData.currentSpeedKmh.toInt()} km/h",
-                        color = TextPrimary,
+                        color = speedColor,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -251,9 +272,9 @@ fun LiveCockpitScreen(
             onClick = { showConfirmStop = true },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .height(54.dp),
             shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AppleRed)
+            colors = ButtonDefaults.buttonColors(containerColor = WandaRed30)
         ) {
             Icon(
                 imageVector = Icons.Default.Stop,
