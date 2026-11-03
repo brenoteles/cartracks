@@ -71,12 +71,6 @@ limitations under the License.
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"
         android:minSdkVersion="33" />
 
-    <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
-    <uses-permission android:name="android.permission.health.WRITE_EXERCISE_ROUTE" />
-    <uses-permission android:name="android.permission.health.WRITE_DISTANCE" />
-    <uses-permission android:name="android.permission.health.WRITE_ELEVATION_GAINED" />
-    <uses-permission android:name="android.permission.health.WRITE_SPEED" />
-
     <application android:usesCleartextTraffic="true"
         android:name=".Startup"
         android:allowBackup="true"
@@ -116,40 +110,9 @@ limitations under the License.
             </intent-filter>
         </activity>
 
-        <!-- NOTE: the name of the MAIN/LAUNCHER is used by icon packs; if this is changed, icon packs break.-->
-        <activity
-            android:name=".introduction.IntroductionActivity"
-            android:exported="false"
-            android:enabled="false" />
+        
 
         <activity android:name=".AboutActivity" />
-
-        <!-- Permissions -->
-        <!-- until Android 13 -->
-        <activity
-            android:name=".HealthConnectPermissionsRationaleActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
-            </intent-filter>
-        </activity>
-        <!-- for Android 14 -->
-        <activity-alias
-            android:name="ViewPermissionUsageActivity"
-            android:exported="true"
-            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
-            android:targetActivity=".HealthConnectPermissionsRationaleActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
-                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity android:name=".settings.HealthConnect$Settings" />
-        <activity android:name=".settings.HealthConnect$ConfigurePermissions" />
-        <activity android:name=".settings.HealthConnect$ExportAll" />
-
-        <activity android:name=".HelpActivity" />
 
         <activity android:name=".io.file.importer.DirectoryChooserActivity$ImportDirectoryChooserActivity" />
 
@@ -341,38 +304,6 @@ limitations under the License.
                 <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\..*\\.kml" />
             </intent-filter>
         </activity>
-
-        <activity
-            android:name=".publicapi.ShowMarkerActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="de.dennisguse.opentracks.MarkerDetails" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".publicapi.CreateMarkerActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="de.dennisguse.opentracks.CreateMarker" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <activity android:name=".ui.markers.MarkerDetailActivity" />
-        <activity android:name=".ui.markers.MarkerEditActivity" />
-        <activity android:name=".ui.markers.MarkerListActivity" />
-
-        <activity android:name=".TrackListActivity" />
-        <activity android:name=".TrackRecordedActivity" />
-        <activity android:name=".TrackStoppedActivity" />
-
-        <activity android:name=".TrackRecordingActivity" />
-
-        <activity android:name=".TrackEditActivity" />
-
-        <activity android:name=".ui.aggregatedStatistics.AggregatedStatisticsActivity" />
 
         <activity android:name=".io.file.importer.DirectoryChooserActivity$ExportDirectoryChooserActivity" />
         <activity android:name=".io.file.importer.DirectoryChooserActivity$ExportDirectoryChooserOneFileActivity" />

@@ -3,10 +3,15 @@ package de.dennisguse.opentracks.ui.components
 import android.content.Context
 import android.graphics.Color as AndroidColor
 import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,13 +41,15 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
+import org.osmdroid.views.overlay.ScaleBarOverlay
 import java.io.File
 
 /**
  * High Definition ESRI Map Tile Sources.
- * ESRI uses {z}/{y}/{x} tile coordinates instead of {z}/{x}/{y}.
- * Using native screen scaling (isTilesScaledToDpi = false) guarantees crisp, vector-like HD clarity
- * on high-density Samsung Galaxy QHD+ AMOLED screens.
+ * StreetComplete & Wanda inspired map view:
+ * - Proper tile scale factor (1.35x) for balanced readability on high-DPI screens.
+ * - Dynamic metric ScaleBarOverlay showing real distances (50m, 100m, 500m, 1km, etc.).
+ * - Street navigation default zoom 17.2.
  */
 val EsriWorldStreetMapHD = object : OnlineTileSourceBase(
     "EsriStreetHD",
@@ -97,12 +104,12 @@ private fun ensureOsmDroidConfigured(context: Context) {
     val config = Configuration.getInstance()
     config.load(appCtx, PreferenceManager.getDefaultSharedPreferences(appCtx))
 
-    val baseDir = File(appCtx.cacheDir, "osmdroid_hd_v7").apply { mkdirs() }
+    val baseDir = File(appCtx.cacheDir, "osmdroid_hd_v8").apply { mkdirs() }
     val tileDir = File(baseDir, "tiles").apply { mkdirs() }
     config.osmdroidBasePath = baseDir
     config.osmdroidTileCache = tileDir
 
-    config.userAgentValue = "Mozilla/5.0 (Linux; Android 16; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 CarTracks/1.0.6"
+    config.userAgentValue = "Mozilla/5.0 (Linux; Android 16; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 CarTracks/1.0.8"
     config.tileDownloadThreads = 4.toShort()
     config.tileFileSystemThreads = 4.toShort()
 }
@@ -128,18 +135,35 @@ fun CarMapView(
         MapView(context).apply {
             setTileSource(EsriWorldStreetMapHD)
             setUseDataConnection(true)
-            // CRITICAL FOR TRUE HD RESOLUTION:
-            // Disabling tile scaling prevents OSMDroid from stretching 256px raster bitmaps by 3.5x on QHD+ displays.
-            // Tiles are rendered 1:1 with crisp razor-sharp vector clarity!
+
+            // StreetComplete & Wanda inspired scale configuration:
+            // 1.35x tile scale factor provides legible street labels and roads on high-density AMOLED screens.
             isTilesScaledToDpi = false
-            tilesScaleFactor = 1.0f
+            tilesScaleFactor = 1.35f
             setDestroyMode(false)
             setMultiTouchControls(true)
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
             minZoomLevel = 4.0
-            maxZoomLevel = 19.5
-            controller.setZoom(15.5)
+            maxZoomLevel = 20.0
+            controller.setZoom(17.2) // Street-level default zoom
             controller.setCenter(GeoPoint(-23.5672, -46.6685)) // São Paulo (Jardins / Paulista)
+
+            // Dynamic Metric Scale Bar Overlay (Distance scale directly on map)
+            val scaleBarOverlay = ScaleBarOverlay(this).apply {
+                setCentred(false)
+                setAlignBottom(true)
+                setAlignRight(false)
+                setScaleBarOffset(24, 32)
+                setUnitsOfMeasure(ScaleBarOverlay.UnitsOfMeasure.metric)
+                setLineWidth(4f)
+                setTextSize(34f)
+                barPaint.color = AndroidColor.parseColor("#458BD0") // Wanda Blue 30
+                textPaint.color = AndroidColor.parseColor("#FFFFFF") // Wanda White
+                textPaint.typeface = Typeface.DEFAULT_BOLD
+                setBackgroundPaint(Paint().apply { color = AndroidColor.parseColor("#99101114") })
+            }
+            overlays.add(scaleBarOverlay)
+
             onResume()
         }
     }
@@ -176,7 +200,13 @@ fun CarMapView(
             factory = { mapView },
             update = { map ->
                 map.setUseDataConnection(true)
+
+                // Preserve scale bar overlay when refreshing overlays
+                val scaleBar = map.overlays.filterIsInstance<ScaleBarOverlay>().firstOrNull()
                 map.overlays.clear()
+                if (scaleBar != null) {
+                    map.overlays.add(scaleBar)
+                }
 
                 // 1. Map Events Receiver for Tapping / Pinning Location
                 if (onMapTapped != null) {
@@ -199,7 +229,7 @@ fun CarMapView(
                     val geoPoints = points.map { GeoPoint(it.lat, it.lon) }
                     val polyline = Polyline(map).apply {
                         setPoints(geoPoints)
-                        outlinePaint.color = AndroidColor.parseColor("#0A84FF") // Apple Electric Blue
+                        outlinePaint.color = AndroidColor.parseColor("#458BD0") // Wanda Primary Blue
                         outlinePaint.strokeWidth = 14f
                         outlinePaint.strokeCap = Paint.Cap.ROUND
                         outlinePaint.strokeJoin = Paint.Join.ROUND
@@ -229,7 +259,8 @@ fun CarMapView(
                     try {
                         val box = BoundingBox.fromGeoPoints(geoPoints)
                         map.post {
-                            map.zoomToBoundingBox(box.increaseByScale(1.35f), true)
+                            // Tighter margin 1.15f for comfortable route framing
+                            map.zoomToBoundingBox(box.increaseByScale(1.15f), true)
                         }
                     } catch (e: Exception) {
                         map.controller.setCenter(geoPoints.first())
@@ -239,7 +270,7 @@ fun CarMapView(
                 // 3. Multi-Routes (for Period Overview)
                 if (multiRoutes.isNotEmpty()) {
                     val routeColors = listOf(
-                        "#0A84FF", "#30D158", "#FF9F0A", "#BF5AF2", "#FF453A", "#64D2FF"
+                        "#458BD0", "#2CBF6F", "#F5A957", "#C480C7", "#D02A43", "#3BABBA"
                     )
                     val allPoints = mutableListOf<GeoPoint>()
 
@@ -262,7 +293,7 @@ fun CarMapView(
                         try {
                             val box = BoundingBox.fromGeoPoints(allPoints)
                             map.post {
-                                map.zoomToBoundingBox(box.increaseByScale(1.35f), true)
+                                map.zoomToBoundingBox(box.increaseByScale(1.15f), true)
                             }
                         } catch (e: Exception) {
                             map.controller.setCenter(allPoints.first())
@@ -286,13 +317,13 @@ fun CarMapView(
                     }
                     if (points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null) {
                         if (markerGeoPoints.size == 1) {
-                            map.controller.setZoom(16.0)
+                            map.controller.setZoom(17.2)
                             map.controller.setCenter(markerGeoPoints.first())
                         } else {
                             try {
                                 val box = BoundingBox.fromGeoPoints(markerGeoPoints)
                                 map.post {
-                                    map.zoomToBoundingBox(box.increaseByScale(1.45f), true)
+                                    map.zoomToBoundingBox(box.increaseByScale(1.2f), true)
                                 }
                             } catch (e: Exception) {
                                 map.controller.setCenter(markerGeoPoints.first())
@@ -331,14 +362,14 @@ fun CarMapView(
             }
         )
 
-        // Apple-style Floating Map Layer Switcher
+        // Wanda Layer Switcher (Top End)
         if (showLayerSwitcher) {
             Row(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(top = 16.dp, end = 16.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(AppleCardElevated.copy(alpha = 0.92f))
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(WandaCardElevated.copy(alpha = 0.94f))
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -346,8 +377,8 @@ fun CarMapView(
                     val isSelected = layer == selectedLayer
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (isSelected) AppleBlue else Color.Transparent)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSelected) WandaPrimary else Color.Transparent)
                             .clickable { selectedLayer = layer }
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
@@ -359,6 +390,46 @@ fun CarMapView(
                         )
                     }
                 }
+            }
+        }
+
+        // Floating One-Handed Zoom Controls (+ and - buttons, Bottom End)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 24.dp, end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(WandaCardElevated.copy(alpha = 0.94f))
+                    .clickable { mapView.controller.zoomIn() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Aproximar",
+                    tint = TextPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(WandaCardElevated.copy(alpha = 0.94f))
+                    .clickable { mapView.controller.zoomOut() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Remove,
+                    contentDescription = "Afastar",
+                    tint = TextPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

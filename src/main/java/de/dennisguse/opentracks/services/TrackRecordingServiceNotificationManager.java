@@ -15,8 +15,8 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.TaskStackBuilder;
 
 import de.dennisguse.opentracks.R;
-import de.dennisguse.opentracks.TrackListActivity;
-import de.dennisguse.opentracks.TrackRecordingActivity;
+import de.dennisguse.opentracks.CarMainActivity;
+
 import de.dennisguse.opentracks.data.models.Distance;
 import de.dennisguse.opentracks.data.models.DistanceFormatter;
 import de.dennisguse.opentracks.data.models.SpeedFormatter;
@@ -68,12 +68,10 @@ class TrackRecordingServiceNotificationManager implements SharedPreferences.OnSh
     }
 
     Notification onSensorsStarted(Context context) {
-        Intent intent = IntentUtils.newIntent(context, TrackListActivity.class);
+        Intent intent = IntentUtils.newIntent(context, CarMainActivity.class);
 
-        PendingIntent pendingIntent = TaskStackBuilder.create(context)
-                .addParentStack(TrackListActivity.class)
-                .addNextIntent(intent)
-                .getPendingIntent(0, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context, 0, intent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
         updateGPSStatus(context.getString(R.string.gps_starting));
 
@@ -89,13 +87,10 @@ class TrackRecordingServiceNotificationManager implements SharedPreferences.OnSh
     }
 
     public void onRecordingStarted(Context context, @NonNull Track.Id trackId) {
-        Intent intent = IntentUtils.newIntent(context, TrackRecordingActivity.class)
-                .putExtra(TrackRecordingActivity.EXTRA_TRACK_ID, trackId);
+        Intent intent = IntentUtils.newIntent(context, CarMainActivity.class);
 
-        PendingIntent pendingIntent = TaskStackBuilder.create(context)
-                .addParentStack(TrackListActivity.class)
-                .addNextIntent(intent)
-                .getPendingIntent(0, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context, 0, intent, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
         notificationBuilder.setContentIntent(pendingIntent);
         updateNotification();
