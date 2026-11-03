@@ -31,6 +31,10 @@ import de.dennisguse.opentracks.ui.model.TripItem
 import de.dennisguse.opentracks.ui.model.TripPoint
 import de.dennisguse.opentracks.ui.theme.*
 import de.dennisguse.opentracks.util.FuelEfficiencyCalculator
+import de.dennisguse.opentracks.util.MapMatchingService
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +50,12 @@ fun TripDetailScreen(
     var isMapMaximized by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var showMatchedRoute by remember { mutableStateOf(false) }
+    var isMatchingInProgress by remember { mutableStateOf(false) }
+    var matchedPoints by remember { mutableStateOf<List<TripPoint>?>(null) }
+    val displayPoints = if (showMatchedRoute && matchedPoints != null) matchedPoints!! else points
     val tripKmL = remember(trip.avgSpeedKmh) {
         FuelEfficiencyCalculator.estimateTripKmL(trip.avgSpeedKmh)
     }
@@ -177,7 +187,7 @@ fun TripDetailScreen(
                     .padding(innerPadding)
             ) {
                 CarMapView(
-                    points = points,
+                    points = displayPoints,
                     modifier = Modifier.fillMaxSize()
                 )
 
@@ -222,7 +232,7 @@ fun TripDetailScreen(
                         .background(AppleCard)
                 ) {
                     CarMapView(
-                        points = points,
+                        points = displayPoints,
                         modifier = Modifier.fillMaxSize()
                     )
 
@@ -248,6 +258,85 @@ fun TripDetailScreen(
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
+                    }
+                }
+
+                // Map Matching Action Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(WandaCard)
+                        .border(1.dp, if (showMatchedRoute) WandaCyan20.copy(alpha = 0.5f) else WandaBorderSubtle, RoundedCornerShape(16.dp))
+                        .padding(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    text = "Ajuste às Ruas (Map Matching)",
+                                    color = TextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                                if (showMatchedRoute) {
+                                    Box(
+                                        Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(WandaCyan20.copy(alpha = 0.2f))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("ATIVO", color = WandaCyan20, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                                    }
+                                }
+                            }
+                            Text(
+                                text = if (showMatchedRoute) "Traçado suavizado e ajustado às vias" else "Elimina desvios de GPS e encaixa o trajeto nas vias",
+                                color = TextSecondary,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                if (showMatchedRoute) {
+                                    showMatchedRoute = false
+                                } else if (matchedPoints != null) {
+                                    showMatchedRoute = true
+                                } else {
+                                    coroutineScope.launch {
+                                        isMatchingInProgress = true
+                                        val res = MapMatchingService.matchTrip(context, de.dennisguse.opentracks.data.models.Track.Id(trip.id), points)
+                                        matchedPoints = res.matchedPoints
+                                        showMatchedRoute = true
+                                        isMatchingInProgress = false
+                                        val typeMsg = if (res.isOnlineMatched) "Vias oficiais OSM (Online)" else "Corredores viários (Offline)"
+                                        Toast.makeText(context, "Trajeto ajustado via $typeMsg!", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
+                            enabled = !isMatchingInProgress,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (showMatchedRoute) WandaCyan20 else WandaCardElevated
+                            )
+                        ) {
+                            if (isMatchingInProgress) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                            } else {
+                                Text(
+                                    text = if (showMatchedRoute) "Ver GPS Bruto" else "Ajustar Traçado",
+                                    color = if (showMatchedRoute) Color.Black else TextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
                     }
                 }
 

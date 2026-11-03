@@ -113,7 +113,6 @@ limitations under the License.
 
         
 
-        <activity android:name=".AboutActivity" />
 
         <activity android:name=".io.file.importer.DirectoryChooserActivity$ImportDirectoryChooserActivity" />
 
@@ -312,9 +311,6 @@ limitations under the License.
 
         <activity android:name=".io.file.exporter.ExportActivity" />
 
-        <activity android:name=".settings.SettingsActivity" />
-        <activity android:name=".settings.SettingsCustomLayoutListActivity" />
-        <activity android:name=".settings.SettingsCustomLayoutEditActivity" />
 
         <activity
             android:name=".ShowErrorActivity"

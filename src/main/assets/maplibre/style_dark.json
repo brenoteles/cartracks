@@ -1,0 +1,30 @@
+{
+  "version": 8,
+  "name": "CarTracks Wanda Dark",
+  "sources": {
+    "carto-dark": {
+      "type": "raster",
+      "tiles": [
+        "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png"
+      ],
+      "tileSize": 256,
+      "attribution": "© CARTO, © OpenStreetMap contributors"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#0E1014"
+      }
+    },
+    {
+      "id": "carto-dark-layer",
+      "type": "raster",
+      "source": "carto-dark",
+      "minzoom": 0,
+      "maxzoom": 20
+    }
+  ]
+}

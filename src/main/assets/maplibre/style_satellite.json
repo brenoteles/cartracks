@@ -1,0 +1,30 @@
+{
+  "version": 8,
+  "name": "CarTracks Esri Satellite HD",
+  "sources": {
+    "esri-sat": {
+      "type": "raster",
+      "tiles": [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg"
+      ],
+      "tileSize": 256,
+      "attribution": "© Esri, Maxar, Earthstar Geographics"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#0B1117"
+      }
+    },
+    {
+      "id": "esri-sat-layer",
+      "type": "raster",
+      "source": "esri-sat",
+      "minzoom": 0,
+      "maxzoom": 20
+    }
+  ]
+}

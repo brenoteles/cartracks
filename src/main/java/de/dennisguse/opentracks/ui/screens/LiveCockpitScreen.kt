@@ -152,6 +152,39 @@ fun LiveCockpitScreen(
             }
         }
 
+        // Smart Pause Banner
+        if (liveData.isSmartPaused) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(WandaCardElevated)
+                    .border(1.dp, WandaYellow30.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("⏸️", fontSize = 20.sp)
+                    Column {
+                        Text(
+                            text = "Pausa Inteligente (Veículo Imóvel)",
+                            color = WandaYellow10,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                        Text(
+                            text = "A gravação será retomada assim que o carro acelerar.",
+                            color = TextSecondary,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+        }
+
         if (!isMapExpanded) {
             // Speedometer Display (Pure High-Contrast Automotive Telemetry)
             Column(

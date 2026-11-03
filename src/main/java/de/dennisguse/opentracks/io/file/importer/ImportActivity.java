@@ -31,7 +31,7 @@ import java.util.List;
 
 import de.dennisguse.opentracks.AbstractActivity;
 import de.dennisguse.opentracks.R;
-import de.dennisguse.opentracks.TrackRecordedActivity;
+import de.dennisguse.opentracks.CarMainActivity;
 import de.dennisguse.opentracks.databinding.ImportActivityBinding;
 import de.dennisguse.opentracks.io.file.ErrorListDialog;
 import de.dennisguse.opentracks.util.IntentUtils;
@@ -183,8 +183,7 @@ public class ImportActivity extends AbstractActivity {
             viewBinding.importProgressLeftButton.setVisibility(View.VISIBLE);
             viewBinding.importProgressLeftButton.setText(getString(R.string.generic_open_track));
             viewBinding.importProgressLeftButton.setOnClickListener((view) -> {
-                Intent newIntent = IntentUtils.newIntent(ImportActivity.this, TrackRecordedActivity.class)
-                        .putExtra(TrackRecordedActivity.EXTRA_TRACK_ID, summary.getImportedTrackIds().get(0));
+                Intent newIntent = IntentUtils.newIntent(ImportActivity.this, CarMainActivity.class);
                 startActivity(newIntent);
                 getViewModelStore().clear();
                 finish();

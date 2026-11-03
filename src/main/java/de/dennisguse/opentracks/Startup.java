@@ -39,6 +39,12 @@ public class Startup extends Application {
         PreferencesUtils.resetPreferences(this, false);
         PreferencesUtils.applyDefaultUnit();
         PreferencesUtils.applyNightModeAndDynamicColors(this);
+
+        try {
+            org.maplibre.android.MapLibre.getInstance(this);
+        } catch (Exception e) {
+            Log.w(TAG, "MapLibre native initialization: " + e.getMessage());
+        }
     }
 
     @Override

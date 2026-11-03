@@ -28,7 +28,7 @@ import de.dennisguse.opentracks.data.models.Track;
 import de.dennisguse.opentracks.io.file.TrackFileFormat;
 import de.dennisguse.opentracks.io.file.TrackFilenameGenerator;
 import de.dennisguse.opentracks.settings.PreferencesUtils;
-import de.dennisguse.opentracks.settings.SettingsActivity;
+import de.dennisguse.opentracks.CarMainActivity;
 import de.dennisguse.opentracks.util.IntentUtils;
 
 public class ExportUtils {
@@ -55,9 +55,8 @@ public class ExportUtils {
                     .observe(context, workInfo -> {
                         if (workInfo != null) {
                             if (workInfo.getState() == WorkInfo.State.FAILED) {
-                                Intent intent = new Intent(context, SettingsActivity.class);
+                                Intent intent = new Intent(context, CarMainActivity.class);
                                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                intent.putExtra(SettingsActivity.EXTRAS_EXPORT_ERROR_MESSAGE, workInfo.getProgress().getString(ExportWorker.RESULT_EXPORT_ERROR_MESSAGE_KEY));
                                 context.startActivity(intent);
                             }
                         }

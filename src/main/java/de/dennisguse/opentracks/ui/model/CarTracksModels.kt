@@ -76,6 +76,7 @@ enum class FuelTypeFilter(val label: String) {
 
 data class LiveCockpitData(
     val isRecording: Boolean = false,
+    val isSmartPaused: Boolean = false,
     val trackId: Long = 0,
     val currentSpeedKmh: Double = 0.0,
     val maxSpeedKmh: Double = 0.0,

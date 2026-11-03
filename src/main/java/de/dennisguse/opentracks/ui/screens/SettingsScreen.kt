@@ -51,8 +51,7 @@ fun SettingsScreen(
     onSaveVehicleConfig: (name: String, plate: String, tankCapacity: Double, primaryFuelType: String, odometer: Double, estimatedKmL: Double, kmSinceLastFull: Double) -> Unit,
     onPurgeDemoData: () -> Unit = {},
     onExportBackup: () -> Unit,
-    onImportBackup: (Uri) -> Unit,
-    onOpenSystemSettings: () -> Unit
+    onImportBackup: (Uri) -> Unit
 ) {
     val context = LocalContext.current
     var vehicleNameStr by remember(vehicleName) { mutableStateOf(vehicleName) }
@@ -66,7 +65,13 @@ fun SettingsScreen(
 
     var mapPickerTarget by remember { mutableStateOf<String?>(null) } // "home" or "work"
 
-    // Auto backup & Offline Map settings
+    // Auto backup, Smart Pause & Map Matching
+    var smartPauseEnabled by remember {
+        mutableStateOf(context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).getBoolean("smart_idle_pause_enabled", true))
+    }
+    var autoMapMatchEnabled by remember {
+        mutableStateOf(context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).getBoolean("auto_map_match_enabled", true))
+    }
     var autoBackupEnabled by remember {
         mutableStateOf(
             context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
@@ -643,10 +648,10 @@ fun SettingsScreen(
             }
         }
 
-        // Section: System & Advanced
+        // Section: Automação Inteligente de Gravação
         item {
             Text(
-                text = "Sistema e Sensores",
+                text = "Automação e Inteligência Veicular",
                 color = WandaCyan20,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
@@ -654,27 +659,82 @@ fun SettingsScreen(
         }
 
         item {
-            Button(
-                onClick = onOpenSystemSettings,
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = WandaCardElevated)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(WandaCard)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(18.dp))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = null,
-                    tint = TextPrimary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Configurações Avançadas de Gravação",
-                    color = TextPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                // Pausa inteligente por imobilidade prolongada
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Pausa Inteligente por Imobilidade",
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            text = "Pausa a gravação após 3 min parado e retoma ao acelerar",
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Switch(
+                        checked = smartPauseEnabled,
+                        onCheckedChange = {
+                            smartPauseEnabled = it
+                            context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
+                                .edit().putBoolean("smart_idle_pause_enabled", it).apply()
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = WandaGreen20,
+                            checkedTrackColor = WandaGreen20.copy(alpha = 0.3f)
+                        )
+                    )
+                }
+
+                Divider(color = WandaBorderSubtle)
+
+                // Map Matching pós-viagem automático
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Map Matching Automático",
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            text = "Ajusta o traçado às vias oficiais ao concluir o percurso",
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Switch(
+                        checked = autoMapMatchEnabled,
+                        onCheckedChange = {
+                            autoMapMatchEnabled = it
+                            context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
+                                .edit().putBoolean("auto_map_match_enabled", it).apply()
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = WandaCyan20,
+                            checkedTrackColor = WandaCyan20.copy(alpha = 0.3f)
+                        )
+                    )
+                }
             }
         }
 

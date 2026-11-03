@@ -41,7 +41,6 @@ import de.dennisguse.opentracks.io.TrackExportHelper
 import de.dennisguse.opentracks.services.RecordingData
 import de.dennisguse.opentracks.services.TrackRecordingService
 import de.dennisguse.opentracks.services.TrackRecordingServiceConnection
-import de.dennisguse.opentracks.settings.SettingsActivity
 import de.dennisguse.opentracks.ui.model.*
 import de.dennisguse.opentracks.ui.screens.*
 import de.dennisguse.opentracks.ui.theme.*
@@ -201,11 +200,11 @@ class CarMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Clean fake demo trips and mock fuel entries for real-life usage
-        cleanDemoData()
-
         providerUtils = ContentProviderUtils(this)
         fuelDb = FuelDatabaseHelper.getInstance(this)
+
+        // Clean fake demo trips and mock fuel entries for real-life usage
+        cleanDemoData()
 
         loadPreferences()
         loadCustomLocations()
@@ -273,6 +272,12 @@ class CarMainActivity : ComponentActivity() {
     }
 
     private fun cleanDemoData(showToast: Boolean = false) {
+        if (!::fuelDb.isInitialized) {
+            fuelDb = FuelDatabaseHelper.getInstance(this)
+        }
+        if (!::providerUtils.isInitialized) {
+            providerUtils = ContentProviderUtils(this)
+        }
         val prefs = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
         val alreadyCleaned = prefs.getBoolean("demo_data_purged_v15", false)
         if (!alreadyCleaned || showToast) {
@@ -675,8 +680,10 @@ class CarMainActivity : ComponentActivity() {
             }
         }
 
+        val isSmartPaused = service.isSmartPaused
         liveCockpitState.value = LiveCockpitData(
             isRecording = true,
+            isSmartPaused = isSmartPaused,
             trackId = 0,
             currentSpeedKmh = curSpd,
             maxSpeedKmh = maxSpd,
@@ -1038,9 +1045,6 @@ class CarMainActivity : ComponentActivity() {
                                 Toast.makeText(this@CarMainActivity, "Erro ao importar backup: ${e.message}", Toast.LENGTH_LONG).show()
                             }
                         },
-                        onOpenSystemSettings = {
-                            startActivity(Intent(this@CarMainActivity, SettingsActivity::class.java))
-                        }
                     )
                 }
             }

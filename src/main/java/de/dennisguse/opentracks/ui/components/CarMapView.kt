@@ -6,8 +6,6 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path as AndroidPath
 import android.graphics.RectF
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,41 +31,35 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.preference.PreferenceManager
 import de.dennisguse.opentracks.ui.model.MapMarkerItem
 import de.dennisguse.opentracks.ui.model.TripPoint
 import de.dennisguse.opentracks.ui.theme.*
-import org.osmdroid.config.Configuration
-import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.BoundingBox
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.util.MapTileIndex
-import org.osmdroid.views.CustomZoomButtonsController
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.MapEventsOverlay
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.Polyline
-import org.osmdroid.views.overlay.ScaleBarOverlay
-import java.io.File
+import org.maplibre.android.annotations.IconFactory
+import org.maplibre.android.annotations.MarkerOptions
+import org.maplibre.android.annotations.PolylineOptions
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
 import android.graphics.Color as AndroidColor
 
 /**
- * Modern Vector-Grade Marker Factory for OpenStreetMap / OsmDroid.
- * Replaces legacy 2011 pushpins with high-DPI automotive tokens.
+ * Modern High-DPI Marker Factory for CarTracks Automotive UI.
  */
 object ModernMarkerFactory {
-    private var cachedStart: Drawable? = null
-    private var cachedEnd: Drawable? = null
-    private var cachedPin: Drawable? = null
-    private var cachedGps: Drawable? = null
-    private var cachedFuel: Drawable? = null
+    private var cachedStart: Bitmap? = null
+    private var cachedEnd: Bitmap? = null
+    private var cachedPin: Bitmap? = null
+    private var cachedGps: Bitmap? = null
+    private var cachedFuel: Bitmap? = null
 
-    fun getStartMarker(context: Context): Drawable {
+    fun getStartMarkerBitmap(context: Context): Bitmap {
         if (cachedStart != null) return cachedStart!!
         val density = context.resources.displayMetrics.density
-        val size = (32 * density).toInt()
+        val size = (32 * density).toInt().coerceAtLeast(48)
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val center = size / 2f
@@ -87,14 +79,14 @@ object ModernMarkerFactory {
         paint.color = AndroidColor.WHITE
         canvas.drawCircle(center, center, 3 * density, paint)
 
-        cachedStart = BitmapDrawable(context.resources, bitmap)
-        return cachedStart!!
+        cachedStart = bitmap
+        return bitmap
     }
 
-    fun getEndMarker(context: Context): Drawable {
+    fun getEndMarkerBitmap(context: Context): Bitmap {
         if (cachedEnd != null) return cachedEnd!!
         val density = context.resources.displayMetrics.density
-        val size = (32 * density).toInt()
+        val size = (32 * density).toInt().coerceAtLeast(48)
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val center = size / 2f
@@ -112,85 +104,76 @@ object ModernMarkerFactory {
         canvas.drawCircle(center, center, center - 8 * density, paint)
 
         paint.color = AndroidColor.WHITE
-        val rectSize = 5 * density
-        canvas.drawRect(center - rectSize, center - rectSize, center + rectSize, center + rectSize, paint)
+        canvas.drawRect(center - 3 * density, center - 3 * density, center + 3 * density, center + 3 * density, paint)
 
-        cachedEnd = BitmapDrawable(context.resources, bitmap)
-        return cachedEnd!!
+        cachedEnd = bitmap
+        return bitmap
     }
 
-    fun getPinnedMarker(context: Context): Drawable {
+    fun getPinnedMarkerBitmap(context: Context): Bitmap {
         if (cachedPin != null) return cachedPin!!
         val density = context.resources.displayMetrics.density
-        val width = (36 * density).toInt()
-        val height = (46 * density).toInt()
+        val width = (32 * density).toInt().coerceAtLeast(48)
+        val height = (42 * density).toInt().coerceAtLeast(64)
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = AndroidColor.parseColor("#0062FF") // Wanda Interactive
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val centerX = width / 2f
+        val circleRadius = (width / 2f) - 3 * density
+
+        val path = AndroidPath().apply {
+            moveTo(centerX, height.toFloat() - 2 * density)
+            lineTo(centerX - circleRadius * 0.7f, circleRadius + 4 * density)
+            arcTo(RectF(centerX - circleRadius, 2 * density, centerX + circleRadius, 2 * density + 2 * circleRadius), 150f, 240f)
+            close()
         }
 
-        val path = AndroidPath()
-        val r = width / 2.3f
-        path.moveTo(width / 2f, height.toFloat() - 2 * density)
-        path.cubicTo(
-            0f, height * 0.65f,
-            0f, r,
-            width / 2f, 2 * density
-        )
-        path.cubicTo(
-            width.toFloat(), 2 * density,
-            width.toFloat(), height * 0.65f,
-            width / 2f, height.toFloat() - 2 * density
-        )
-        path.close()
+        paint.style = Paint.Style.FILL
+        paint.color = AndroidColor.parseColor("#0084FF") // Wanda Blue
         canvas.drawPath(path, paint)
 
-        // White border
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 2.5f * density
         paint.color = AndroidColor.WHITE
         canvas.drawPath(path, paint)
 
-        // Inner white dot
         paint.style = Paint.Style.FILL
         paint.color = AndroidColor.WHITE
-        canvas.drawCircle(width / 2f, height * 0.38f, 5 * density, paint)
+        canvas.drawCircle(centerX, circleRadius + 2 * density, circleRadius * 0.45f, paint)
 
-        cachedPin = BitmapDrawable(context.resources, bitmap)
-        return cachedPin!!
+        cachedPin = bitmap
+        return bitmap
     }
 
-    fun getMyLocationMarker(context: Context): Drawable {
+    fun getGpsVehicleBitmap(context: Context): Bitmap {
         if (cachedGps != null) return cachedGps!!
         val density = context.resources.displayMetrics.density
-        val size = (30 * density).toInt()
+        val size = (36 * density).toInt().coerceAtLeast(54)
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val center = size / 2f
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
-            color = AndroidColor.parseColor("#3357C3D1")
+            color = AndroidColor.parseColor("#333BABBA") // Wanda Cyan halo
         }
-        canvas.drawCircle(center, center, center - 1 * density, paint)
+        canvas.drawCircle(center, center, center - 2 * density, paint)
 
         paint.color = AndroidColor.WHITE
-        canvas.drawCircle(center, center, center - 6 * density, paint)
+        canvas.drawCircle(center, center, 9 * density, paint)
 
-        paint.color = AndroidColor.parseColor("#0062FF")
-        canvas.drawCircle(center, center, center - 8.5f * density, paint)
+        paint.color = AndroidColor.parseColor("#0084FF") // Automotive Blue Core
+        canvas.drawCircle(center, center, 6.5f * density, paint)
 
-        cachedGps = BitmapDrawable(context.resources, bitmap)
-        return cachedGps!!
+        cachedGps = bitmap
+        return bitmap
     }
 
-    fun getFuelMarker(context: Context): Drawable {
+    fun getFuelMarkerBitmap(context: Context): Bitmap {
         if (cachedFuel != null) return cachedFuel!!
         val density = context.resources.displayMetrics.density
-        val size = (28 * density).toInt()
+        val size = (28 * density).toInt().coerceAtLeast(42)
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val center = size / 2f
@@ -201,59 +184,13 @@ object ModernMarkerFactory {
         }
         canvas.drawCircle(center, center, center - 2 * density, paint)
 
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2.5f * density
         paint.color = AndroidColor.WHITE
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 2f * density
         canvas.drawCircle(center, center, center - 2 * density, paint)
 
-        paint.style = Paint.Style.FILL
-        paint.color = AndroidColor.WHITE
-        canvas.drawCircle(center, center, 4 * density, paint)
-
-        cachedFuel = BitmapDrawable(context.resources, bitmap)
-        return cachedFuel!!
-    }
-}
-
-val EsriWorldStreetMapHD = object : OnlineTileSourceBase(
-    "EsriStreetHD",
-    0, 19, 256, ".jpg",
-    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/"),
-    "© Esri, OpenStreetMap contributors"
-) {
-    override fun getTileURLString(pMapTileIndex: Long): String {
-        val zoom = MapTileIndex.getZoom(pMapTileIndex)
-        val x = MapTileIndex.getX(pMapTileIndex)
-        val y = MapTileIndex.getY(pMapTileIndex)
-        return "$baseUrl$zoom/$y/$x.jpg"
-    }
-}
-
-val EsriDarkCanvasHD = object : OnlineTileSourceBase(
-    "EsriDarkHD",
-    0, 19, 256, ".jpg",
-    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/"),
-    "© Esri, HERE, Garmin"
-) {
-    override fun getTileURLString(pMapTileIndex: Long): String {
-        val zoom = MapTileIndex.getZoom(pMapTileIndex)
-        val x = MapTileIndex.getX(pMapTileIndex)
-        val y = MapTileIndex.getY(pMapTileIndex)
-        return "$baseUrl$zoom/$y/$x.jpg"
-    }
-}
-
-val EsriSatelliteHD = object : OnlineTileSourceBase(
-    "EsriSatelliteHD",
-    0, 19, 256, ".jpg",
-    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"),
-    "© Esri, Maxar, Earthstar Geographics"
-) {
-    override fun getTileURLString(pMapTileIndex: Long): String {
-        val zoom = MapTileIndex.getZoom(pMapTileIndex)
-        val x = MapTileIndex.getX(pMapTileIndex)
-        val y = MapTileIndex.getY(pMapTileIndex)
-        return "$baseUrl$zoom/$y/$x.jpg"
+        cachedFuel = bitmap
+        return bitmap
     }
 }
 
@@ -263,24 +200,14 @@ enum class MapLayer(val label: String) {
     SATELLITE("Satélite")
 }
 
-private fun ensureOsmDroidConfigured(context: Context) {
-    val appCtx = context.applicationContext
-    val config = Configuration.getInstance()
-    config.load(appCtx, PreferenceManager.getDefaultSharedPreferences(appCtx))
-
-    val baseDir = File(appCtx.cacheDir, "osmdroid_v11").apply { mkdirs() }
-    val tileDir = File(baseDir, "tiles").apply { mkdirs() }
-    config.osmdroidBasePath = baseDir
-    config.osmdroidTileCache = tileDir
-
-    config.userAgentValue = "Mozilla/5.0 (Linux; Android 16; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 CarTracks/1.0.11"
-
-    config.tileDownloadThreads = 8.toShort()
-    config.tileFileSystemThreads = 8.toShort()
-    config.cacheMapTileCount = 200.toShort()
-    config.tileDownloadMaxQueueSize = 80.toShort()
-}
-
+/**
+ * Modern High-Performance MapLibre GL Surface Map Composable for CarTracks.
+ * Features:
+ * - Hardware-accelerated OpenGL / Vulkan vector & raster rendering.
+ * - Dynamic Automotive layer switching (Wanda Dark, Esri Streets HD, Esri Satellite).
+ * - Multi-colored speed gradient polylines (OsmAnd style).
+ * - Full interactive camera framing, gestures, pinch zoom, center GPS.
+ */
 @Composable
 fun CarMapView(
     modifier: Modifier = Modifier,
@@ -300,104 +227,25 @@ fun CarMapView(
     val lifecycleOwner = LocalLifecycleOwner.current
     var selectedLayer by remember { mutableStateOf(MapLayer.STREET) }
 
-    // Memoization keys to eliminate redundant overlay clearing & re-draws on telemetry ticks
-    var lastPointsHash by remember { mutableStateOf(0) }
-    var lastPinnedCoord by remember { mutableStateOf<Pair<Double, Double>?>(null) }
-    var hasAutoCentered by remember { mutableStateOf(false) }
-
-    // Camera ownership: once the user touches/zooms the map, we NEVER move the camera
-    // automatically again (until they press the GPS button to re-enable follow mode).
+    var mapLibreMapInstance by remember { mutableStateOf<MapLibreMap?>(null) }
+    var isMapStyleLoaded by remember { mutableStateOf(false) }
     var userInteracted by remember { mutableStateOf(false) }
-    var lastFitKey by remember { mutableStateOf<Any?>(null) }
-    var lastAnimatedPin by remember { mutableStateOf<Pair<Double, Double>?>(null) }
 
     val mapView = remember {
-        ensureOsmDroidConfigured(context)
         MapView(context).apply {
-            setOnTouchListener { _, ev ->
-                if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN ||
-                    ev.actionMasked == android.view.MotionEvent.ACTION_POINTER_DOWN
-                ) {
-                    userInteracted = true
-                }
-                false // let osmdroid handle the gesture normally
-            }
-            setTileSource(EsriWorldStreetMapHD)
-            setUseDataConnection(true)
-
-            // High Definition Native GIS Resolution:
-            // 1.0f scale factor eliminates blurry digital upscaling on 1440p/1080p screens
-            isTilesScaledToDpi = false
-            tilesScaleFactor = 1.0f
-
-            setDestroyMode(false)
-            setMultiTouchControls(true)
-            isFlingEnabled = true
-            isHorizontalMapRepetitionEnabled = false
-            isVerticalMapRepetitionEnabled = false
-
-            zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
-            minZoomLevel = 4.0
-            maxZoomLevel = 20.0
-
-            post {
-                val initialPt = currentLocation?.let { GeoPoint(it.first, it.second) }
-                    ?: pinnedLocation?.let { GeoPoint(it.first, it.second) }
-                    ?: GeoPoint(-23.5672, -46.6685)
-                controller.setZoom(17.2)
-                controller.setCenter(initialPt)
-            }
-
-            // StreetComplete dynamic scale bar overlay
-            val scaleBarOverlay = ScaleBarOverlay(this).apply {
-                setCentred(false)
-                unitsOfMeasure = ScaleBarOverlay.UnitsOfMeasure.metric
-                setScaleBarOffset(36, 40)
-                setTextSize(26f)
-                setBackgroundPaint(Paint().apply {
-                    color = AndroidColor.parseColor("#B3101114")
-                    style = Paint.Style.FILL
-                })
-                textPaint.apply {
-                    color = AndroidColor.WHITE
-                    isAntiAlias = true
-                    isFakeBoldText = true
-                }
-                barPaint.apply {
-                    color = AndroidColor.WHITE
-                    strokeWidth = 4f
-                    isAntiAlias = true
-                }
-            }
-            overlays.add(scaleBarOverlay)
+            onCreate(null)
         }
     }
 
-    LaunchedEffect(currentLocation) {
-        if (currentLocation == null) return@LaunchedEffect
-        val gp = GeoPoint(currentLocation.first, currentLocation.second)
-        if (!hasAutoCentered) {
-            // First fix only: center + set zoom once (fixes the "Australia" start).
-            hasAutoCentered = true
-            val hasOwnFraming = pinnedLocation != null || multiRoutes.isNotEmpty() ||
-                extraMarkers.isNotEmpty() || points.size >= 2
-            if (!hasOwnFraming && !userInteracted) {
-                mapView.post {
-                    mapView.controller.setZoom(17.5)
-                    mapView.controller.setCenter(gp)
-                }
-            }
-        } else if (!userInteracted && points.isNotEmpty()) {
-            // Live follow mode while recording: pan only, NEVER touch the zoom level.
-            mapView.post { mapView.controller.animateTo(gp) }
-        }
-    }
-
+    // Lifecycle binding
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
+                Lifecycle.Event.ON_START -> mapView.onStart()
                 Lifecycle.Event.ON_RESUME -> mapView.onResume()
                 Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                Lifecycle.Event.ON_STOP -> mapView.onStop()
+                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
                 else -> Unit
             }
         }
@@ -407,427 +255,344 @@ fun CarMapView(
         }
     }
 
-    LaunchedEffect(selectedLayer) {
-        when (selectedLayer) {
-            MapLayer.STREET -> mapView.setTileSource(EsriWorldStreetMapHD)
-            MapLayer.DARK -> mapView.setTileSource(EsriDarkCanvasHD)
-            MapLayer.SATELLITE -> mapView.setTileSource(EsriSatelliteHD)
+    // Helper to get style asset URL
+    fun getStyleUri(layer: MapLayer): String = when (layer) {
+        MapLayer.DARK -> "asset://maplibre/style_dark.json"
+        MapLayer.STREET -> "asset://maplibre/style_streets.json"
+        MapLayer.SATELLITE -> "asset://maplibre/style_satellite.json"
+    }
+
+    // Initialize Map and load style
+    LaunchedEffect(mapView) {
+        mapView.getMapAsync { map ->
+            mapLibreMapInstance = map
+            map.uiSettings.isAttributionEnabled = false
+            map.uiSettings.isLogoEnabled = false
+            map.uiSettings.isCompassEnabled = true
+
+            map.setStyle(Style.Builder().fromUri(getStyleUri(selectedLayer))) { _ ->
+                isMapStyleLoaded = true
+            }
+
+            map.addOnMoveListener(object : MapLibreMap.OnMoveListener {
+                override fun onMoveBegin(detector: org.maplibre.android.gestures.MoveGestureDetector) {
+                    userInteracted = true
+                }
+                override fun onMove(detector: org.maplibre.android.gestures.MoveGestureDetector) {}
+                override fun onMoveEnd(detector: org.maplibre.android.gestures.MoveGestureDetector) {}
+            })
+
+            map.addOnMapClickListener { latLng ->
+                onMapTapped?.invoke(latLng.latitude, latLng.longitude)
+                true
+            }
         }
-        mapView.invalidate()
+    }
+
+    // Layer switch effect
+    LaunchedEffect(selectedLayer) {
+        val map = mapLibreMapInstance ?: return@LaunchedEffect
+        isMapStyleLoaded = false
+        map.setStyle(Style.Builder().fromUri(getStyleUri(selectedLayer))) {
+            isMapStyleLoaded = true
+        }
+    }
+
+    // Update markers, polylines, and camera when state changes or style loads
+    LaunchedEffect(isMapStyleLoaded, points, multiRoutes, extraMarkers, pinnedLocation, currentLocation) {
+        val map = mapLibreMapInstance ?: return@LaunchedEffect
+        if (!isMapStyleLoaded) return@LaunchedEffect
+
+        map.clear()
+        val iconFactory = IconFactory.getInstance(context)
+
+        // 1. Draw Single Route with Speed Gradient (OsmAnd style)
+        if (points.size >= 2) {
+            val speedColoredSegments = mutableListOf<Pair<Int, MutableList<LatLng>>>()
+            var currentSpeedCategory = -1
+            var currentSegment = mutableListOf<LatLng>()
+
+            for (i in points.indices) {
+                val pt = points[i]
+                val latLng = LatLng(pt.lat, pt.lon)
+                val speed = pt.speedKmh
+
+                val speedCategory = when {
+                    speed < 20.0 -> AndroidColor.parseColor("#D02A43") // Red
+                    speed < 40.0 -> AndroidColor.parseColor("#F5A957") // Amber
+                    speed < 70.0 -> AndroidColor.parseColor("#2CBF6F") // Green
+                    speed < 100.0 -> AndroidColor.parseColor("#0084FF") // Blue
+                    else -> AndroidColor.parseColor("#C480C7") // Purple
+                }
+
+                if (speedCategory != currentSpeedCategory) {
+                    if (currentSegment.size >= 2) {
+                        speedColoredSegments.add(Pair(currentSpeedCategory, currentSegment))
+                    }
+                    val newSegment = mutableListOf<LatLng>()
+                    if (currentSegment.isNotEmpty()) {
+                        newSegment.add(currentSegment.last()) // Bridge connection
+                    }
+                    newSegment.add(latLng)
+                    currentSegment = newSegment
+                    currentSpeedCategory = speedCategory
+                } else {
+                    currentSegment.add(latLng)
+                }
+            }
+            if (currentSegment.size >= 2) {
+                speedColoredSegments.add(Pair(currentSpeedCategory, currentSegment))
+            }
+
+            // Fallback to solid cyan/blue if no distinct speed chunks
+            if (speedColoredSegments.isEmpty()) {
+                val allLatLngs = points.map { LatLng(it.lat, it.lon) }
+                map.addPolyline(
+                    PolylineOptions()
+                        .addAll(allLatLngs)
+                        .color(AndroidColor.parseColor("#0084FF"))
+                        .width(5.5f)
+                )
+            } else {
+                for (seg in speedColoredSegments) {
+                    map.addPolyline(
+                        PolylineOptions()
+                            .addAll(seg.second)
+                            .color(seg.first)
+                            .width(5.5f)
+                    )
+                }
+            }
+
+            // Start & End Markers
+            val first = points.first()
+            val last = points.last()
+            map.addMarker(
+                MarkerOptions()
+                    .position(LatLng(first.lat, first.lon))
+                    .icon(iconFactory.fromBitmap(ModernMarkerFactory.getStartMarkerBitmap(context)))
+                    .title("Partida")
+            )
+            map.addMarker(
+                MarkerOptions()
+                    .position(LatLng(last.lat, last.lon))
+                    .icon(iconFactory.fromBitmap(ModernMarkerFactory.getEndMarkerBitmap(context)))
+                    .title("Chegada")
+            )
+
+            // Auto-frame route camera
+            if (!userInteracted) {
+                try {
+                    val boundsBuilder = LatLngBounds.Builder()
+                    points.forEach { boundsBuilder.include(LatLng(it.lat, it.lon)) }
+                    val bounds = boundsBuilder.build()
+                    map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 130))
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        // 2. Draw Multi-Routes (e.g. Period Screen)
+        if (multiRoutes.isNotEmpty()) {
+            val colors = listOf("#0084FF", "#2CBF6F", "#F5A957", "#C480C7", "#3BABBA")
+            var idx = 0
+            val boundsBuilder = LatLngBounds.Builder()
+            var totalPts = 0
+
+            for (route in multiRoutes) {
+                if (route.size >= 2) {
+                    val color = AndroidColor.parseColor(colors[idx % colors.size])
+                    val latLngs = route.map { LatLng(it.lat, it.lon) }
+                    map.addPolyline(PolylineOptions().addAll(latLngs).color(color).width(4.5f))
+                    latLngs.forEach { boundsBuilder.include(it) }
+                    totalPts += latLngs.size
+                    idx++
+                }
+            }
+            if (totalPts > 0 && !userInteracted) {
+                try {
+                    map.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 120))
+                } catch (ignored: Exception) {}
+            }
+        }
+
+        // 3. Pinned Location Marker (Home, Work, or Selected Location)
+        if (pinnedLocation != null) {
+            val pinLatLng = LatLng(pinnedLocation.first, pinnedLocation.second)
+            map.addMarker(
+                MarkerOptions()
+                    .position(pinLatLng)
+                    .icon(iconFactory.fromBitmap(ModernMarkerFactory.getPinnedMarkerBitmap(context)))
+                    .title(pinnedTitle)
+            )
+            if (!userInteracted && points.isEmpty()) {
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(pinLatLng, 16.0))
+            }
+        }
+
+        // 4. Extra Markers (e.g., Gas Stations)
+        for (m in extraMarkers) {
+            map.addMarker(
+                MarkerOptions()
+                    .position(LatLng(m.lat, m.lon))
+                    .icon(iconFactory.fromBitmap(ModernMarkerFactory.getFuelMarkerBitmap(context)))
+                    .title(m.title)
+                    .snippet(m.snippet)
+            )
+        }
+
+        // 5. Current Vehicle Location Marker
+        if (currentLocation != null) {
+            val gpsLatLng = LatLng(currentLocation.first, currentLocation.second)
+            map.addMarker(
+                MarkerOptions()
+                    .position(gpsLatLng)
+                    .icon(iconFactory.fromBitmap(ModernMarkerFactory.getGpsVehicleBitmap(context)))
+                    .title("Veículo")
+            )
+            if (!userInteracted && points.isEmpty() && pinnedLocation == null) {
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(gpsLatLng, 16.5))
+            }
+        }
     }
 
     Box(modifier = modifier) {
+        // MapLibre Hardware-Accelerated GL Surface
         AndroidView(
             factory = { mapView },
-            modifier = Modifier.fillMaxSize(),
-            update = { map ->
-                val currentPointsHash = points.hashCode() xor multiRoutes.hashCode() xor extraMarkers.hashCode() xor (currentLocation?.hashCode() ?: 0)
-                val needsOverlayUpdate = (currentPointsHash != lastPointsHash) || (pinnedLocation != lastPinnedCoord)
-
-                if (needsOverlayUpdate) {
-                    lastPointsHash = currentPointsHash
-                    lastPinnedCoord = pinnedLocation
-
-                    // Camera framing key: only changes when a DIFFERENT route / marker set is shown,
-                    // NOT on GPS ticks or on new breadcrumbs appended during live recording.
-                    val fitKey: Any? = when {
-                        points.isNotEmpty() -> "route:" + points.first().let { "${it.lat},${it.lon},${it.timeMs}" }
-                        multiRoutes.isNotEmpty() -> "multi:" + multiRoutes.size + ":" + multiRoutes.sumOf { it.size }
-                        extraMarkers.isNotEmpty() -> "markers:" + extraMarkers.size
-                        else -> null
-                    }
-                    val shouldFit = fitKey != null && fitKey != lastFitKey && !userInteracted
-                    if (shouldFit) lastFitKey = fitKey
-
-                    // Preserve base ScaleBarOverlay (index 0) and rebuild dynamic route/marker overlays
-                    val baseScale = if (map.overlays.isNotEmpty() && map.overlays[0] is ScaleBarOverlay) map.overlays[0] else null
-                    map.overlays.clear()
-                    if (baseScale != null) map.overlays.add(baseScale)
-
-                    // 1. Map Events Receiver for Tapping / Pinning Location
-                    if (onMapTapped != null) {
-                        val eventsReceiver = object : MapEventsReceiver {
-                            override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
-                                onMapTapped(p.latitude, p.longitude)
-                                return true
-                            }
-
-                            override fun longPressHelper(p: GeoPoint): Boolean {
-                                onMapTapped(p.latitude, p.longitude)
-                                return true
-                            }
-                        }
-                        map.overlays.add(MapEventsOverlay(eventsReceiver))
-                    }
-
-                    // 2. High-Precision Dual-Stroke Polyline (StreetComplete / Apple Maps style)
-                    if (points.isNotEmpty()) {
-                        val geoPoints = points.map { GeoPoint(it.lat, it.lon) }
-
-                        // 2a. Outer Casing / Contrast Outline (usePath = true connects all points continuously!)
-                        val casing = Polyline(map, true).apply {
-                            setPoints(geoPoints)
-                            outlinePaint.color = AndroidColor.parseColor("#142238")
-                            outlinePaint.strokeWidth = 20f
-                            outlinePaint.strokeCap = Paint.Cap.ROUND
-                            outlinePaint.strokeJoin = Paint.Join.ROUND
-                            outlinePaint.isAntiAlias = true
-                        }
-                        map.overlays.add(casing)
-
-                        // 2b. OsmAnd-Grade Speed Gradient Core Strokes
-                        // Colors route segments dynamically: Red (<30) -> Amber (30-60) -> Green (60-90) -> Blue (90-115) -> Purple (>115)
-                        fun getSpeedColor(spd: Double): Int {
-                            return when {
-                                spd < 30.0 -> AndroidColor.parseColor("#D02A43") // Red / Slow
-                                spd < 60.0 -> AndroidColor.parseColor("#F5A957") // Amber / Urban
-                                spd < 90.0 -> AndroidColor.parseColor("#2CBF6F") // Green / Cruising
-                                spd < 115.0 -> AndroidColor.parseColor("#0084FF") // Blue / Fast Avenue
-                                else -> AndroidColor.parseColor("#C480C7") // Purple / Highway speed
-                            }
-                        }
-
-                        if (points.size >= 2) {
-                            var currentBatchColor = getSpeedColor(points[0].speedKmh)
-                            var currentBatchPoints = mutableListOf(geoPoints[0])
-
-                            for (i in 1 until points.size) {
-                                val segSpeed = (points[i - 1].speedKmh + points[i].speedKmh) / 2.0
-                                val segColor = getSpeedColor(segSpeed)
-
-                                if (segColor != currentBatchColor && currentBatchPoints.size >= 2) {
-                                    val poly = Polyline(map, true).apply {
-                                        setPoints(currentBatchPoints)
-                                        outlinePaint.color = currentBatchColor
-                                        outlinePaint.strokeWidth = 12f
-                                        outlinePaint.strokeCap = Paint.Cap.ROUND
-                                        outlinePaint.strokeJoin = Paint.Join.ROUND
-                                        outlinePaint.isAntiAlias = true
-                                    }
-                                    map.overlays.add(poly)
-                                    val lastPt = currentBatchPoints.last()
-                                    currentBatchPoints = mutableListOf(lastPt, geoPoints[i])
-                                    currentBatchColor = segColor
-                                } else {
-                                    currentBatchPoints.add(geoPoints[i])
-                                }
-                            }
-                            if (currentBatchPoints.size >= 2) {
-                                val poly = Polyline(map, true).apply {
-                                    setPoints(currentBatchPoints)
-                                    outlinePaint.color = currentBatchColor
-                                    outlinePaint.strokeWidth = 12f
-                                    outlinePaint.strokeCap = Paint.Cap.ROUND
-                                    outlinePaint.strokeJoin = Paint.Join.ROUND
-                                    outlinePaint.isAntiAlias = true
-                                }
-                                map.overlays.add(poly)
-                            }
-                        } else {
-                            val core = Polyline(map, true).apply {
-                                setPoints(geoPoints)
-                                outlinePaint.color = AndroidColor.parseColor("#0084FF")
-                                outlinePaint.strokeWidth = 12f
-                                outlinePaint.strokeCap = Paint.Cap.ROUND
-                                outlinePaint.strokeJoin = Paint.Join.ROUND
-                                outlinePaint.isAntiAlias = true
-                            }
-                            map.overlays.add(core)
-                        }
-
-                        // Start Modern Marker
-                        val startPt = points.first()
-                        val startMarker = Marker(map).apply {
-                            position = GeoPoint(startPt.lat, startPt.lon)
-                            title = "Partida"
-                            icon = ModernMarkerFactory.getStartMarker(map.context)
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                        }
-                        map.overlays.add(startMarker)
-
-                        // End Modern Marker
-                        if (points.size > 1) {
-                            val endPt = points.last()
-                            val endMarker = Marker(map).apply {
-                                position = GeoPoint(endPt.lat, endPt.lon)
-                                title = "Chegada"
-                                icon = ModernMarkerFactory.getEndMarker(map.context)
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                            }
-                            map.overlays.add(endMarker)
-                        }
-
-                        if (shouldFit) {
-                            if (geoPoints.size < 2) {
-                                map.post {
-                                    map.controller.setZoom(17.5)
-                                    map.controller.setCenter(geoPoints.first())
-                                }
-                            } else {
-                                try {
-                                    val box = BoundingBox.fromGeoPoints(geoPoints)
-                                    map.post {
-                                        map.zoomToBoundingBox(box.increaseByScale(1.15f), true)
-                                    }
-                                } catch (e: Exception) {
-                                    map.controller.setCenter(geoPoints.first())
-                                }
-                            }
-                        }
-                    }
-
-                    // 3. Multi-Routes (for Period Overview) with continuous double-stroke
-                    if (multiRoutes.isNotEmpty()) {
-                        val routeColors = listOf(
-                            "#0084FF", "#2CBF6F", "#F5A957", "#C480C7", "#D02A43", "#3BABBA"
-                        )
-                        val allPoints = mutableListOf<GeoPoint>()
-
-                        multiRoutes.forEachIndexed { index, route ->
-                            if (route.isNotEmpty()) {
-                                val geoPts = route.map { GeoPoint(it.lat, it.lon) }
-                                allPoints.addAll(geoPts)
-                                val colorHex = routeColors[index % routeColors.size]
-
-                                // Casing
-                                val polyCasing = Polyline(map, true).apply {
-                                    setPoints(geoPts)
-                                    outlinePaint.color = AndroidColor.parseColor("#142238")
-                                    outlinePaint.strokeWidth = 16f
-                                    outlinePaint.strokeCap = Paint.Cap.ROUND
-                                    outlinePaint.strokeJoin = Paint.Join.ROUND
-                                    outlinePaint.isAntiAlias = true
-                                }
-                                map.overlays.add(polyCasing)
-
-                                // Core
-                                val polyCore = Polyline(map, true).apply {
-                                    setPoints(geoPts)
-                                    outlinePaint.color = AndroidColor.parseColor(colorHex)
-                                    outlinePaint.strokeWidth = 10f
-                                    outlinePaint.strokeCap = Paint.Cap.ROUND
-                                    outlinePaint.strokeJoin = Paint.Join.ROUND
-                                    outlinePaint.isAntiAlias = true
-                                }
-                                map.overlays.add(polyCore)
-                            }
-                        }
-
-                        if (shouldFit && allPoints.isNotEmpty()) {
-                            try {
-                                val box = BoundingBox.fromGeoPoints(allPoints)
-                                map.post {
-                                    map.zoomToBoundingBox(box.increaseByScale(1.15f), true)
-                                }
-                            } catch (e: Exception) {
-                                map.controller.setCenter(allPoints.first())
-                            }
-                        }
-                    }
-
-                    // 4. Extra Markers (e.g. Fuel Stations on Map)
-                    if (extraMarkers.isNotEmpty()) {
-                        val markerGeoPoints = mutableListOf<GeoPoint>()
-                        extraMarkers.forEach { item ->
-                            val pt = GeoPoint(item.lat, item.lon)
-                            markerGeoPoints.add(pt)
-                            val m = Marker(map).apply {
-                                position = pt
-                                title = item.title
-                                snippet = item.snippet
-                                icon = ModernMarkerFactory.getFuelMarker(map.context)
-                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                            }
-                            map.overlays.add(m)
-                        }
-                        if (shouldFit && points.isEmpty() && multiRoutes.isEmpty() && pinnedLocation == null) {
-                            if (markerGeoPoints.size == 1) {
-                                map.controller.setZoom(17.0)
-                                map.controller.setCenter(markerGeoPoints.first())
-                            } else {
-                                try {
-                                    val box = BoundingBox.fromGeoPoints(markerGeoPoints)
-                                    map.post {
-                                        map.zoomToBoundingBox(box.increaseByScale(1.2f), true)
-                                    }
-                                } catch (e: Exception) {
-                                    map.controller.setCenter(markerGeoPoints.first())
-                                }
-                            }
-                        }
-                    }
-
-                    // 5. Current Location Marker
-                    currentLocation?.let { (lat, lon) ->
-                        val curPoint = GeoPoint(lat, lon)
-                        val curMarker = Marker(map).apply {
-                            position = curPoint
-                            title = "Posição Atual"
-                            icon = ModernMarkerFactory.getMyLocationMarker(map.context)
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                        }
-                        map.overlays.add(curMarker)
-                    }
-
-                    // 6. Pinned Location Marker
-                    pinnedLocation?.let { (lat, lon) ->
-                        val pinPt = GeoPoint(lat, lon)
-                        val pinMarker = Marker(map).apply {
-                            position = pinPt
-                            title = pinnedTitle
-                            icon = ModernMarkerFactory.getPinnedMarker(map.context)
-                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                        }
-                        map.overlays.add(pinMarker)
-                        // Only move the camera when the pin itself changed (not on GPS ticks)
-                        if (pinnedLocation != lastAnimatedPin) {
-                            lastAnimatedPin = pinnedLocation
-                            map.controller.animateTo(pinPt)
-                        }
-                    }
-
-                    map.invalidate()
-                }
-            }
+            modifier = Modifier.fillMaxSize()
         )
 
-        // Wanda Layer Switcher - PLACED AT TOP-START (TOP LEFT)
+        // Speed Gradient Legend Overlay (when showing a route)
+        if (points.size >= 2) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 12.dp, top = 12.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(WandaCardElevated.copy(alpha = 0.92f))
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("Velocidade (km/h)", color = TextSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFD02A43)))
+                        Text("<20", color = TextPrimary, fontSize = 9.sp)
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF5A957)))
+                        Text("20-40", color = TextPrimary, fontSize = 9.sp)
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF2CBF6F)))
+                        Text("40-70", color = TextPrimary, fontSize = 9.sp)
+                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF0084FF)))
+                        Text("70+", color = TextPrimary, fontSize = 9.sp)
+                    }
+                }
+            }
+        }
+
+        // Layer Switcher (Top Right)
         if (showLayerSwitcher) {
             Row(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(top = 12.dp, start = 12.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .align(Alignment.TopEnd)
+                    .padding(end = 12.dp, top = 12.dp)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(WandaCardElevated.copy(alpha = 0.94f))
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(14.dp))
+                    .padding(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 MapLayer.values().forEach { layer ->
-                    val isSelected = layer == selectedLayer
+                    val isSelected = selectedLayer == layer
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) WandaPrimary else Color.Transparent)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) WandaBlue20 else Color.Transparent)
                             .clickable { selectedLayer = layer }
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .padding(horizontal = 9.dp, vertical = 5.dp)
                     ) {
                         Text(
                             text = layer.label,
                             color = if (isSelected) Color.White else TextSecondary,
-                            fontSize = 11.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 11.sp
                         )
                     }
                 }
             }
         }
 
-        // OsmAnd Speed Gradient Legend (Top Center) when route is displayed
-        if (points.size >= 2) {
-            Row(
+        // Floating Zoom and GPS Recenter Controls (Bottom Right)
+        if (showZoomControls) {
+            Column(
                 modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 12.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(WandaCardElevated.copy(alpha = 0.94f))
-                    .border(1.dp, WandaBorder, RoundedCornerShape(14.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = floatingControlsBottomPadding),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                listOf(
-                    Pair(Color(0xFFD02A43), "<30"),
-                    Pair(Color(0xFFF5A957), "60"),
-                    Pair(Color(0xFF2CBF6F), "90"),
-                    Pair(Color(0xFF0084FF), "110"),
-                    Pair(Color(0xFFC480C7), "120+")
-                ).forEach { (color, label) ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(3.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                        )
-                        Text(
-                            text = label,
-                            color = TextSecondary,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                // Zoom In Button (+)
+                Surface(
+                    onClick = {
+                        userInteracted = true
+                        mapLibreMapInstance?.animateCamera(CameraUpdateFactory.zoomIn())
+                    },
+                    shape = CircleShape,
+                    color = WandaCardElevated.copy(alpha = 0.94f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, WandaBorderSubtle),
+                    shadowElevation = 4.dp,
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Add, contentDescription = "Zoom In", tint = TextPrimary, modifier = Modifier.size(20.dp))
                     }
                 }
-            }
-        }
 
-        // Floating One-Handed Controls (Zoom & GPS) - Bottom End
-        // Configurable bottom padding ensures they are NEVER covered by overlays or bottom sheets!
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = floatingControlsBottomPadding, end = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (onCenterGpsClicked != null) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(WandaCardElevated.copy(alpha = 0.94f))
-                        .clickable {
-                            if (currentLocation != null) {
-                                // Re-enable follow mode; keep the user's zoom unless very far out
-                                userInteracted = false
-                                if (mapView.zoomLevelDouble < 15.0) mapView.controller.setZoom(17.5)
-                                mapView.controller.animateTo(GeoPoint(currentLocation.first, currentLocation.second))
-                            }
-                            onCenterGpsClicked()
-                        },
-                    contentAlignment = Alignment.Center
+                // Zoom Out Button (-)
+                Surface(
+                    onClick = {
+                        userInteracted = true
+                        mapLibreMapInstance?.animateCamera(CameraUpdateFactory.zoomOut())
+                    },
+                    shape = CircleShape,
+                    color = WandaCardElevated.copy(alpha = 0.94f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, WandaBorderSubtle),
+                    shadowElevation = 4.dp,
+                    modifier = Modifier.size(44.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.MyLocation,
-                        contentDescription = "Meu GPS",
-                        tint = WandaCyan20,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-
-            if (showZoomControls) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(WandaCardElevated.copy(alpha = 0.94f))
-                        .clickable { userInteracted = true; mapView.controller.zoomIn() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Aproximar",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Remove, contentDescription = "Zoom Out", tint = TextPrimary, modifier = Modifier.size(20.dp))
+                    }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(WandaCardElevated.copy(alpha = 0.94f))
-                        .clickable { userInteracted = true; mapView.controller.zoomOut() },
-                    contentAlignment = Alignment.Center
+                // Recenter GPS Button
+                Surface(
+                    onClick = {
+                        userInteracted = false
+                        onCenterGpsClicked?.invoke()
+                        if (currentLocation != null) {
+                            mapLibreMapInstance?.animateCamera(
+                                CameraUpdateFactory.newLatLngZoom(
+                                    LatLng(currentLocation.first, currentLocation.second),
+                                    16.5
+                                )
+                            )
+                        } else if (points.isNotEmpty()) {
+                            try {
+                                val boundsBuilder = LatLngBounds.Builder()
+                                points.forEach { boundsBuilder.include(LatLng(it.lat, it.lon)) }
+                                mapLibreMapInstance?.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 130))
+                            } catch (ignored: Exception) {}
+                        }
+                    },
+                    shape = CircleShape,
+                    color = WandaCardElevated.copy(alpha = 0.94f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, WandaBorderSubtle),
+                    shadowElevation = 4.dp,
+                    modifier = Modifier.size(44.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Remove,
-                        contentDescription = "Afastar",
-                        tint = TextPrimary,
-                        modifier = Modifier.size(22.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.MyLocation, contentDescription = "Centralizar", tint = WandaCyan20, modifier = Modifier.size(20.dp))
+                    }
                 }
             }
         }

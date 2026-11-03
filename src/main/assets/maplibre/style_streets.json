@@ -1,0 +1,30 @@
+{
+  "version": 8,
+  "name": "CarTracks Esri Street HD",
+  "sources": {
+    "esri-street": {
+      "type": "raster",
+      "tiles": [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}.jpg"
+      ],
+      "tileSize": 256,
+      "attribution": "© Esri, HERE, Garmin"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#EAECEF"
+      }
+    },
+    {
+      "id": "esri-street-layer",
+      "type": "raster",
+      "source": "esri-street",
+      "minzoom": 0,
+      "maxzoom": 20
+    }
+  ]
+}

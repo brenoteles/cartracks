@@ -91,6 +91,13 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
     private TrackPointCreator trackPointCreator;
     private TrackRecordingManager trackRecordingManager;
 
+    private long stationaryStartTime = 0;
+    private boolean isSmartAutoPaused = false;
+
+    public boolean isSmartPaused() {
+        return isSmartAutoPaused;
+    }
+
     private VoiceAnnouncementManager voiceAnnouncementManager;
     private TrackRecordingServiceNotificationManager notificationManager;
 
@@ -229,6 +236,8 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
 
         // Set recording status
         updateRecordingStatus(STATUS_DEFAULT);
+        isSmartAutoPaused = false;
+        stationaryStartTime = 0;
 
         trackRecordingManager.endCurrentTrack();
         TrackIdStorage.unset(this);
@@ -273,6 +282,30 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
     public boolean newTrackPoint(TrackPoint trackPoint, Distance thresholdHorizontalAccuracy) {
         if (!isRecording()) {
             Log.w(TAG, "Ignore newTrackPoint. Not recording.");
+            return false;
+        }
+
+        boolean smartPauseEnabled = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
+                .getBoolean("smart_idle_pause_enabled", true);
+        if (smartPauseEnabled && trackPoint.position().hasSpeed()) {
+            double speedMs = trackPoint.position().speed().toMPS();
+            if (speedMs < 0.8) {
+                if (stationaryStartTime == 0) {
+                    stationaryStartTime = System.currentTimeMillis();
+                } else if (!isSmartAutoPaused && (System.currentTimeMillis() - stationaryStartTime > 180000L)) {
+                    isSmartAutoPaused = true;
+                    notificationManager.updateGPSStatus("⏸️ Pausa Inteligente: veículo imobilizado");
+                }
+            } else if (speedMs > 2.5) {
+                stationaryStartTime = 0;
+                if (isSmartAutoPaused) {
+                    isSmartAutoPaused = false;
+                    notificationManager.updateGPSStatus("🚗 Viagem retomada!");
+                }
+            }
+        }
+
+        if (isSmartAutoPaused) {
             return false;
         }
 
