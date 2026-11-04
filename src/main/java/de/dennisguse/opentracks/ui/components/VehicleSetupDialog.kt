@@ -1,10 +1,10 @@
 package de.dennisguse.opentracks.ui.components
 
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -75,14 +75,14 @@ fun VehicleSetupDialog(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(WandaInteractive.copy(alpha = 0.2f)),
+                        .clip(RectangleShape)
+                        .background(CyberMagenta.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.DirectionsCar,
                         contentDescription = null,
-                        tint = WandaInteractive,
+                        tint = CyberAcid,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -112,9 +112,9 @@ fun VehicleSetupDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(WandaInteractive.copy(alpha = 0.10f))
-                        .border(1.dp, WandaInteractive.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                        .clip(RectangleShape)
+                        .background(CyberMagenta.copy(alpha = 0.10f))
+                        .border(1.dp, CyberAcid.copy(alpha = 0.25f), RectangleShape)
                         .padding(12.dp)
                 ) {
                     Row(
@@ -124,7 +124,7 @@ fun VehicleSetupDialog(
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
-                            tint = WandaInteractive,
+                            tint = CyberAcid,
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
@@ -184,9 +184,9 @@ fun VehicleSetupDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFF141926))
-                        .border(1.dp, Color(0x334589FF), RoundedCornerShape(14.dp))
+                        .clip(RectangleShape)
+                        .background(CyberPanel)
+                        .border(1.dp, CyberLine, RectangleShape)
                         .padding(12.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -194,7 +194,7 @@ fun VehicleSetupDialog(
                             text = "ESTIMATIVA RESULTANTE",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = WandaCyan20,
+                            color = CyberCyan,
                             letterSpacing = 0.5.sp
                         )
                         Row(
@@ -216,7 +216,7 @@ fun VehicleSetupDialog(
                                     text = "~$estimatedRange km",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = WandaGreen30
+                                    color = CyberGreen
                                 )
                             }
                         }
@@ -247,6 +247,7 @@ fun VehicleSetupDialog(
         },
         confirmButton = {
             Button(
+                shape = RectangleShape,
                 onClick = {
                     val odo = odometerStr.toDoubleOrNull() ?: 0.0
                     onConfirm(
@@ -259,7 +260,7 @@ fun VehicleSetupDialog(
                         kmSince
                     )
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
             ) {
                 Text(
                     text = if (isInitialOnboarding) "Salvar e Começar" else "Salvar Configurações",
@@ -269,12 +270,12 @@ fun VehicleSetupDialog(
         },
         dismissButton = {
             if (!isInitialOnboarding) {
-                TextButton(onClick = onDismiss) {
+                TextButton(shape = RectangleShape, onClick = onDismiss) {
                     Text("Cancelar", color = TextSecondary)
                 }
             }
         },
-        containerColor = WandaCardElevated
+        containerColor = CyberPanelRaised
     )
 }
 
@@ -318,20 +319,21 @@ fun QuickEditOdometerDialog(
         },
         confirmButton = {
             Button(
+                shape = RectangleShape,
                 onClick = {
                     val odo = odoStr.toDoubleOrNull() ?: currentOdometer
                     onConfirm(odo)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
             ) {
                 Text("Salvar", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(shape = RectangleShape, onClick = onDismiss) {
                 Text("Cancelar", color = TextSecondary)
             }
         },
-        containerColor = WandaCardElevated
+        containerColor = CyberPanelRaised
     )
 }

@@ -1,11 +1,10 @@
 package de.dennisguse.opentracks.ui.components
 
+import androidx.compose.ui.graphics.RectangleShape
 import android.location.Geocoder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -139,7 +138,7 @@ fun LocationPickerMapDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(WandaBackground)
+                .background(CyberInk)
                 .statusBarsPadding()
                 .navigationBarsPadding()
         ) {
@@ -182,9 +181,9 @@ fun LocationPickerMapDialog(
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
                     .padding(12.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(WandaCardElevated.copy(alpha = 0.95f))
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp))
+                    .clip(RectangleShape)
+                    .background(CyberPanelRaised.copy(alpha = 0.95f))
+                    .border(1.dp, CyberLineSubtle, RectangleShape)
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -210,8 +209,8 @@ fun LocationPickerMapDialog(
                         onClick = onDismiss,
                         modifier = Modifier
                             .size(36.dp)
-                            .clip(CircleShape)
-                            .background(WandaCard)
+                            .clip(RectangleShape)
+                            .background(CyberPanel)
                     ) {
                         Icon(Icons.Default.Close, contentDescription = "Fechar", tint = TextPrimary, modifier = Modifier.size(18.dp))
                     }
@@ -228,14 +227,14 @@ fun LocationPickerMapDialog(
                         Text("Buscar rua, avenida, bairro... (ex: Av. Paulista)", fontSize = 13.sp, color = TextMuted)
                     },
                     leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = WandaInteractive, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Search, contentDescription = null, tint = CyberAcid, modifier = Modifier.size(20.dp))
                     },
                     trailingIcon = {
                         if (isSearching) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
-                                color = WandaInteractive
+                                color = CyberAcid
                             )
                         } else if (searchQuery.isNotBlank()) {
                             IconButton(onClick = { searchQuery = "" }) {
@@ -246,12 +245,12 @@ fun LocationPickerMapDialog(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { performSearch() }),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RectangleShape,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = WandaCard,
-                        unfocusedContainerColor = WandaCard,
-                        focusedBorderColor = WandaInteractive,
-                        unfocusedBorderColor = WandaBorderSubtle,
+                        focusedContainerColor = CyberPanel,
+                        unfocusedContainerColor = CyberPanel,
+                        focusedBorderColor = CyberAcid,
+                        unfocusedBorderColor = CyberLineSubtle,
                         focusedTextColor = TextPrimary,
                         unfocusedTextColor = TextPrimary
                     ),
@@ -270,8 +269,8 @@ fun LocationPickerMapDialog(
                         modifier = Modifier
                             .weight(1.2f)
                             .height(40.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
                     ) {
                         Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -300,10 +299,10 @@ fun LocationPickerMapDialog(
                         modifier = Modifier
                             .weight(1f)
                             .height(40.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = WandaCard)
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = CyberPanel)
                     ) {
-                        Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(16.dp), tint = WandaCyan20)
+                        Icon(Icons.Default.MyLocation, contentDescription = null, modifier = Modifier.size(16.dp), tint = CyberCyan)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Meu GPS", fontSize = 12.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
                     }
@@ -313,7 +312,7 @@ fun LocationPickerMapDialog(
                 if (searchError != null) {
                     Text(
                         text = searchError ?: "",
-                        color = WandaRed30,
+                        color = CyberRed,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -326,9 +325,9 @@ fun LocationPickerMapDialog(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .padding(14.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(WandaCardElevated.copy(alpha = 0.96f))
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(22.dp))
+                    .clip(RectangleShape)
+                    .background(CyberPanelRaised.copy(alpha = 0.96f))
+                    .border(1.dp, CyberLineSubtle, RectangleShape)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -339,11 +338,11 @@ fun LocationPickerMapDialog(
                     Box(
                         modifier = Modifier
                             .size(38.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(WandaInteractive.copy(alpha = 0.15f)),
+                            .clip(RectangleShape)
+                            .background(CyberMagenta.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Place, contentDescription = null, tint = WandaInteractive, modifier = Modifier.size(22.dp))
+                        Icon(Icons.Default.Place, contentDescription = null, tint = CyberAcid, modifier = Modifier.size(22.dp))
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -356,7 +355,7 @@ fun LocationPickerMapDialog(
                         )
                         Text(
                             text = String.format(Locale.US, "Lat: %.5f • Lon: %.5f", pinnedLat, pinnedLon),
-                            color = WandaCyan20,
+                            color = CyberCyan,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -371,8 +370,8 @@ fun LocationPickerMapDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                    shape = RectangleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))

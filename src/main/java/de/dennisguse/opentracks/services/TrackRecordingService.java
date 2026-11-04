@@ -91,7 +91,14 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
     private TrackPointCreator trackPointCreator;
     private TrackRecordingManager trackRecordingManager;
 
+    // Smart idle pause: stop storing points while the car is parked, never while it moves.
+    private static final long SMART_PAUSE_AFTER_MS = 180_000L;
+    private static final double STATIONARY_SPEED_MPS = 0.8;
+    private static final double MOVING_SPEED_MPS = 2.5;
+    private static final float MOVED_RADIUS_M = 40f;
+
     private long stationaryStartTime = 0;
+    private TrackPoint stationaryAnchor = null;
     private boolean isSmartAutoPaused = false;
 
     public boolean isSmartPaused() {
@@ -238,6 +245,7 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
         updateRecordingStatus(STATUS_DEFAULT);
         isSmartAutoPaused = false;
         stationaryStartTime = 0;
+        stationaryAnchor = null;
 
         trackRecordingManager.endCurrentTrack();
         TrackIdStorage.unset(this);
@@ -285,25 +293,7 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
             return false;
         }
 
-        boolean smartPauseEnabled = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
-                .getBoolean("smart_idle_pause_enabled", true);
-        if (smartPauseEnabled && trackPoint.position().hasSpeed()) {
-            double speedMs = trackPoint.position().speed().toMPS();
-            if (speedMs < 0.8) {
-                if (stationaryStartTime == 0) {
-                    stationaryStartTime = System.currentTimeMillis();
-                } else if (!isSmartAutoPaused && (System.currentTimeMillis() - stationaryStartTime > 180000L)) {
-                    isSmartAutoPaused = true;
-                    notificationManager.updateGPSStatus("⏸️ Pausa Inteligente: veículo imobilizado");
-                }
-            } else if (speedMs > 2.5) {
-                stationaryStartTime = 0;
-                if (isSmartAutoPaused) {
-                    isSmartAutoPaused = false;
-                    notificationManager.updateGPSStatus("🚗 Viagem retomada!");
-                }
-            }
-        }
+        updateSmartPause(trackPoint);
 
         if (isSmartAutoPaused) {
             return false;
@@ -313,6 +303,57 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
         //TODO Should be done during updateRecordingDataWhileRecording()
         notificationManager.updateTrackPoint(this, trackRecordingManager.getDataForUI(), thresholdHorizontalAccuracy);
         return stored;
+    }
+
+    /**
+     * Decides whether the car is parked. Resumes as soon as the GPS reports speed OR the
+     * position moved away from where the car stopped: some chipsets report speed 0 (or no
+     * speed) while driving, and relying on speed alone left trips paused until the end,
+     * storing only the start and end points.
+     */
+    private void updateSmartPause(TrackPoint trackPoint) {
+        boolean enabled = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
+                .getBoolean("smart_idle_pause_enabled", true);
+        if (!enabled || !trackPoint.position().hasLocation()) {
+            if (!enabled) {
+                resumeFromSmartPause();
+            }
+            return;
+        }
+
+        double speedMps = trackPoint.position().hasSpeed() ? trackPoint.position().speed().toMPS() : -1;
+        boolean moved = false;
+        if (stationaryAnchor != null) {
+            float accuracy = trackPoint.position().hasHorizontalAccuracy()
+                    ? (float) trackPoint.position().horizontalAccuracy().toM() : 0f;
+            float radius = Math.max(MOVED_RADIUS_M, 2 * accuracy);
+            moved = trackPoint.position().toLocation().distanceTo(stationaryAnchor.position().toLocation()) > radius;
+        }
+
+        if (speedMps > MOVING_SPEED_MPS || moved) {
+            resumeFromSmartPause();
+            return;
+        }
+
+        if (speedMps < STATIONARY_SPEED_MPS) {
+            long now = System.currentTimeMillis();
+            if (stationaryAnchor == null) {
+                stationaryAnchor = trackPoint;
+                stationaryStartTime = now;
+            } else if (!isSmartAutoPaused && now - stationaryStartTime > SMART_PAUSE_AFTER_MS) {
+                isSmartAutoPaused = true;
+                notificationManager.updateGPSStatus("⏸️ Pausa Inteligente: veículo parado");
+            }
+        }
+    }
+
+    private void resumeFromSmartPause() {
+        stationaryAnchor = null;
+        stationaryStartTime = 0;
+        if (isSmartAutoPaused) {
+            isSmartAutoPaused = false;
+            notificationManager.updateGPSStatus("🚗 Viagem retomada!");
+        }
     }
 
     @Override

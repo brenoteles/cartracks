@@ -1,9 +1,9 @@
 package de.dennisguse.opentracks.ui.components
 
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -47,7 +47,7 @@ fun EditTripDialog(
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = {
-                Text("Excluir Viagem", fontWeight = FontWeight.Bold, color = WandaRed10)
+                Text("Excluir Viagem", fontWeight = FontWeight.Bold, color = CyberRed)
             },
             text = {
                 Text(
@@ -57,21 +57,22 @@ fun EditTripDialog(
             },
             confirmButton = {
                 Button(
+                    shape = RectangleShape,
                     onClick = {
                         showDeleteConfirm = false
                         onDelete?.invoke()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = WandaRed10)
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberRed)
                 ) {
                     Text("Excluir", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
+                TextButton(shape = RectangleShape, onClick = { showDeleteConfirm = false }) {
                     Text("Cancelar", color = TextSecondary)
                 }
             },
-            containerColor = WandaCardElevated
+            containerColor = CyberPanelRaised
         )
     }
 
@@ -85,14 +86,14 @@ fun EditTripDialog(
                 Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(WandaInteractive.copy(alpha = 0.2f)),
+                        .clip(RectangleShape)
+                        .background(CyberMagenta.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = null,
-                        tint = WandaInteractive,
+                        tint = CyberAcid,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -170,9 +171,9 @@ fun EditTripDialog(
                 if (onDelete != null) {
                     OutlinedButton(
                         onClick = { showDeleteConfirm = true },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = WandaRed10),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CyberRed),
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RectangleShape
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -183,6 +184,7 @@ fun EditTripDialog(
         },
         confirmButton = {
             Button(
+                shape = RectangleShape,
                 onClick = {
                     val finalTitle = title.ifBlank {
                         if (origin.isNotBlank() && destination.isNotBlank()) "$origin ➔ $destination"
@@ -191,16 +193,16 @@ fun EditTripDialog(
                     }
                     onConfirm(finalTitle.trim(), description.trim())
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
             ) {
                 Text("Salvar Alterações", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(shape = RectangleShape, onClick = onDismiss) {
                 Text("Cancelar", color = TextSecondary)
             }
         },
-        containerColor = WandaCardElevated
+        containerColor = CyberPanelRaised
     )
 }

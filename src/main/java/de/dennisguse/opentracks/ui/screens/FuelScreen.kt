@@ -1,5 +1,6 @@
 package de.dennisguse.opentracks.ui.screens
 
+import androidx.compose.ui.graphics.RectangleShape
 import android.location.Geocoder
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -147,7 +147,7 @@ fun FuelScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(AppleBlack)
+                    .background(CyberInk)
                     .statusBarsPadding()
                     .navigationBarsPadding()
             ) {
@@ -161,8 +161,8 @@ fun FuelScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(AppleCardElevated.copy(alpha = 0.95f))
+                        .clip(RectangleShape)
+                        .background(CyberPanelRaised.copy(alpha = 0.95f))
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -176,7 +176,7 @@ fun FuelScreen(
                         )
                         Text(
                             text = "${markers.size} abastecimento(s) com localização no mapa",
-                            color = AppleTeal,
+                            color = CyberCyan,
                             fontSize = 12.sp
                         )
                     }
@@ -275,15 +275,15 @@ fun FuelScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(AppleCard)
+                                .clip(RectangleShape)
+                                .background(CyberPanel)
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
                                 text = if (isFullTank) "🟢 Tanque Cheio (100%)" else "🟡 Abastecimento Parcial",
-                                color = if (isFullTank) AppleGreen else AppleOrange,
+                                color = if (isFullTank) CyberGreen else CyberOrange,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
                             )
@@ -292,9 +292,9 @@ fun FuelScreen(
                                 onCheckedChange = { isFullTank = it },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
-                                    checkedTrackColor = AppleGreen,
+                                    checkedTrackColor = CyberGreen,
                                     uncheckedThumbColor = Color.White,
-                                    uncheckedTrackColor = AppleOrange
+                                    uncheckedTrackColor = CyberOrange
                                 )
                             )
                         }
@@ -316,10 +316,10 @@ fun FuelScreen(
                                     AssistChip(
                                         onClick = { station = sName },
                                         label = { Text(sName, fontSize = 11.sp) },
-                                        shape = RoundedCornerShape(8.dp),
+                                        shape = RectangleShape,
                                         colors = AssistChipDefaults.assistChipColors(
-                                            containerColor = AppleCard,
-                                            labelColor = AppleTeal
+                                            containerColor = CyberPanel,
+                                            labelColor = CyberCyan
                                         ),
                                         border = null
                                     )
@@ -337,11 +337,11 @@ fun FuelScreen(
                                     selected = sel,
                                     onClick = { chosenFuelType = ft },
                                     label = { Text(ft, fontSize = 11.sp) },
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RectangleShape,
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = AppleBlue,
-                                        selectedLabelColor = Color.White,
-                                        containerColor = AppleCard,
+                                        selectedContainerColor = CyberAcid,
+                                        selectedLabelColor = CyberOnAcid,
+                                        containerColor = CyberPanel,
                                         labelColor = TextSecondary
                                     ),
                                     border = null
@@ -376,10 +376,10 @@ fun FuelScreen(
                                 AssistChip(
                                     onClick = { litersStr = l },
                                     label = { Text("${l}L", fontSize = 11.sp) },
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = RectangleShape,
                                     colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = AppleCard,
-                                        labelColor = AppleGreen
+                                        containerColor = CyberPanel,
+                                        labelColor = CyberGreen
                                     ),
                                     border = null
                                 )
@@ -400,8 +400,8 @@ fun FuelScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(AppleCard)
+                                .clip(RectangleShape)
+                                .background(CyberPanel)
                                 .padding(10.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
@@ -418,6 +418,7 @@ fun FuelScreen(
                                 )
                                 if (selectedLat != null && selectedLon != null) {
                                     TextButton(
+                                        shape = RectangleShape,
                                         onClick = {
                                             selectedLat = null
                                             selectedLon = null
@@ -425,7 +426,7 @@ fun FuelScreen(
                                         contentPadding = PaddingValues(0.dp),
                                         modifier = Modifier.height(24.dp)
                                     ) {
-                                        Text("Deixar p/ depois", fontSize = 11.sp, color = AppleOrange)
+                                        Text("Deixar p/ depois", fontSize = 11.sp, color = CyberOrange)
                                     }
                                 }
                             }
@@ -433,7 +434,7 @@ fun FuelScreen(
                             if (selectedLat != null && selectedLon != null) {
                                 Text(
                                     text = String.format(Locale.US, "Definido: %.5f, %.5f", selectedLat, selectedLon),
-                                    color = AppleTeal,
+                                    color = CyberCyan,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -452,9 +453,9 @@ fun FuelScreen(
                                 Button(
                                     onClick = { showNewEntryMapPicker = true },
                                     modifier = Modifier.weight(1f).height(38.dp),
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RectangleShape,
                                     contentPadding = PaddingValues(horizontal = 8.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = AppleBlue)
+                                    colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
                                 ) {
                                     Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(15.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -473,14 +474,14 @@ fun FuelScreen(
                                             selectedLon = currentGps.second
                                         },
                                         modifier = Modifier.height(38.dp),
-                                        shape = RoundedCornerShape(10.dp),
+                                        shape = RectangleShape,
                                         contentPadding = PaddingValues(horizontal = 10.dp)
                                     ) {
                                         Icon(
                                             Icons.Default.MyLocation,
                                             contentDescription = null,
                                             modifier = Modifier.size(14.dp),
-                                            tint = AppleTeal
+                                            tint = CyberCyan
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text("GPS", fontSize = 11.sp, color = TextPrimary)
@@ -500,6 +501,7 @@ fun FuelScreen(
                 },
                 confirmButton = {
                     Button(
+                        shape = RectangleShape,
                         onClick = {
                             val l = litersStr.replace(',', '.').toDoubleOrNull() ?: 0.0
                             val p = priceStr.replace(',', '.').toDoubleOrNull() ?: 0.0
@@ -510,17 +512,17 @@ fun FuelScreen(
                                 showAddDialog = false
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = AppleBlue)
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
                     ) {
                         Text("Salvar", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showAddDialog = false }) {
+                    TextButton(shape = RectangleShape, onClick = { showAddDialog = false }) {
                         Text("Cancelar", color = TextSecondary)
                     }
                 },
-                containerColor = AppleCardElevated
+                containerColor = CyberPanelRaised
             )
         }
     }
@@ -542,36 +544,37 @@ fun FuelScreen(
         AlertDialog(
             onDismissRequest = { deletingFuelEntry = null },
             title = {
-                Text("Excluir Abastecimento", fontWeight = FontWeight.Bold, color = WandaRed10)
+                Text("Excluir Abastecimento", fontWeight = FontWeight.Bold, color = CyberRed)
             },
             text = {
                 Text("Deseja realmente excluir o abastecimento no ${entry.stationName}?", color = TextPrimary)
             },
             confirmButton = {
                 Button(
+                    shape = RectangleShape,
                     onClick = {
                         val id = entry.id
                         deletingFuelEntry = null
                         onDeleteFuel?.invoke(id)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = WandaRed10)
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberRed)
                 ) {
                     Text("Excluir", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deletingFuelEntry = null }) {
+                TextButton(shape = RectangleShape, onClick = { deletingFuelEntry = null }) {
                     Text("Cancelar", color = TextSecondary)
                 }
             },
-            containerColor = WandaCardElevated
+            containerColor = CyberPanelRaised
         )
     }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppleBlack)
+            .background(CyberInk)
             .padding(horizontal = 16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -580,15 +583,14 @@ fun FuelScreen(
         item {
             Column {
                 Text(
-                    text = "Abastecimentos",
-                    color = TextPrimary,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black
+                    text = "ABASTECIMENTOS",
+                    style = displayStyle(40),
+                    color = CyberAcid
                 )
                 Text(
-                    text = "Consumo real (tanque cheio e parcial) • Tanque máx: ${tankCapacityLiters.toInt()}L",
-                    color = TextSecondary,
-                    fontSize = 14.sp
+                    text = "// " + "Consumo real (tanque cheio e parcial) • Tanque máx: ${tankCapacityLiters.toInt()}L".uppercase(),
+                    style = EyebrowStyle,
+                    color = TextSecondary
                 )
             }
         }
@@ -604,14 +606,14 @@ fun FuelScreen(
                         title = "Consumo Real Médio",
                         value = String.format(Locale.getDefault(), "%.1f km/L", efficiencyStats.averageKmL),
                         icon = Icons.Default.LocalGasStation,
-                        tint = AppleGreen,
+                        tint = CyberGreen,
                         modifier = Modifier.weight(1f)
                     )
                     MetricCard(
                         title = "Custo Médio / Km",
                         value = String.format(Locale.getDefault(), "R$ %.2f /km", efficiencyStats.averageCostPerKm),
                         icon = Icons.Default.AttachMoney,
-                        tint = AppleBlue,
+                        tint = CyberAcid,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -624,14 +626,14 @@ fun FuelScreen(
                         title = "Gasto Filtrado",
                         value = String.format(Locale.getDefault(), "R$ %.2f", totalSpent),
                         icon = Icons.Default.AttachMoney,
-                        tint = AppleOrange,
+                        tint = CyberOrange,
                         modifier = Modifier.weight(1f)
                     )
                     MetricCard(
                         title = "Litros Filtrados",
                         value = String.format(Locale.getDefault(), "%.1f L", totalLiters),
                         icon = Icons.Default.Speed,
-                        tint = AppleTeal,
+                        tint = CyberCyan,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -643,9 +645,9 @@ fun FuelScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(WandaCardElevated)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
+                    .clip(RectangleShape)
+                    .background(CyberPanelRaised)
+                    .border(1.dp, CyberLineSubtle, RectangleShape)
                     .padding(12.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -673,11 +675,11 @@ fun FuelScreen(
                             selected = isSel,
                             onClick = { selectedFuelTypeFilter = ft },
                             label = { Text(ft, fontSize = 12.sp) },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RectangleShape,
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AppleBlue,
-                                selectedLabelColor = Color.White,
-                                containerColor = AppleCard,
+                                selectedContainerColor = CyberAcid,
+                                selectedLabelColor = CyberOnAcid,
+                                containerColor = CyberPanel,
                                 labelColor = TextSecondary
                             ),
                             border = null
@@ -699,11 +701,11 @@ fun FuelScreen(
                             selected = isSel,
                             onClick = { selectedTankStateFilter = key },
                             label = { Text(label, fontSize = 12.sp) },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RectangleShape,
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AppleBlue,
-                                selectedLabelColor = Color.White,
-                                containerColor = AppleCard,
+                                selectedContainerColor = CyberAcid,
+                                selectedLabelColor = CyberOnAcid,
+                                containerColor = CyberPanel,
                                 labelColor = TextSecondary
                             ),
                             border = null
@@ -721,8 +723,8 @@ fun FuelScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AppleBlue)
+                    shape = RectangleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -743,21 +745,21 @@ fun FuelScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AppleTeal)
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CyberCyan)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Map,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = AppleTeal
+                            tint = CyberCyan
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "Ver Postos Abastecidos no Mapa (${stationsWithLocation.size})",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = AppleTeal
+                            color = CyberCyan
                         )
                     }
                 }
@@ -770,8 +772,8 @@ fun FuelScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(AppleCard)
+                        .clip(RectangleShape)
+                        .background(CyberPanel)
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -790,9 +792,9 @@ fun FuelScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(WandaCard)
-                        .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
+                        .clip(RectangleShape)
+                        .background(CyberPanel)
+                        .border(1.dp, CyberLineSubtle, RectangleShape)
                         .padding(14.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -821,7 +823,7 @@ fun FuelScreen(
                                         Icon(
                                             imageVector = Icons.Default.Edit,
                                             contentDescription = "Editar Posto",
-                                            tint = WandaInteractive,
+                                            tint = CyberAcid,
                                             modifier = Modifier.size(15.dp)
                                         )
                                     }
@@ -834,7 +836,7 @@ fun FuelScreen(
                                         Icon(
                                             imageVector = Icons.Default.Delete,
                                             contentDescription = "Excluir Abastecimento",
-                                            tint = WandaRed10,
+                                            tint = CyberRed,
                                             modifier = Modifier.size(15.dp)
                                         )
                                     }
@@ -851,13 +853,13 @@ fun FuelScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(AppleCardElevated)
+                                    .clip(RectangleShape)
+                                    .background(CyberPanelRaised)
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             ) {
                                 Text(
                                     text = entry.fuelType,
-                                    color = AppleTeal,
+                                    color = CyberCyan,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -865,13 +867,13 @@ fun FuelScreen(
 
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(if (entry.isFullTank) AppleGreen.copy(alpha = 0.15f) else AppleOrange.copy(alpha = 0.15f))
+                                    .clip(RectangleShape)
+                                    .background(if (entry.isFullTank) CyberGreen.copy(alpha = 0.15f) else CyberOrange.copy(alpha = 0.15f))
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             ) {
                                 Text(
                                     text = if (entry.isFullTank) "🟢 Tanque Cheio" else "🟡 Abastecimento Parcial",
-                                    color = if (entry.isFullTank) AppleGreen else AppleOrange,
+                                    color = if (entry.isFullTank) CyberGreen else CyberOrange,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -890,7 +892,7 @@ fun FuelScreen(
                             )
                             Text(
                                 text = String.format(Locale.getDefault(), "R$ %.2f", entry.totalCost),
-                                color = AppleGreen,
+                                color = CyberGreen,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
@@ -920,13 +922,13 @@ fun FuelScreen(
                                     Icon(
                                         imageVector = Icons.Default.LocationOn,
                                         contentDescription = null,
-                                        tint = AppleTeal,
+                                        tint = CyberCyan,
                                         modifier = Modifier.size(15.dp)
                                     )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "Local Salvo no Mapa",
-                                        color = AppleTeal,
+                                        color = CyberCyan,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -934,11 +936,11 @@ fun FuelScreen(
 
                                 FilledTonalButton(
                                     onClick = { editingLocationEntry = entry },
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RectangleShape,
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                     colors = ButtonDefaults.filledTonalButtonColors(
-                                        containerColor = AppleCardElevated,
-                                        contentColor = AppleBlue
+                                        containerColor = CyberPanelRaised,
+                                        contentColor = CyberAcid
                                     ),
                                     modifier = Modifier.height(34.dp)
                                 ) {
@@ -964,11 +966,11 @@ fun FuelScreen(
 
                                 Button(
                                     onClick = { editingLocationEntry = entry },
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = RectangleShape,
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = AppleOrange.copy(alpha = 0.2f),
-                                        contentColor = AppleOrange
+                                        containerColor = CyberOrange.copy(alpha = 0.2f),
+                                        contentColor = CyberOrange
                                     ),
                                     modifier = Modifier.height(34.dp)
                                 ) {
@@ -1030,14 +1032,14 @@ fun EditFuelEntryDialog(
                 Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(WandaInteractive.copy(alpha = 0.2f)),
+                        .clip(RectangleShape)
+                        .background(CyberMagenta.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = null,
-                        tint = WandaInteractive,
+                        tint = CyberAcid,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -1111,8 +1113,8 @@ fun EditFuelEntryDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(WandaCardElevated)
+                        .clip(RectangleShape)
+                        .background(CyberPanelRaised)
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -1138,6 +1140,7 @@ fun EditFuelEntryDialog(
         },
         confirmButton = {
             Button(
+                shape = RectangleShape,
                 onClick = {
                     val l = litersStr.replace(',', '.').toDoubleOrNull() ?: entry.liters
                     val p = priceStr.replace(',', '.').toDoubleOrNull() ?: entry.pricePerLiter
@@ -1148,16 +1151,16 @@ fun EditFuelEntryDialog(
                         l, p, tot, o, notes.trim(), isFullTank, chosenFuelType
                     )
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
             ) {
                 Text("Salvar Alterações", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(shape = RectangleShape, onClick = onDismiss) {
                 Text("Cancelar", color = TextSecondary)
             }
         },
-        containerColor = WandaCardElevated
+        containerColor = CyberPanelRaised
     )
 }

@@ -1,5 +1,6 @@
 package de.dennisguse.opentracks.ui.screens
 
+import androidx.compose.ui.graphics.RectangleShape
 import android.content.Context
 import android.net.Uri
 import android.widget.Toast
@@ -12,8 +13,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -117,7 +116,7 @@ fun SettingsScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(WandaBackground)
+            .background(CyberInk)
             .padding(horizontal = 16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -126,37 +125,31 @@ fun SettingsScreen(
         item {
             Column {
                 Text(
-                    text = "Ajustes",
-                    color = TextPrimary,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black
+                    text = "AJUSTES",
+                    style = displayStyle(40),
+                    color = CyberAcid
                 )
                 Text(
-                    text = "Personalização do veículo, segundo plano e segurança",
-                    color = TextSecondary,
-                    fontSize = 14.sp
+                    text = "// " + "Personalização do veículo, segundo plano e segurança".uppercase(),
+                    style = EyebrowStyle,
+                    color = TextSecondary
                 )
             }
         }
 
         // Section: Vehicle Configuration (Name, Plate, Tank & Fuel)
         item {
-            Text(
-                text = "Meu Veículo",
-                color = WandaCyan20,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            CyberSectionHeader(title = "Meu Veículo")
         }
 
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(WandaCard)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp)),
-                colors = CardDefaults.cardColors(containerColor = WandaCard)
+                    .clip(RectangleShape)
+                    .background(CyberPanel)
+                    .border(1.dp, CyberLineSubtle, RectangleShape),
+                colors = CardDefaults.cardColors(containerColor = CyberPanel)
             ) {
                 Column(
                     modifier = Modifier.padding(18.dp),
@@ -199,7 +192,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = WandaBorder)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = CyberLine)
 
                     Text(
                         text = "Capacidade do Tanque e Autonomia",
@@ -249,9 +242,9 @@ fun SettingsScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF141926))
-                            .border(1.dp, Color(0x334589FF), RoundedCornerShape(12.dp))
+                            .clip(RectangleShape)
+                            .background(CyberPanel)
+                            .border(1.dp, CyberLine, RectangleShape)
                             .padding(12.dp)
                     ) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -261,7 +254,7 @@ fun SettingsScreen(
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text("Autonomia Estimada:", fontSize = 11.sp, color = TextMuted)
-                                Text("~$calcRange km", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = WandaGreen30)
+                                Text("~$calcRange km", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = CyberGreen)
                             }
                         }
                     }
@@ -281,11 +274,11 @@ fun SettingsScreen(
                                 selected = isSelected,
                                 onClick = { selectedFuelType = fType },
                                 label = { Text(fType, fontSize = 12.sp) },
-                                shape = RoundedCornerShape(12.dp),
+                                shape = RectangleShape,
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = WandaInteractive,
-                                    selectedLabelColor = Color.White,
-                                    containerColor = WandaCardElevated,
+                                    selectedContainerColor = CyberAcid,
+                                    selectedLabelColor = CyberOnAcid,
+                                    containerColor = CyberPanelRaised,
                                     labelColor = TextSecondary
                                 ),
                                 border = null
@@ -310,8 +303,8 @@ fun SettingsScreen(
                             )
                         },
                         modifier = Modifier.fillMaxWidth().height(46.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
                     ) {
                         Text("Salvar Dados do Veículo e Odômetro", fontWeight = FontWeight.Bold)
                     }
@@ -321,22 +314,17 @@ fun SettingsScreen(
 
         // Section: Battery Optimization
         item {
-            Text(
-                text = "Segundo Plano e Bateria",
-                color = WandaCyan20,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            CyberSectionHeader(title = "Segundo Plano e Bateria")
         }
 
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(WandaCard)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp)),
-                colors = CardDefaults.cardColors(containerColor = WandaCard)
+                    .clip(RectangleShape)
+                    .background(CyberPanel)
+                    .border(1.dp, CyberLineSubtle, RectangleShape),
+                colors = CardDefaults.cardColors(containerColor = CyberPanel)
             ) {
                 Column(
                     modifier = Modifier.padding(18.dp),
@@ -351,7 +339,7 @@ fun SettingsScreen(
                     Text(
                         text = if (isBatteryOptimized) "✅ Isenção Ativa: O sistema operacional não suspenderá o GPS quando você desligar a tela ou alternar de app."
                         else "⚠️ Otimização Ativa: A Samsung/Android pode suspender o GPS após alguns minutos com tela desligada para economizar bateria.",
-                        color = if (isBatteryOptimized) WandaGreen30 else WandaYellow20,
+                        color = if (isBatteryOptimized) CyberGreen else CyberOrange,
                         fontSize = 13.sp,
                         lineHeight = 18.sp
                     )
@@ -362,8 +350,8 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(46.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = WandaYellow20)
+                            shape = RectangleShape,
+                            colors = ButtonDefaults.buttonColors(containerColor = CyberOrange)
                         ) {
                             Icon(Icons.Default.BatteryAlert, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
@@ -374,8 +362,8 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(WandaGreen30))
-                            Text("Bateria Configurada como Sem Restrições", color = WandaGreen30, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Box(modifier = Modifier.size(8.dp).clip(RectangleShape).background(CyberGreen))
+                            Text("Bateria Configurada como Sem Restrições", color = CyberGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -384,22 +372,17 @@ fun SettingsScreen(
 
         // Section: Offline Maps (Grande São Paulo)
         item {
-            Text(
-                text = "Mapas Offline",
-                color = WandaCyan20,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            CyberSectionHeader(title = "Mapas Offline")
         }
 
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(WandaCard)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp)),
-                colors = CardDefaults.cardColors(containerColor = WandaCard)
+                    .clip(RectangleShape)
+                    .background(CyberPanel)
+                    .border(1.dp, CyberLineSubtle, RectangleShape),
+                colors = CardDefaults.cardColors(containerColor = CyberPanel)
             ) {
                 Column(
                     modifier = Modifier.padding(18.dp),
@@ -424,11 +407,11 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
-                                color = WandaCyan20,
-                                trackColor = WandaCardElevated
+                                    .clip(RectangleShape),
+                                color = CyberCyan,
+                                trackColor = CyberPanelRaised
                             )
-                            Text("Baixando malha da Grande SP para cache local...", color = WandaCyan20, fontSize = 12.sp)
+                            Text("Baixando malha da Grande SP para cache local...", color = CyberCyan, fontSize = 12.sp)
                         }
                     } else if (offlineDownloaded) {
                         Row(
@@ -437,10 +420,11 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(WandaGreen30))
-                                Text("Grande SP Pronta e Offline", color = WandaGreen30, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                Box(modifier = Modifier.size(8.dp).clip(RectangleShape).background(CyberGreen))
+                                Text("Grande SP Pronta e Offline", color = CyberGreen, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             }
                             TextButton(
+                                shape = RectangleShape,
                                 onClick = {
                                     isDownloadingMap = true
                                     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
@@ -449,7 +433,7 @@ fun SettingsScreen(
                                     }, 2000L)
                                 }
                             ) {
-                                Text("Atualizar", color = WandaInteractive, fontSize = 12.sp)
+                                Text("Atualizar", color = CyberAcid, fontSize = 12.sp)
                             }
                         }
                     } else {
@@ -467,8 +451,8 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(44.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                            shape = RectangleShape,
+                            colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
                         ) {
                             Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
@@ -481,12 +465,7 @@ fun SettingsScreen(
 
         // Section: Favorite Locations
         item {
-            Text(
-                text = "Locais Favoritos (Detecção Inteligente)",
-                color = WandaCyan20,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            CyberSectionHeader(title = "Locais Favoritos (Detecção Inteligente)")
         }
 
         // Home Location Card
@@ -515,21 +494,16 @@ fun SettingsScreen(
 
         // Section: Backup & Restore
         item {
-            Text(
-                text = "Backup e Restauração de Dados",
-                color = WandaCyan20,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            CyberSectionHeader(title = "Backup e Restauração de Dados")
         }
 
         item {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(WandaCard)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp))
+                    .clip(RectangleShape)
+                    .background(CyberPanel)
+                    .border(1.dp, CyberLineSubtle, RectangleShape)
                     .padding(18.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -550,8 +524,8 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(WandaBackground)
+                            .clip(RectangleShape)
+                            .background(CyberInk)
                             .padding(12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -575,8 +549,8 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
                     ) {
                         Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
@@ -588,10 +562,10 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(44.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = WandaCardElevated)
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = CyberPanelRaised)
                     ) {
-                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp), tint = WandaCyan20)
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp), tint = CyberCyan)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Importar Backup (JSON Inteligente)", fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.SemiBold)
                     }
@@ -601,22 +575,17 @@ fun SettingsScreen(
 
         // Section: Limpeza de Dados de Demonstração
         item {
-            Text(
-                text = "Manutenção e Limpeza",
-                color = WandaCyan20,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            CyberSectionHeader(title = "Manutenção e Limpeza")
         }
 
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(WandaCard)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp)),
-                colors = CardDefaults.cardColors(containerColor = WandaCard)
+                    .clip(RectangleShape)
+                    .background(CyberPanel)
+                    .border(1.dp, CyberLineSubtle, RectangleShape),
+                colors = CardDefaults.cardColors(containerColor = CyberPanel)
             ) {
                 Column(
                     modifier = Modifier.padding(18.dp),
@@ -636,8 +605,8 @@ fun SettingsScreen(
                     )
                     OutlinedButton(
                         onClick = { showPurgeConfirm = true },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = WandaRed10),
-                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CyberRed),
+                        shape = RectangleShape,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -650,21 +619,16 @@ fun SettingsScreen(
 
         // Section: Automação Inteligente de Gravação
         item {
-            Text(
-                text = "Automação e Inteligência Veicular",
-                color = WandaCyan20,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            CyberSectionHeader(title = "Automação e Inteligência Veicular")
         }
 
         item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(WandaCard)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(18.dp))
+                    .clip(RectangleShape)
+                    .background(CyberPanel)
+                    .border(1.dp, CyberLineSubtle, RectangleShape)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
@@ -695,13 +659,13 @@ fun SettingsScreen(
                                 .edit().putBoolean("smart_idle_pause_enabled", it).apply()
                         },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = WandaGreen20,
-                            checkedTrackColor = WandaGreen20.copy(alpha = 0.3f)
+                            checkedThumbColor = CyberGreen,
+                            checkedTrackColor = CyberGreen.copy(alpha = 0.3f)
                         )
                     )
                 }
 
-                Divider(color = WandaBorderSubtle)
+                Divider(color = CyberLineSubtle)
 
                 // Map Matching pós-viagem automático
                 Row(
@@ -730,8 +694,8 @@ fun SettingsScreen(
                                 .edit().putBoolean("auto_map_match_enabled", it).apply()
                         },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = WandaCyan20,
-                            checkedTrackColor = WandaCyan20.copy(alpha = 0.3f)
+                            checkedThumbColor = CyberCyan,
+                            checkedTrackColor = CyberCyan.copy(alpha = 0.3f)
                         )
                     )
                 }
@@ -743,9 +707,9 @@ fun SettingsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(WandaCard)
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(18.dp))
+                    .clip(RectangleShape)
+                    .background(CyberPanel)
+                    .border(1.dp, CyberLineSubtle, RectangleShape)
                     .padding(16.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -769,28 +733,29 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showPurgeConfirm = false },
             title = {
-                Text("Limpar Dados de Demonstração", fontWeight = FontWeight.Bold, color = WandaRed10)
+                Text("Limpar Dados de Demonstração", fontWeight = FontWeight.Bold, color = CyberRed)
             },
             text = {
                 Text("Isso removerá todas as viagens e abastecimentos simulados. Deseja continuar?", color = TextPrimary)
             },
             confirmButton = {
                 Button(
+                    shape = RectangleShape,
                     onClick = {
                         showPurgeConfirm = false
                         onPurgeDemoData()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = WandaRed10)
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberRed)
                 ) {
                     Text("Limpar", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showPurgeConfirm = false }) {
+                TextButton(shape = RectangleShape, onClick = { showPurgeConfirm = false }) {
                     Text("Cancelar", color = TextSecondary)
                 }
             },
-            containerColor = WandaCardElevated
+            containerColor = CyberPanelRaised
         )
     }
 }
@@ -807,9 +772,9 @@ fun LocationCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(WandaCard)
-            .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp))
+            .clip(RectangleShape)
+            .background(CyberPanel)
+            .border(1.dp, CyberLineSubtle, RectangleShape)
             .padding(18.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -831,13 +796,13 @@ fun LocationCard(
 
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isConfigured) WandaGreen30.copy(alpha = 0.15f) else WandaYellow20.copy(alpha = 0.15f))
+                        .clip(RectangleShape)
+                        .background(if (isConfigured) CyberGreen.copy(alpha = 0.15f) else CyberOrange.copy(alpha = 0.15f))
                         .padding(horizontal = 10.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = if (isConfigured) "🟢 Configurado" else "⚪ Não Definido",
-                        color = if (isConfigured) WandaGreen30 else WandaYellow20,
+                        color = if (isConfigured) CyberGreen else CyberOrange,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -860,8 +825,8 @@ fun LocationCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = WandaInteractive)
+                shape = RectangleShape,
+                colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
             ) {
                 Icon(
                     imageVector = Icons.Default.Map,

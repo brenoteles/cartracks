@@ -1,17 +1,14 @@
 package de.dennisguse.opentracks.ui.components
 
+import androidx.compose.ui.graphics.RectangleShape
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.Path as AndroidPath
-import android.graphics.RectF
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MyLocation
@@ -47,150 +44,66 @@ import org.maplibre.android.maps.Style
 import android.graphics.Color as AndroidColor
 
 /**
- * Modern High-DPI Marker Factory for CarTracks Automotive UI.
+ * Square, high-DPI map markers in the Cyberpunk palette (hard ink edge + neon core).
  */
 object ModernMarkerFactory {
-    private var cachedStart: Bitmap? = null
-    private var cachedEnd: Bitmap? = null
-    private var cachedPin: Bitmap? = null
-    private var cachedGps: Bitmap? = null
-    private var cachedFuel: Bitmap? = null
+    private val cache = mutableMapOf<String, Bitmap>()
 
-    fun getStartMarkerBitmap(context: Context): Bitmap {
-        if (cachedStart != null) return cachedStart!!
-        val density = context.resources.displayMetrics.density
-        val size = (32 * density).toInt().coerceAtLeast(48)
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val center = size / 2f
-
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = AndroidColor.parseColor("#332CBF6F")
+    private fun square(context: Context, key: String, sizeDp: Int, fill: String, inner: String? = null): Bitmap =
+        cache.getOrPut(key) {
+            val density = context.resources.displayMetrics.density
+            val size = (sizeDp * density).toInt().coerceAtLeast(36)
+            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+            val shadow = 3 * density
+            // hard offset shadow
+            paint.color = AndroidColor.parseColor("#990E0D1A")
+            canvas.drawRect(shadow, shadow, size.toFloat(), size.toFloat(), paint)
+            // ink frame + neon fill
+            paint.color = AndroidColor.parseColor("#0E0D1A")
+            canvas.drawRect(0f, 0f, size - shadow, size - shadow, paint)
+            val b = 2.5f * density
+            paint.color = AndroidColor.parseColor(fill)
+            canvas.drawRect(b, b, size - shadow - b, size - shadow - b, paint)
+            if (inner != null) {
+                val c = (size - shadow) / 2f
+                val r = (size - shadow) * 0.16f
+                paint.color = AndroidColor.parseColor(inner)
+                canvas.drawRect(c - r, c - r, c + r, c + r, paint)
+            }
+            bitmap
         }
-        canvas.drawCircle(center, center, center - 2 * density, paint)
 
-        paint.color = AndroidColor.WHITE
-        canvas.drawCircle(center, center, center - 5 * density, paint)
+    fun getStartMarkerBitmap(context: Context): Bitmap = square(context, "start", 26, "#E8FF3A", "#0E0D1A")
 
-        paint.color = AndroidColor.parseColor("#2CBF6F") // Wanda Green
-        canvas.drawCircle(center, center, center - 8 * density, paint)
+    fun getEndMarkerBitmap(context: Context): Bitmap = square(context, "end", 26, "#C5259C", "#FBEFF8")
 
-        paint.color = AndroidColor.WHITE
-        canvas.drawCircle(center, center, 3 * density, paint)
+    fun getGpsVehicleBitmap(context: Context): Bitmap = square(context, "gps", 24, "#00B9B0", "#0E0D1A")
 
-        cachedStart = bitmap
-        return bitmap
-    }
+    fun getFuelMarkerBitmap(context: Context): Bitmap = square(context, "fuel", 22, "#E3881E")
 
-    fun getEndMarkerBitmap(context: Context): Bitmap {
-        if (cachedEnd != null) return cachedEnd!!
+    fun getPinnedMarkerBitmap(context: Context): Bitmap = cache.getOrPut("pin") {
         val density = context.resources.displayMetrics.density
-        val size = (32 * density).toInt().coerceAtLeast(48)
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val center = size / 2f
-
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = AndroidColor.parseColor("#33D02A43")
-        }
-        canvas.drawCircle(center, center, center - 2 * density, paint)
-
-        paint.color = AndroidColor.WHITE
-        canvas.drawCircle(center, center, center - 5 * density, paint)
-
-        paint.color = AndroidColor.parseColor("#D02A43") // Wanda Red
-        canvas.drawCircle(center, center, center - 8 * density, paint)
-
-        paint.color = AndroidColor.WHITE
-        canvas.drawRect(center - 3 * density, center - 3 * density, center + 3 * density, center + 3 * density, paint)
-
-        cachedEnd = bitmap
-        return bitmap
-    }
-
-    fun getPinnedMarkerBitmap(context: Context): Bitmap {
-        if (cachedPin != null) return cachedPin!!
-        val density = context.resources.displayMetrics.density
-        val width = (32 * density).toInt().coerceAtLeast(48)
-        val height = (42 * density).toInt().coerceAtLeast(64)
+        val width = (30 * density).toInt().coerceAtLeast(44)
+        val height = (42 * density).toInt().coerceAtLeast(62)
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val centerX = width / 2f
-        val circleRadius = (width / 2f) - 3 * density
-
-        val path = AndroidPath().apply {
-            moveTo(centerX, height.toFloat() - 2 * density)
-            lineTo(centerX - circleRadius * 0.7f, circleRadius + 4 * density)
-            arcTo(RectF(centerX - circleRadius, 2 * density, centerX + circleRadius, 2 * density + 2 * circleRadius), 150f, 240f)
-            close()
-        }
-
-        paint.style = Paint.Style.FILL
-        paint.color = AndroidColor.parseColor("#0084FF") // Wanda Blue
-        canvas.drawPath(path, paint)
-
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2.5f * density
-        paint.color = AndroidColor.WHITE
-        canvas.drawPath(path, paint)
-
-        paint.style = Paint.Style.FILL
-        paint.color = AndroidColor.WHITE
-        canvas.drawCircle(centerX, circleRadius + 2 * density, circleRadius * 0.45f, paint)
-
-        cachedPin = bitmap
-        return bitmap
-    }
-
-    fun getGpsVehicleBitmap(context: Context): Bitmap {
-        if (cachedGps != null) return cachedGps!!
-        val density = context.resources.displayMetrics.density
-        val size = (36 * density).toInt().coerceAtLeast(54)
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val center = size / 2f
-
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = AndroidColor.parseColor("#333BABBA") // Wanda Cyan halo
-        }
-        canvas.drawCircle(center, center, center - 2 * density, paint)
-
-        paint.color = AndroidColor.WHITE
-        canvas.drawCircle(center, center, 9 * density, paint)
-
-        paint.color = AndroidColor.parseColor("#0084FF") // Automotive Blue Core
-        canvas.drawCircle(center, center, 6.5f * density, paint)
-
-        cachedGps = bitmap
-        return bitmap
-    }
-
-    fun getFuelMarkerBitmap(context: Context): Bitmap {
-        if (cachedFuel != null) return cachedFuel!!
-        val density = context.resources.displayMetrics.density
-        val size = (28 * density).toInt().coerceAtLeast(42)
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val center = size / 2f
-
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = AndroidColor.parseColor("#F5A957") // Wanda Amber
-        }
-        canvas.drawCircle(center, center, center - 2 * density, paint)
-
-        paint.color = AndroidColor.WHITE
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 2f * density
-        canvas.drawCircle(center, center, center - 2 * density, paint)
-
-        cachedFuel = bitmap
-        return bitmap
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+        val head = width.toFloat()
+        val cx = width / 2f
+        // stem
+        paint.color = AndroidColor.parseColor("#0E0D1A")
+        canvas.drawRect(cx - 2.5f * density, head - 4 * density, cx + 2.5f * density, height.toFloat(), paint)
+        // square head
+        canvas.drawRect(0f, 0f, head, head, paint)
+        val b = 3f * density
+        paint.color = AndroidColor.parseColor("#C5259C")
+        canvas.drawRect(b, b, head - b, head - b, paint)
+        paint.color = AndroidColor.parseColor("#E8FF3A")
+        val r = head * 0.17f
+        canvas.drawRect(cx - r, head / 2 - r, cx + r, head / 2 + r, paint)
+        bitmap
     }
 }
 
@@ -318,11 +231,11 @@ fun CarMapView(
                 val speed = pt.speedKmh
 
                 val speedCategory = when {
-                    speed < 20.0 -> AndroidColor.parseColor("#D02A43") // Red
-                    speed < 40.0 -> AndroidColor.parseColor("#F5A957") // Amber
-                    speed < 70.0 -> AndroidColor.parseColor("#2CBF6F") // Green
-                    speed < 100.0 -> AndroidColor.parseColor("#0084FF") // Blue
-                    else -> AndroidColor.parseColor("#C480C7") // Purple
+                    speed < 20.0 -> AndroidColor.parseColor("#E14822") // red
+                    speed < 40.0 -> AndroidColor.parseColor("#E3881E") // orange
+                    speed < 70.0 -> AndroidColor.parseColor("#E8FF3A") // acid
+                    speed < 100.0 -> AndroidColor.parseColor("#00B9B0") // cyan
+                    else -> AndroidColor.parseColor("#F478D9") // pink
                 }
 
                 if (speedCategory != currentSpeedCategory) {
@@ -344,13 +257,20 @@ fun CarMapView(
                 speedColoredSegments.add(Pair(currentSpeedCategory, currentSegment))
             }
 
-            // Fallback to solid cyan/blue if no distinct speed chunks
+            // Ink casing under the route keeps the neon line readable on light and satellite tiles
+            map.addPolyline(
+                PolylineOptions()
+                    .addAll(points.map { LatLng(it.lat, it.lon) })
+                    .color(AndroidColor.parseColor("#0E0D1A"))
+                    .width(9f)
+            )
+
             if (speedColoredSegments.isEmpty()) {
                 val allLatLngs = points.map { LatLng(it.lat, it.lon) }
                 map.addPolyline(
                     PolylineOptions()
                         .addAll(allLatLngs)
-                        .color(AndroidColor.parseColor("#0084FF"))
+                        .color(AndroidColor.parseColor("#E8FF3A"))
                         .width(5.5f)
                 )
             } else {
@@ -393,7 +313,7 @@ fun CarMapView(
 
         // 2. Draw Multi-Routes (e.g. Period Screen)
         if (multiRoutes.isNotEmpty()) {
-            val colors = listOf("#0084FF", "#2CBF6F", "#F5A957", "#C480C7", "#3BABBA")
+            val colors = listOf("#E8FF3A", "#C5259C", "#00B9B0", "#2A5CFF", "#E3881E")
             var idx = 0
             val boundsBuilder = LatLngBounds.Builder()
             var totalPts = 0
@@ -402,6 +322,7 @@ fun CarMapView(
                 if (route.size >= 2) {
                     val color = AndroidColor.parseColor(colors[idx % colors.size])
                     val latLngs = route.map { LatLng(it.lat, it.lon) }
+                    map.addPolyline(PolylineOptions().addAll(latLngs).color(AndroidColor.parseColor("#0E0D1A")).width(8f))
                     map.addPolyline(PolylineOptions().addAll(latLngs).color(color).width(4.5f))
                     latLngs.forEach { boundsBuilder.include(it) }
                     totalPts += latLngs.size
@@ -462,60 +383,59 @@ fun CarMapView(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Speed Gradient Legend Overlay (when showing a route)
-        if (points.size >= 2) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = 12.dp, top = 12.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(WandaCardElevated.copy(alpha = 0.92f))
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("Velocidade (km/h)", color = TextSecondary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFD02A43)))
-                        Text("<20", color = TextPrimary, fontSize = 9.sp)
-                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF5A957)))
-                        Text("20-40", color = TextPrimary, fontSize = 9.sp)
-                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF2CBF6F)))
-                        Text("40-70", color = TextPrimary, fontSize = 9.sp)
-                        Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF0084FF)))
-                        Text("70+", color = TextPrimary, fontSize = 9.sp)
+        // Layer switcher + speed legend stacked at the top end so they never overlap
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(end = 12.dp, top = 12.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (showLayerSwitcher) {
+                Row(
+                    modifier = Modifier
+                        .background(CyberInk.copy(alpha = 0.94f), RectangleShape)
+                        .border(1.dp, CyberAcid, RectangleShape)
+                ) {
+                    MapLayer.values().forEach { layer ->
+                        val isSelected = selectedLayer == layer
+                        Box(
+                            modifier = Modifier
+                                .background(if (isSelected) CyberAcid else Color.Transparent)
+                                .clickable { selectedLayer = layer }
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = layer.label.uppercase(),
+                                style = EyebrowStyle.copy(fontSize = 10.sp, letterSpacing = 1.sp),
+                                color = if (isSelected) CyberOnAcid else TextSecondary
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Layer Switcher (Top Right)
-        if (showLayerSwitcher) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(end = 12.dp, top = 12.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(WandaCardElevated.copy(alpha = 0.94f))
-                    .border(1.dp, WandaBorderSubtle, RoundedCornerShape(14.dp))
-                    .padding(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                MapLayer.values().forEach { layer ->
-                    val isSelected = selectedLayer == layer
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (isSelected) WandaBlue20 else Color.Transparent)
-                            .clickable { selectedLayer = layer }
-                            .padding(horizontal = 9.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            text = layer.label,
-                            color = if (isSelected) Color.White else TextSecondary,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 11.sp
-                        )
+            if (points.size >= 2) {
+                Column(
+                    modifier = Modifier
+                        .background(CyberInk.copy(alpha = 0.9f), RectangleShape)
+                        .border(1.dp, CyberLine, RectangleShape)
+                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                ) {
+                    Text("KM/H", style = EyebrowStyle.copy(fontSize = 9.sp), color = TextSecondary)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        listOf(
+                            CyberRed to "0",
+                            CyberOrange to "20",
+                            CyberAcid to "40",
+                            CyberCyan to "70",
+                            CyberPink to "100"
+                        ).forEach { (c, label) ->
+                            Column(horizontalAlignment = Alignment.Start) {
+                                Box(Modifier.size(width = 24.dp, height = 5.dp).background(c))
+                                Text(label, style = monoStyle(9, FontWeight.Normal), color = TextPrimary)
+                            }
+                        }
                     }
                 }
             }
@@ -536,14 +456,13 @@ fun CarMapView(
                         userInteracted = true
                         mapLibreMapInstance?.animateCamera(CameraUpdateFactory.zoomIn())
                     },
-                    shape = CircleShape,
-                    color = WandaCardElevated.copy(alpha = 0.94f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, WandaBorderSubtle),
-                    shadowElevation = 4.dp,
+                    shape = RectangleShape,
+                    color = CyberInk.copy(alpha = 0.94f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CyberAcid),
                     modifier = Modifier.size(44.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Add, contentDescription = "Zoom In", tint = TextPrimary, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Add, contentDescription = "Zoom In", tint = CyberAcid, modifier = Modifier.size(20.dp))
                     }
                 }
 
@@ -553,14 +472,13 @@ fun CarMapView(
                         userInteracted = true
                         mapLibreMapInstance?.animateCamera(CameraUpdateFactory.zoomOut())
                     },
-                    shape = CircleShape,
-                    color = WandaCardElevated.copy(alpha = 0.94f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, WandaBorderSubtle),
-                    shadowElevation = 4.dp,
+                    shape = RectangleShape,
+                    color = CyberInk.copy(alpha = 0.94f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CyberAcid),
                     modifier = Modifier.size(44.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Remove, contentDescription = "Zoom Out", tint = TextPrimary, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Remove, contentDescription = "Zoom Out", tint = CyberAcid, modifier = Modifier.size(20.dp))
                     }
                 }
 
@@ -584,14 +502,13 @@ fun CarMapView(
                             } catch (ignored: Exception) {}
                         }
                     },
-                    shape = CircleShape,
-                    color = WandaCardElevated.copy(alpha = 0.94f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, WandaBorderSubtle),
-                    shadowElevation = 4.dp,
+                    shape = RectangleShape,
+                    color = CyberInk.copy(alpha = 0.94f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CyberAcid),
                     modifier = Modifier.size(44.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.MyLocation, contentDescription = "Centralizar", tint = WandaCyan20, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.MyLocation, contentDescription = "Centralizar", tint = CyberCyan, modifier = Modifier.size(20.dp))
                     }
                 }
             }

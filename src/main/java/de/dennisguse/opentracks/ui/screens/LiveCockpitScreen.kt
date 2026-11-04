@@ -2,17 +2,15 @@ package de.dennisguse.opentracks.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,6 +18,7 @@ import de.dennisguse.opentracks.ui.components.CarMapView
 import de.dennisguse.opentracks.ui.model.LiveCockpitData
 import de.dennisguse.opentracks.ui.theme.*
 import de.dennisguse.opentracks.util.FuelEfficiencyCalculator
+import java.util.Locale
 
 @Composable
 fun LiveCockpitScreen(
@@ -34,9 +33,9 @@ fun LiveCockpitScreen(
     val minutes = (liveData.durationSec % 3600) / 60
     val seconds = liveData.durationSec % 60
     val durationText = if (hours > 0) {
-        String.format(java.util.Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+        String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
     } else {
-        String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds)
+        String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
     }
 
     val currentKmL = remember(liveData.currentSpeedKmh) {
@@ -44,25 +43,22 @@ fun LiveCockpitScreen(
     }
 
     val speedColor = when {
-        liveData.currentSpeedKmh > 120 -> WandaRed30
-        liveData.currentSpeedKmh > 90 -> WandaYellow20
-        liveData.currentSpeedKmh > 50 -> WandaGreen30
-        else -> WandaCyan20
+        liveData.currentSpeedKmh > 120 -> CyberRed
+        liveData.currentSpeedKmh > 90 -> CyberOrange
+        liveData.currentSpeedKmh > 50 -> CyberAcid
+        else -> CyberCyan
     }
+    val curLoc = if (liveData.currentLat != null && liveData.currentLon != null) {
+        Pair(liveData.currentLat, liveData.currentLon)
+    } else null
 
     if (showConfirmStop) {
         AlertDialog(
             onDismissRequest = { showConfirmStop = false },
-            title = {
-                Text(
-                    text = "Encerrar Viagem?",
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-            },
+            title = { Text("ENCERRAR VIAGEM?", style = displayStyle(28), color = CyberText) },
             text = {
                 Text(
-                    text = "A gravação do percurso será finalizada e os dados de telemetria serão salvos no histórico.",
+                    "A gravação do percurso será finalizada e a telemetria salva no histórico.",
                     color = TextSecondary
                 )
             },
@@ -72,204 +68,111 @@ fun LiveCockpitScreen(
                         showConfirmStop = false
                         onStopTripClicked()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = WandaRed30)
+                    shape = RectangleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberRed)
                 ) {
-                    Text("Sim, Encerrar", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("SIM, ENCERRAR", style = EyebrowStyle.copy(fontSize = 12.sp), color = CyberText)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirmStop = false }) {
-                    Text("Continuar Gravando", color = WandaInteractive)
+                TextButton(onClick = { showConfirmStop = false }, shape = RectangleShape) {
+                    Text("CONTINUAR", style = EyebrowStyle.copy(fontSize = 12.sp), color = CyberAcid)
                 }
             },
-            containerColor = WandaCardElevated
+            shape = RectangleShape,
+            containerColor = CyberPanelRaised
         )
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(WandaBackground)
+            .background(CyberInk)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(16.dp),
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Top Header (Live Cockpit with Real-time GPS Satellite Indicator)
+        // Status strip
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val curLoc = if (liveData.currentLat != null && liveData.currentLon != null) {
-                Pair(liveData.currentLat, liveData.currentLon)
-            } else null
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(WandaRed30)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column {
-                    Text(
-                        text = "Live Cockpit",
-                        color = TextPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(if (curLoc != null) WandaGreen30 else WandaYellow20)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (curLoc != null) "GPS Preciso Conectado" else "Buscando Satélites...",
-                            color = if (curLoc != null) WandaGreen30 else WandaYellow20,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-
-            IconButton(
-                onClick = onMinimizeClicked,
+            CyberChip(text = "● REC", color = CyberRed, filled = true)
+            Spacer(Modifier.width(8.dp))
+            CyberChip(
+                text = if (curLoc != null) "GNSS LOCK" else "BUSCANDO SATÉLITES",
+                color = if (curLoc != null) CyberCyan else CyberOrange
+            )
+            Spacer(Modifier.weight(1f))
+            Box(
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .background(WandaCardElevated)
+                    .size(40.dp)
+                    .border(1.dp, CyberLine, RectangleShape)
+                    .clickable { onMinimizeClicked() },
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Minimizar",
-                    tint = TextPrimary
-                )
+                Icon(Icons.Default.Close, contentDescription = "Minimizar", tint = CyberText)
             }
         }
 
-        // Smart Pause Banner
         if (liveData.isSmartPaused) {
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(WandaCardElevated)
-                    .border(1.dp, WandaYellow30.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .cyberPanel(border = CyberOrange, shadow = false)
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text("⏸️", fontSize = 20.sp)
-                    Column {
-                        Text(
-                            text = "Pausa Inteligente (Veículo Imóvel)",
-                            color = WandaYellow10,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
-                        Text(
-                            text = "A gravação será retomada assim que o carro acelerar.",
-                            color = TextSecondary,
-                            fontSize = 11.sp
-                        )
-                    }
+                Icon(Icons.Default.PauseCircle, contentDescription = null, tint = CyberOrange)
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text("PAUSA INTELIGENTE", style = EyebrowStyle, color = CyberOrange)
+                    Text("Veículo parado. Retoma ao voltar a andar.", color = TextSecondary, fontSize = 12.sp)
                 }
             }
         }
 
         if (!isMapExpanded) {
-            // Speedometer Display (Pure High-Contrast Automotive Telemetry)
-            Column(
+            // Speed readout
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .cyberPanel(border = speedColor)
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.Bottom
             ) {
                 Text(
                     text = "${liveData.currentSpeedKmh.toInt()}",
-                    color = TextPrimary,
-                    fontSize = 82.sp,
-                    fontWeight = FontWeight.Black,
-                    lineHeight = 84.sp
+                    style = displayStyle(112).copy(lineHeight = 112.sp),
+                    color = speedColor
                 )
-                Text(
-                    text = "KM/H",
-                    color = speedColor,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 2.sp
-                )
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.padding(bottom = 18.dp)) {
+                    Text("KM/H", style = displayStyle(28), color = CyberText)
+                    Text("MÁX ${liveData.maxSpeedKmh.toInt()}", style = monoStyle(12), color = CyberTextSecondary)
+                }
             }
 
-            // High Readability 2x2 Telemetry Grid (Eliminates squished cards)
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    MetricCard(
-                        title = "Distância",
-                        value = String.format(java.util.Locale.getDefault(), "%.2f km", liveData.distanceKm),
-                        icon = Icons.Default.Speed,
-                        tint = WandaCyan20,
-                        modifier = Modifier.weight(1f)
-                    )
-                    MetricCard(
-                        title = "Tempo",
-                        value = durationText,
-                        icon = Icons.Default.Timer,
-                        tint = WandaYellow20,
-                        modifier = Modifier.weight(1f)
-                    )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MetricCard("Distância", String.format(Locale.getDefault(), "%.2f km", liveData.distanceKm), Icons.Default.Route, CyberCyan, Modifier.weight(1f))
+                    MetricCard("Tempo", durationText, Icons.Default.Timer, CyberAcid, Modifier.weight(1f))
                 }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    MetricCard(
-                        title = "Vel. Máx",
-                        value = "${liveData.maxSpeedKmh.toInt()} km/h",
-                        icon = Icons.Default.TrendingUp,
-                        tint = WandaRed30,
-                        modifier = Modifier.weight(1f)
-                    )
-                    MetricCard(
-                        title = "Consumo Est.",
-                        value = String.format(java.util.Locale.getDefault(), "%.1f km/L", currentKmL),
-                        icon = Icons.Default.LocalGasStation,
-                        tint = WandaGreen30,
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MetricCard("Vel. máx", "${liveData.maxSpeedKmh.toInt()} km/h", Icons.Default.TrendingUp, CyberRed, Modifier.weight(1f))
+                    MetricCard("Consumo est.", String.format(Locale.getDefault(), "%.1f km/L", currentKmL), Icons.Default.LocalGasStation, CyberGreen, Modifier.weight(1f))
                 }
             }
         }
 
-        // Live HD Map View (Expandable)
+        // Live map
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(vertical = 8.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(WandaCard)
-                .border(1.dp, WandaBorderSubtle, RoundedCornerShape(20.dp))
+                .border(1.dp, CyberLine, RectangleShape)
         ) {
-            val curLoc = if (liveData.currentLat != null && liveData.currentLon != null) {
-                Pair(liveData.currentLat, liveData.currentLon)
-            } else null
-
             CarMapView(
                 points = liveData.breadcrumbPoints,
                 currentLocation = curLoc,
@@ -277,72 +180,40 @@ fun LiveCockpitScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Prominent Maximize / Reduce Toggle on Map (Positioned TopEnd, away from TopStart layer switcher!)
-            Button(
-                onClick = { isMapExpanded = !isMapExpanded },
+            Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(10.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = WandaCardElevated.copy(alpha = 0.94f))
+                    .align(Alignment.BottomStart)
+                    .padding(10.dp)
+                    .background(CyberInk.copy(alpha = 0.92f), RectangleShape)
+                    .border(1.dp, CyberAcid, RectangleShape)
+                    .clickable { isMapExpanded = !isMapExpanded }
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = if (isMapExpanded) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
                     contentDescription = null,
-                    tint = WandaInteractive,
+                    tint = CyberAcid,
                     modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(Modifier.width(6.dp))
                 Text(
-                    text = if (isMapExpanded) "Mostrar Cockpit" else "Maximizar Mapa",
-                    color = TextPrimary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
+                    text = if (isMapExpanded) "COCKPIT" else "MAPA",
+                    style = EyebrowStyle,
+                    color = CyberText
                 )
-            }
-
-            if (isMapExpanded) {
-                // Floating Speed Badge when map is fullscreen
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(16.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(WandaCardElevated.copy(alpha = 0.94f))
-                        .border(1.dp, WandaBorderSubtle, RoundedCornerShape(16.dp))
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "${liveData.currentSpeedKmh.toInt()} km/h",
-                        color = speedColor,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                if (isMapExpanded) {
+                    Spacer(Modifier.width(10.dp))
+                    Text("${liveData.currentSpeedKmh.toInt()} KM/H", style = monoStyle(16, FontWeight.Bold), color = speedColor)
                 }
             }
         }
 
-        // Finish Trip Action Button
-        Button(
-            onClick = { showConfirmStop = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
-            shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = WandaRed30)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Stop,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Encerrar e Salvar Viagem",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
+        CyberActionButton(
+            text = "Encerrar e salvar",
+            icon = Icons.Default.Stop,
+            fill = CyberRed,
+            onClick = { showConfirmStop = true }
+        )
     }
 }

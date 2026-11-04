@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window theme for the Compose UI: Cyberpunk dark field, light system bar icons. -->
+    <style name="Theme.CarTracks.Cyber" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/cyber_ink</item>
+        <item name="android:statusBarColor">@color/cyber_ink</item>
+        <item name="android:navigationBarColor">@color/cyber_ink</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="colorPrimary">@color/cyber_acid</item>
+    </style>
+
+    <color name="cyber_ink">#0E0D1A</color>
+    <color name="cyber_acid">#E8FF3A</color>
+</resources>

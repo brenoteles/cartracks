@@ -214,6 +214,88 @@ object MapMatchingService {
         return if (resultPoints.isNotEmpty()) resultPoints else null
     }
 
+    /** Gap between consecutive GPS fixes above which the polyline would cut across blocks. */
+    private const val SPARSE_GAP_METERS = 350.0
+
+    /**
+     * A trace is sparse when straight segments between fixes would cross the city
+     * (e.g. trips recorded while smart pause was stuck, which kept only start and end).
+     */
+    fun isSparse(points: List<TripPoint>): Boolean {
+        if (points.size < 2) return false
+        for (i in 1 until points.size) {
+            if (haversineDistanceMeters(points[i - 1].lat, points[i - 1].lon, points[i].lat, points[i].lon) > SPARSE_GAP_METERS) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /**
+     * Fills every long gap of a sparse trace with the OSRM driving route between the two
+     * fixes, keeping the recorded fixes untouched. Returns null when offline or when OSRM
+     * cannot route; the caller then keeps showing the raw trace.
+     */
+    suspend fun reconstructSparseRoute(points: List<TripPoint>): List<TripPoint>? = withContext(Dispatchers.IO) {
+        if (points.size < 2) return@withContext null
+        val result = mutableListOf(points.first())
+        var filledAny = false
+        for (i in 1 until points.size) {
+            val a = points[i - 1]
+            val b = points[i]
+            if (haversineDistanceMeters(a.lat, a.lon, b.lat, b.lon) > SPARSE_GAP_METERS) {
+                val road = try {
+                    fetchOsrmRoute(a, b)
+                } catch (e: Exception) {
+                    Log.w(TAG, "OSRM route unavailable: ${e.message}")
+                    null
+                }
+                if (road != null && road.size >= 2) {
+                    // Interpolate time/speed/altitude between the two real fixes.
+                    val n = road.size - 1
+                    for (j in 1 until n) {
+                        val t = j.toDouble() / n
+                        result.add(
+                            TripPoint(
+                                lat = road[j].first,
+                                lon = road[j].second,
+                                speedKmh = a.speedKmh + (b.speedKmh - a.speedKmh) * t,
+                                altitudeM = a.altitudeM + (b.altitudeM - a.altitudeM) * t,
+                                timeMs = a.timeMs + ((b.timeMs - a.timeMs) * t).toLong()
+                            )
+                        )
+                    }
+                    filledAny = true
+                }
+            }
+            result.add(b)
+        }
+        if (filledAny) result else null
+    }
+
+    private fun fetchOsrmRoute(a: TripPoint, b: TripPoint): List<Pair<Double, Double>>? {
+        val coords = String.format(java.util.Locale.US, "%.6f,%.6f;%.6f,%.6f", a.lon, a.lat, b.lon, b.lat)
+        val conn = URL("https://router.project-osrm.org/route/v1/driving/$coords?geometries=geojson&overview=full")
+            .openConnection() as HttpURLConnection
+        try {
+            conn.connectTimeout = 6000
+            conn.readTimeout = 8000
+            conn.setRequestProperty("User-Agent", "CarTracks/1.0.17 (Android)")
+            if (conn.responseCode != 200) return null
+            val json = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
+            if (json.optString("code") != "Ok") return null
+            val routes = json.getJSONArray("routes")
+            if (routes.length() == 0) return null
+            val line = routes.getJSONObject(0).getJSONObject("geometry").getJSONArray("coordinates")
+            return (0 until line.length()).map {
+                val c = line.getJSONArray(it)
+                Pair(c.getDouble(1), c.getDouble(0))
+            }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     private fun projectPointOnSegment(x1: Double, y1: Double, x2: Double, y2: Double, px: Double, py: Double): Pair<Double, Double> {
         val dx = x2 - x1
         val dy = y2 - y1

@@ -1,8 +1,8 @@
 package de.dennisguse.opentracks.ui.screens
 
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -51,10 +51,10 @@ fun PeriodMapScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = AppleBlack)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = CyberInk)
             )
         },
-        containerColor = AppleBlack
+        containerColor = CyberInk
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -71,8 +71,8 @@ fun PeriodMapScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 24.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(AppleCardElevated.copy(alpha = 0.95f))
+                    .clip(RectangleShape)
+                    .background(CyberPanelRaised.copy(alpha = 0.95f))
                     .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
                 Text(

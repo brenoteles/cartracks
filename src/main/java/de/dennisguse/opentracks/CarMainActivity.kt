@@ -868,66 +868,18 @@ class CarMainActivity : ComponentActivity() {
         // Main Tab Scaffold
         Scaffold(
             bottomBar = {
-                NavigationBar(
-                    containerColor = AppleDarkSurface,
-                    tonalElevation = 0.dp,
-                    modifier = Modifier.navigationBarsPadding() // Safe insets for gesture navigation!
-                ) {
-                    NavigationBarItem(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        icon = { Icon(Icons.Default.Dashboard, contentDescription = "Início") },
-                        label = { Text("Início", fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = AppleBlue,
-                            selectedTextColor = AppleBlue,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = Color.Transparent
-                        )
+                CyberNavBar(
+                    selected = selectedTab,
+                    onSelect = { selectedTab = it },
+                    items = listOf(
+                        Icons.Default.Dashboard to "Início",
+                        Icons.Default.DirectionsCar to "Viagens",
+                        Icons.Default.LocalGasStation to "Posto",
+                        Icons.Default.Settings to "Ajustes"
                     )
-                    NavigationBarItem(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        icon = { Icon(Icons.Default.DirectionsCar, contentDescription = "Viagens") },
-                        label = { Text("Viagens", fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = AppleBlue,
-                            selectedTextColor = AppleBlue,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = Color.Transparent
-                        )
-                    )
-                    NavigationBarItem(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
-                        icon = { Icon(Icons.Default.LocalGasStation, contentDescription = "Abastecimento") },
-                        label = { Text("Abastecimento", fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = AppleBlue,
-                            selectedTextColor = AppleBlue,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = Color.Transparent
-                        )
-                    )
-                    NavigationBarItem(
-                        selected = selectedTab == 3,
-                        onClick = { selectedTab = 3 },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Ajustes") },
-                        label = { Text("Ajustes", fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = AppleBlue,
-                            selectedTextColor = AppleBlue,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = Color.Transparent
-                        )
-                    )
-                }
+                )
             },
-            containerColor = AppleBlack
+            containerColor = CyberInk
         ) { paddingValues ->
             Box(
                 modifier = Modifier

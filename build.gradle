@@ -20,6 +20,8 @@ allprojects {
 }
 
 def getVersionName = { ->
+    // -PcarTracksVersion=v1.0.x names a build before it is tagged
+    if (project.hasProperty('carTracksVersion')) return project.property('carTracksVersion')
     return 'git describe --tags'.execute(null, project.rootDir).text.trim()
 }
 
@@ -50,8 +52,8 @@ android {
 
     defaultConfig {
         applicationId 'de.dennisguse.cartracks'
-        versionCode 6766
-        versionName "v4.29.0"
+        versionCode 6767
+        versionName getVersionName()
 
         buildConfigField "String", "VERSION_NAME_FULL", "\"${getVersionName()}\""
 

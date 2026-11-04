@@ -1,6 +1,6 @@
 {
   "version": 8,
-  "name": "CarTracks Wanda Dark",
+  "name": "CarTracks Cyber Dark",
   "sources": {
     "carto-dark": {
       "type": "raster",
@@ -16,7 +16,7 @@
       "id": "background",
       "type": "background",
       "paint": {
-        "background-color": "#0E1014"
+        "background-color": "#0E0D1A"
       }
     },
     {

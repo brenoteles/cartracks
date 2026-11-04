@@ -1,12 +1,12 @@
 package de.dennisguse.opentracks.ui.screens
 
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -36,7 +36,6 @@ import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripDetailScreen(
     trip: TripItem,
@@ -55,7 +54,25 @@ fun TripDetailScreen(
     var showMatchedRoute by remember { mutableStateOf(false) }
     var isMatchingInProgress by remember { mutableStateOf(false) }
     var matchedPoints by remember { mutableStateOf<List<TripPoint>?>(null) }
-    val displayPoints = if (showMatchedRoute && matchedPoints != null) matchedPoints!! else points
+
+    // Sparse traces (few GPS fixes far apart) would be drawn as straight lines across the
+    // city; fill the gaps with the road route between the recorded fixes when online.
+    val isSparse = remember(points) { MapMatchingService.isSparse(points) }
+    var reconstructedPoints by remember(points) { mutableStateOf<List<TripPoint>?>(null) }
+    var showReconstructed by remember(points) { mutableStateOf(true) }
+    var isReconstructing by remember(points) { mutableStateOf(isSparse) }
+    LaunchedEffect(points) {
+        if (isSparse) {
+            reconstructedPoints = MapMatchingService.reconstructSparseRoute(points)
+            isReconstructing = false
+        }
+    }
+
+    val displayPoints = when {
+        showMatchedRoute && matchedPoints != null -> matchedPoints!!
+        isSparse && showReconstructed && reconstructedPoints != null -> reconstructedPoints!!
+        else -> points
+    }
     val tripKmL = remember(trip.avgSpeedKmh) {
         FuelEfficiencyCalculator.estimateTripKmL(trip.avgSpeedKmh)
     }
@@ -81,12 +98,10 @@ fun TripDetailScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = {
-                Text("Excluir Viagem", fontWeight = FontWeight.Bold, color = WandaRed10)
-            },
+            title = { Text("EXCLUIR VIAGEM?", style = displayStyle(28), color = CyberRed) },
             text = {
                 Text(
-                    "Tem certeza que deseja apagar o registro desta viagem? Esta ação não pode ser desfeita.",
+                    "O registro desta viagem será apagado. Esta ação não pode ser desfeita.",
                     color = TextPrimary
                 )
             },
@@ -97,213 +112,137 @@ fun TripDetailScreen(
                         onDeleteTrip?.invoke(trip.id)
                         onBackClicked()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = WandaRed10)
+                    shape = RectangleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberRed)
                 ) {
-                    Text("Excluir", fontWeight = FontWeight.Bold)
+                    Text("EXCLUIR", style = EyebrowStyle.copy(fontSize = 12.sp), color = CyberText)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) {
-                    Text("Cancelar", color = TextSecondary)
+                TextButton(onClick = { showDeleteConfirm = false }, shape = RectangleShape) {
+                    Text("CANCELAR", style = EyebrowStyle.copy(fontSize = 12.sp), color = TextSecondary)
                 }
             },
-            containerColor = WandaCardElevated
+            shape = RectangleShape,
+            containerColor = CyberPanelRaised
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = trip.name.ifEmpty { "Detalhes da Viagem" },
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = trip.dateFormatted,
-                            fontSize = 12.sp,
-                            color = TextSecondary
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Voltar",
-                            tint = TextPrimary
-                        )
-                    }
-                },
-                actions = {
-                    if (onUpdateTrip != null) {
-                        IconButton(onClick = { showEditDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Editar Viagem",
-                                tint = WandaInteractive
-                            )
-                        }
-                    }
-                    if (onDeleteTrip != null) {
-                        IconButton(onClick = { showDeleteConfirm = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Excluir Viagem",
-                                tint = WandaRed10
-                            )
-                        }
-                    }
-                    IconButton(onClick = onExportGpx) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Exportar Trajeto",
-                            tint = AppleBlue
-                        )
-                    }
-                    IconButton(onClick = { isMapMaximized = !isMapMaximized }) {
-                        Icon(
-                            imageVector = if (isMapMaximized) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                            contentDescription = "Alternar Tamanho do Mapa",
-                            tint = AppleBlue
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = AppleBlack)
-            )
-        },
-        containerColor = AppleBlack
-    ) { innerPadding ->
-        if (isMapMaximized) {
-            // Fullscreen Map Mode
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-            ) {
-                CarMapView(
-                    points = displayPoints,
-                    modifier = Modifier.fillMaxSize()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(CyberInk)
+            .statusBarsPadding()
+    ) {
+        // Header bar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBackClicked) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Voltar", tint = CyberAcid)
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = trip.name.ifEmpty { "Viagem" }.uppercase(),
+                    style = displayStyle(26),
+                    color = CyberText,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-
-                // Large Prominent Toggle Button Floating on Map
-                Button(
-                    onClick = { isMapMaximized = false },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(12.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = WandaCardElevated.copy(alpha = 0.94f))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FullscreenExit,
-                        contentDescription = null,
-                        tint = AppleBlue,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Reduzir Mapa",
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
+                Text(trip.dateFormatted, style = monoStyle(11, FontWeight.Normal), color = TextSecondary)
+            }
+            if (onUpdateTrip != null) {
+                IconButton(onClick = { showEditDialog = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Editar viagem", tint = CyberText)
                 }
             }
-        } else {
-            // Standard Mode: Map + Telemetry + Exports
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 32.dp)
-            ) {
-                // Map Container with Visible Floating Maximize Button
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(340.dp)
-                        .background(AppleCard)
-                ) {
-                    CarMapView(
-                        points = displayPoints,
-                        modifier = Modifier.fillMaxSize()
-                    )
+            if (onDeleteTrip != null) {
+                IconButton(onClick = { showDeleteConfirm = true }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Excluir viagem", tint = CyberRed)
+                }
+            }
+            IconButton(onClick = onExportGpx) {
+                Icon(Icons.Default.Share, contentDescription = "Exportar trajeto", tint = CyberText)
+            }
+        }
+        Box(Modifier.fillMaxWidth().height(2.dp).background(CyberAcid))
 
-                    // VERY PROMINENT MAXIMIZE BUTTON (Directly on Map)
-                    Button(
-                        onClick = { isMapMaximized = true },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(12.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WandaCardElevated.copy(alpha = 0.94f))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Fullscreen,
-                            contentDescription = null,
-                            tint = AppleBlue,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Maximizar Mapa",
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
-                    }
+        if (isMapMaximized) {
+            Box(Modifier.fillMaxSize()) {
+                CarMapView(points = displayPoints, modifier = Modifier.fillMaxSize())
+                MapSizeToggle(
+                    maximized = true,
+                    onClick = { isMapMaximized = false },
+                    modifier = Modifier.align(Alignment.BottomStart).padding(12.dp)
+                )
+            }
+            return@Column
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 32.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(340.dp)
+                    .background(CyberPanel)
+            ) {
+                CarMapView(points = displayPoints, modifier = Modifier.fillMaxSize())
+                MapSizeToggle(
+                    maximized = false,
+                    onClick = { isMapMaximized = true },
+                    modifier = Modifier.align(Alignment.BottomStart).padding(12.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                if (isSparse) {
+                    SparseTraceBanner(
+                        pointCount = points.size,
+                        isLoading = isReconstructing,
+                        reconstructed = reconstructedPoints != null,
+                        showingReconstructed = showReconstructed,
+                        onToggle = { showReconstructed = !showReconstructed }
+                    )
                 }
 
-                // Map Matching Action Card
-                Box(
+                // Map matching
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(WandaCard)
-                        .border(1.dp, if (showMatchedRoute) WandaCyan20.copy(alpha = 0.5f) else WandaBorderSubtle, RoundedCornerShape(16.dp))
-                        .padding(14.dp)
+                        .cyberPanel(border = if (showMatchedRoute) CyberCyan else CyberLine)
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(
-                                    text = "Ajuste às Ruas (Map Matching)",
-                                    color = TextPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
-                                if (showMatchedRoute) {
-                                    Box(
-                                        Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(WandaCyan20.copy(alpha = 0.2f))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("ATIVO", color = WandaCyan20, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
-                                    }
-                                }
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("AJUSTE ÀS RUAS", style = EyebrowStyle, color = CyberText)
+                            if (showMatchedRoute) {
+                                Spacer(Modifier.width(8.dp))
+                                CyberChip("Ativo", CyberCyan, filled = true)
                             }
-                            Text(
-                                text = if (showMatchedRoute) "Traçado suavizado e ajustado às vias" else "Elimina desvios de GPS e encaixa o trajeto nas vias",
-                                color = TextSecondary,
-                                fontSize = 12.sp
-                            )
                         }
-
-                        Button(
-                            onClick = {
+                        Text(
+                            text = if (showMatchedRoute) "Traçado encaixado nas vias" else "Remove desvios do GPS e encaixa o trajeto nas vias",
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(if (showMatchedRoute) CyberCyan else CyberAcid, RectangleShape)
+                            .clickable(enabled = !isMatchingInProgress) {
                                 if (showMatchedRoute) {
                                     showMatchedRoute = false
                                 } else if (matchedPoints != null) {
@@ -315,190 +254,120 @@ fun TripDetailScreen(
                                         matchedPoints = res.matchedPoints
                                         showMatchedRoute = true
                                         isMatchingInProgress = false
-                                        val typeMsg = if (res.isOnlineMatched) "Vias oficiais OSM (Online)" else "Corredores viários (Offline)"
-                                        Toast.makeText(context, "Trajeto ajustado via $typeMsg!", Toast.LENGTH_SHORT).show()
+                                        val typeMsg = if (res.isOnlineMatched) "vias OSM (online)" else "corredores viários (offline)"
+                                        Toast.makeText(context, "Trajeto ajustado via $typeMsg", Toast.LENGTH_SHORT).show()
                                     }
                                 }
-                            },
-                            enabled = !isMatchingInProgress,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (showMatchedRoute) WandaCyan20 else WandaCardElevated
-                            )
-                        ) {
-                            if (isMatchingInProgress) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
-                            } else {
-                                Text(
-                                    text = if (showMatchedRoute) "Ver GPS Bruto" else "Ajustar Traçado",
-                                    color = if (showMatchedRoute) Color.Black else TextPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
                             }
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                    ) {
+                        if (isMatchingInProgress) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = CyberOnAcid)
+                        } else {
+                            Text(
+                                text = if (showMatchedRoute) "GPS BRUTO" else "AJUSTAR",
+                                style = EyebrowStyle.copy(fontSize = 12.sp),
+                                color = CyberOnAcid
+                            )
                         }
                     }
                 }
 
-                // Telemetry & Details Section
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    // Commute badge
-                    if (!trip.commuteBadge.isNullOrEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(AppleBlue.copy(alpha = 0.15f))
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = trip.commuteBadge,
-                                color = AppleBlue,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
+                if (!trip.commuteBadge.isNullOrEmpty()) {
+                    CyberChip(text = trip.commuteBadge, color = CyberCyan)
+                }
 
-                    Text(
-                        text = "Telemetria e Desempenho",
-                        color = TextPrimary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                CyberSectionHeader(title = "Telemetria", eyebrow = "Desempenho")
 
-                    // Metric Grid
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        MetricCard(
-                            title = "Distância",
-                            value = String.format(java.util.Locale.getDefault(), "%.1f km", trip.distanceKm),
-                            icon = Icons.Default.Speed,
-                            tint = AppleBlue,
-                            modifier = Modifier.weight(1f)
-                        )
-                        MetricCard(
-                            title = "Duração",
-                            value = "${trip.durationMin} min",
-                            icon = Icons.Default.Timer,
-                            tint = AppleOrange,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricCard("Distância", String.format(java.util.Locale.getDefault(), "%.1f km", trip.distanceKm), Icons.Default.Route, CyberCyan, Modifier.weight(1f))
+                    MetricCard("Duração", "${trip.durationMin} min", Icons.Default.Timer, CyberAcid, Modifier.weight(1f))
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricCard("Vel. média", "${trip.avgSpeedKmh.toInt()} km/h", Icons.Default.Speed, CyberPink, Modifier.weight(1f))
+                    MetricCard("Vel. máxima", "${trip.maxSpeedKmh.toInt()} km/h", Icons.Default.TrendingUp, CyberRed, Modifier.weight(1f))
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricCard("Consumo est.", String.format(java.util.Locale.getDefault(), "%.1f km/L", tripKmL), Icons.Default.LocalGasStation, CyberGreen, Modifier.weight(1f))
+                    MetricCard("Gasto", String.format(java.util.Locale.getDefault(), "R$ %.2f", trip.fuelCost), Icons.Default.AttachMoney, CyberOrange, Modifier.weight(1f))
+                }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        MetricCard(
-                            title = "Velocidade Média",
-                            value = "${trip.avgSpeedKmh.toInt()} km/h",
-                            icon = Icons.Default.Speed,
-                            tint = AppleTeal,
-                            modifier = Modifier.weight(1f)
-                        )
-                        MetricCard(
-                            title = "Velocidade Máxima",
-                            value = "${trip.maxSpeedKmh.toInt()} km/h",
-                            icon = Icons.Default.TrendingUp,
-                            tint = AppleRed,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                if (points.size >= 2) {
+                    TripTelemetryProfileChart(points = points)
+                }
 
-                    // Feature 3: Real & Estimated Fuel Efficiency
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        MetricCard(
-                            title = "Consumo Real Est.",
-                            value = String.format(java.util.Locale.getDefault(), "%.1f km/L", tripKmL),
-                            icon = Icons.Default.LocalGasStation,
-                            tint = AppleGreen,
-                            modifier = Modifier.weight(1f)
-                        )
-                        MetricCard(
-                            title = "Gasto na Viagem",
-                            value = String.format(java.util.Locale.getDefault(), "R$ %.2f", trip.fuelCost),
-                            icon = Icons.Default.AttachMoney,
-                            tint = AppleYellow,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // Interactive Telemetry Profile (OsmAnd Style Speed & Altitude Graph)
-                    if (points.size >= 2) {
-                        TripTelemetryProfileChart(points = points)
-                        Spacer(modifier = Modifier.height(10.dp))
-                    }
-
-                    // Feature 6: Route Export Buttons (GPX & KML)
-                    Text(
-                        text = "Exportar Trajeto",
-                        color = TextPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Button(
-                            onClick = onExportGpx,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = null,
-                                tint = AppleBlue,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Exportar GPX",
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
-                        }
-
-                        Button(
-                            onClick = onExportKml,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(50.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Public,
-                                contentDescription = null,
-                                tint = AppleGreen,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Google Earth (KML)",
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
-                        }
-                    }
+                CyberSectionHeader(title = "Exportar", eyebrow = "Trajeto")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    CyberGhostButton("GPX", onClick = onExportGpx, icon = Icons.Default.Share, accent = CyberAcid, modifier = Modifier.weight(1f))
+                    CyberGhostButton("KML · Earth", onClick = onExportKml, icon = Icons.Default.Public, accent = CyberCyan, modifier = Modifier.weight(1f))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MapSizeToggle(maximized: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .background(CyberInk.copy(alpha = 0.92f), RectangleShape)
+            .border(1.dp, CyberAcid, RectangleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (maximized) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+            contentDescription = null,
+            tint = CyberAcid,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(if (maximized) "REDUZIR" else "TELA CHEIA", style = EyebrowStyle, color = CyberText)
+    }
+}
+
+@Composable
+private fun SparseTraceBanner(
+    pointCount: Int,
+    isLoading: Boolean,
+    reconstructed: Boolean,
+    showingReconstructed: Boolean,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .cyberPanel(border = CyberOrange, shadow = false)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Default.Warning, contentDescription = null, tint = CyberOrange)
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text("GPS ESPARSO · $pointCount PONTOS", style = EyebrowStyle, color = CyberOrange)
+            Text(
+                text = when {
+                    isLoading -> "Reconstruindo o trajeto pelas ruas…"
+                    reconstructed && showingReconstructed -> "Trechos sem sinal foram preenchidos com a rota pelas ruas (estimativa)."
+                    reconstructed -> "Mostrando apenas os pontos gravados."
+                    else -> "Sem conexão para reconstruir pelas ruas. Mostrando os pontos gravados."
+                },
+                color = TextSecondary,
+                fontSize = 12.sp
+            )
+        }
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = CyberOrange)
+        } else if (reconstructed) {
+            Text(
+                if (showingReconstructed) "BRUTO" else "RUAS",
+                style = EyebrowStyle,
+                color = CyberAcid,
+                modifier = Modifier
+                    .clickable(onClick = onToggle)
+                    .padding(8.dp)
+            )
         }
     }
 }
@@ -526,10 +395,10 @@ fun TripTelemetryProfileChart(points: List<TripPoint>) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(WandaCardElevated)
-            .border(1.dp, WandaBorder, RoundedCornerShape(20.dp)),
-        colors = CardDefaults.cardColors(containerColor = WandaCardElevated)
+            .clip(RectangleShape)
+            .background(CyberPanelRaised)
+            .border(1.dp, CyberLine, RectangleShape),
+        colors = CardDefaults.cardColors(containerColor = CyberPanelRaised)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -546,21 +415,21 @@ fun TripTelemetryProfileChart(points: List<TripPoint>) {
 
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(WandaBackground)
+                        .clip(RectangleShape)
+                        .background(CyberInk)
                         .padding(3.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (selectedMetric == 0) WandaPrimary else Color.Transparent)
+                            .clip(RectangleShape)
+                            .background(if (selectedMetric == 0) CyberAcid else Color.Transparent)
                             .clickable { selectedMetric = 0 }
                             .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
                         Text(
                             text = "⚡ Velocidade",
-                            color = if (selectedMetric == 0) Color.White else TextSecondary,
+                            color = if (selectedMetric == 0) CyberOnAcid else TextSecondary,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -568,8 +437,8 @@ fun TripTelemetryProfileChart(points: List<TripPoint>) {
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(9.dp))
-                            .background(if (selectedMetric == 1) WandaGreen30 else Color.Transparent)
+                            .clip(RectangleShape)
+                            .background(if (selectedMetric == 1) CyberGreen else Color.Transparent)
                             .clickable { selectedMetric = 1 }
                             .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
@@ -585,7 +454,7 @@ fun TripTelemetryProfileChart(points: List<TripPoint>) {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            val primaryColor = if (selectedMetric == 0) WandaCyan20 else WandaGreen30
+            val primaryColor = if (selectedMetric == 0) CyberCyan else CyberGreen
             val gradientBrush = Brush.verticalGradient(
                 colors = listOf(primaryColor.copy(alpha = 0.45f), primaryColor.copy(alpha = 0.02f))
             )
@@ -666,7 +535,7 @@ fun TripTelemetryProfileChart(points: List<TripPoint>) {
                 } else {
                     val gain = (maxVal - minVal).toInt()
                     Text("Ponto Mais Alto: ${maxVal.toInt()} m", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Desnível: ${gain} m", color = WandaGreen30, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Desnível: ${gain} m", color = CyberGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

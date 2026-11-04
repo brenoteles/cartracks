@@ -1,5 +1,6 @@
 package de.dennisguse.opentracks.ui.screens
 
+import androidx.compose.ui.graphics.RectangleShape
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Close
@@ -88,7 +88,7 @@ fun TripsScreen(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppleBlack)
+            .background(CyberInk)
             .padding(horizontal = 16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 120.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -102,28 +102,27 @@ fun TripsScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Histórico de Viagens",
-                        color = TextPrimary,
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Black
+                        text = "HISTÓRICO DE VIAGENS",
+                        style = displayStyle(40),
+                        color = CyberAcid
                     )
                     Text(
-                        text = "Filtros por período e destino com mapa HD",
-                        color = TextSecondary,
-                        fontSize = 14.sp
+                        text = "// " + "Filtros por período e destino com mapa HD".uppercase(),
+                        style = EyebrowStyle,
+                        color = TextSecondary
                     )
                 }
 
                 Button(
                     onClick = { showMonthlyReport = true },
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = WandaCardElevated),
+                    shape = RectangleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberPanelRaised),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Assessment,
                         contentDescription = "Relatórios",
-                        tint = WandaCyan20,
+                        tint = CyberCyan,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -157,11 +156,11 @@ fun TripsScreen(
                                     fontSize = 13.sp
                                 )
                             },
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RectangleShape,
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AppleBlue,
+                                selectedContainerColor = CyberAcid,
                                 selectedLabelColor = TextPrimary,
-                                containerColor = AppleCard,
+                                containerColor = CyberPanel,
                                 labelColor = TextSecondary
                             ),
                             border = null
@@ -191,11 +190,11 @@ fun TripsScreen(
                                     fontSize = 13.sp
                                 )
                             },
-                            shape = RoundedCornerShape(20.dp),
+                            shape = RectangleShape,
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = AppleBlue,
+                                selectedContainerColor = CyberAcid,
                                 selectedLabelColor = TextPrimary,
-                                containerColor = AppleCard,
+                                containerColor = CyberPanel,
                                 labelColor = TextSecondary
                             ),
                             border = null
@@ -210,9 +209,9 @@ fun TripsScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(AppleCard),
-                colors = CardDefaults.cardColors(containerColor = AppleCard)
+                    .clip(RectangleShape)
+                    .background(CyberPanel),
+                colors = CardDefaults.cardColors(containerColor = CyberPanel)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -244,7 +243,7 @@ fun TripsScreen(
                             Text("Distância", color = TextSecondary, fontSize = 12.sp)
                             Text(
                                 text = String.format(java.util.Locale.getDefault(), "%.1f km", periodKm),
-                                color = AppleBlue,
+                                color = CyberAcid,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp
                             )
@@ -253,7 +252,7 @@ fun TripsScreen(
                             Text("Consumo", color = TextSecondary, fontSize = 12.sp)
                             Text(
                                 text = String.format(java.util.Locale.getDefault(), "%.1f L", periodFuel),
-                                color = AppleGreen,
+                                color = CyberGreen,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp
                             )
@@ -262,7 +261,7 @@ fun TripsScreen(
                             Text("Custo Estimado", color = TextSecondary, fontSize = 12.sp)
                             Text(
                                 text = String.format(java.util.Locale.getDefault(), "R$ %.2f", periodCost),
-                                color = AppleYellow,
+                                color = CyberAcid,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp
                             )
@@ -275,13 +274,13 @@ fun TripsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(44.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AppleCardElevated)
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = CyberPanelRaised)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Map,
                             contentDescription = null,
-                            tint = AppleBlue,
+                            tint = CyberAcid,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -304,8 +303,8 @@ fun TripsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(AppleCard)
+                        .clip(RectangleShape)
+                        .background(CyberPanel)
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -393,14 +392,14 @@ fun MonthlyReportDialog(
                         val isSel = m == selectedMonth
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSel) WandaPrimary else WandaCardElevated)
+                                .clip(RectangleShape)
+                                .background(if (isSel) CyberAcid else CyberPanelRaised)
                                 .clickable { selectedMonth = m }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = m,
-                                color = if (isSel) Color.White else TextSecondary,
+                                color = if (isSel) CyberOnAcid else TextSecondary,
                                 fontSize = 12.sp,
                                 fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal
                             )
@@ -411,8 +410,8 @@ fun MonthlyReportDialog(
                 // Metrics Grid
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = WandaBackground)
+                    shape = RectangleShape,
+                    colors = CardDefaults.cardColors(containerColor = CyberInk)
                 ) {
                     Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -421,7 +420,7 @@ fun MonthlyReportDialog(
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Quilometragem Total:", color = TextSecondary, fontSize = 13.sp)
-                            Text(String.format(Locale.getDefault(), "%.1f km", totalKm), color = WandaCyan20, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(String.format(Locale.getDefault(), "%.1f km", totalKm), color = CyberCyan, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Tempo ao Volante:", color = TextSecondary, fontSize = 13.sp)
@@ -429,15 +428,15 @@ fun MonthlyReportDialog(
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Consumo Estimado:", color = TextSecondary, fontSize = 13.sp)
-                            Text(String.format(Locale.getDefault(), "%.1f Litros", totalLiters), color = WandaGreen30, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(String.format(Locale.getDefault(), "%.1f Litros", totalLiters), color = CyberGreen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Gasto em Viagens:", color = TextSecondary, fontSize = 13.sp)
-                            Text(String.format(Locale.getDefault(), "R$ %.2f", totalCost), color = WandaYellow20, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(String.format(Locale.getDefault(), "R$ %.2f", totalCost), color = CyberOrange, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Custo Médio / km:", color = TextSecondary, fontSize = 13.sp)
-                            Text(String.format(Locale.getDefault(), "R$ %.2f / km", costPerKm), color = WandaPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(String.format(Locale.getDefault(), "R$ %.2f / km", costPerKm), color = CyberAcid, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Trajetos Casa ↔ Trab.:", color = TextSecondary, fontSize = 13.sp)
@@ -449,6 +448,7 @@ fun MonthlyReportDialog(
         },
         confirmButton = {
             Button(
+                shape = RectangleShape,
                 onClick = {
                     val summaryText = buildString {
                         appendLine("📊 RELATÓRIO MENSAL - CARTRACKS ($selectedMonth)")
@@ -467,13 +467,13 @@ fun MonthlyReportDialog(
                     }
                     context.startActivity(Intent.createChooser(intent, "Compartilhar Relatório"))
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = WandaPrimary)
+                colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
             ) {
                 Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("Compartilhar Resumo", fontWeight = FontWeight.Bold)
             }
         },
-        containerColor = WandaCardElevated
+        containerColor = CyberPanelRaised
     )
 }
