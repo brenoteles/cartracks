@@ -73,9 +73,7 @@ fun TripDetailScreen(
         isSparse && showReconstructed && reconstructedPoints != null -> reconstructedPoints!!
         else -> points
     }
-    val tripKmL = remember(trip.avgSpeedKmh) {
-        FuelEfficiencyCalculator.estimateTripKmL(trip.avgSpeedKmh)
-    }
+    val tripKmL = trip.kmL
 
     if (showEditDialog) {
         EditTripDialog(
@@ -273,8 +271,10 @@ fun TripDetailScreen(
                     }
                 }
 
-                if (!trip.commuteBadge.isNullOrEmpty()) {
-                    CyberChip(text = trip.commuteBadge, color = CyberCyan)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (!trip.commuteBadge.isNullOrEmpty()) CyberChip(text = trip.commuteBadge, color = CyberCyan)
+                    if (trip.trafficLabel.isNotEmpty()) CyberChip(text = "Trânsito: ${trip.trafficLabel}", color = CyberOrange)
+                    if (trip.fuelLabel.isNotEmpty()) CyberChip(text = trip.fuelLabel, color = CyberGreen)
                 }
 
                 CyberSectionHeader(title = "Telemetria", eyebrow = "Desempenho")
@@ -288,7 +288,7 @@ fun TripDetailScreen(
                     MetricCard("Vel. máxima", "${trip.maxSpeedKmh.toInt()} km/h", Icons.Default.TrendingUp, CyberRed, Modifier.weight(1f))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MetricCard("Consumo est.", String.format(java.util.Locale.getDefault(), "%.1f km/L", tripKmL), Icons.Default.LocalGasStation, CyberGreen, Modifier.weight(1f))
+                    MetricCard("Consumo · ${trip.fuelLabel}", String.format(java.util.Locale.getDefault(), "%.1f km/L", tripKmL), Icons.Default.LocalGasStation, CyberGreen, Modifier.weight(1f))
                     MetricCard("Gasto", String.format(java.util.Locale.getDefault(), "R$ %.2f", trip.fuelCost), Icons.Default.AttachMoney, CyberOrange, Modifier.weight(1f))
                 }
 

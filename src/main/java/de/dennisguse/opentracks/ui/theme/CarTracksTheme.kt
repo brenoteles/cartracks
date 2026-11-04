@@ -213,6 +213,10 @@ fun CyberSectionHeader(
                 }
             }
             Text(title.uppercase(), style = displayStyle(26), color = CyberText)
+            de.dennisguse.opentracks.ui.components.RoadDivider(
+                modifier = Modifier.padding(top = 2.dp, end = 24.dp),
+                color = CyberAcid.copy(alpha = 0.45f)
+            )
         }
         trailing?.invoke()
     }

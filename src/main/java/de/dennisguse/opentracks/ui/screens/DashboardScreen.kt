@@ -20,6 +20,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import de.dennisguse.opentracks.ui.components.MercosulPlate
+import de.dennisguse.opentracks.ui.components.OdometerWheels
 import de.dennisguse.opentracks.ui.model.FuelItem
 import de.dennisguse.opentracks.ui.model.LiveCockpitData
 import de.dennisguse.opentracks.ui.model.ParkingInfo
@@ -265,7 +267,6 @@ fun HeroVehicleStatusCard(
 ) {
     val tankPercent = if (tankCapacityLiters > 0) (currentFuelLiters / tankCapacityLiters).coerceIn(0.0, 1.0) else 0.0
     val estimatedRangeKm = (currentFuelLiters * estimatedKmL).toInt()
-    val odometerText = odometerKm.toInt().toString().replace(Regex("(\\d)(?=(\\d{3})+$)"), "$1.")
 
     Column(
         modifier = Modifier
@@ -292,13 +293,7 @@ fun HeroVehicleStatusCard(
                 )
             }
             if (vehiclePlate.isNotBlank()) {
-                Box(
-                    modifier = Modifier
-                        .background(CyberOnAcid, RectangleShape)
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(vehiclePlate.uppercase(), style = monoStyle(13, FontWeight.Bold), color = CyberAcid)
-                }
+                MercosulPlate(vehiclePlate)
             }
             if (onConfigureVehicle != null) {
                 IconButton(onClick = onConfigureVehicle) {
@@ -315,9 +310,15 @@ fun HeroVehicleStatusCard(
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            Text(odometerText, style = monoStyle(44, FontWeight.Bold), color = CyberOnAcid)
-            Spacer(Modifier.width(6.dp))
-            Text("KM", style = displayStyle(22), color = CyberOnAcid, modifier = Modifier.padding(bottom = 8.dp))
+            Column {
+                Text("ODÔMETRO", style = EyebrowStyle.copy(fontSize = 10.sp), color = CyberOnAcidSecondary)
+                Spacer(Modifier.height(3.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    OdometerWheels(km = odometerKm)
+                    Spacer(Modifier.width(6.dp))
+                    Text("KM", style = displayStyle(22), color = CyberOnAcid)
+                }
+            }
             Spacer(Modifier.weight(1f))
             if (onEditOdometer != null) {
                 Icon(
@@ -343,10 +344,15 @@ fun HeroVehicleStatusCard(
             }
             Spacer(Modifier.height(6.dp))
             val segments = 20
+            Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.LocalGasStation, contentDescription = null, tint = CyberOnAcid, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("E", style = monoStyle(12, FontWeight.Bold), color = CyberRed)
+            Spacer(Modifier.width(6.dp))
             val lit = (tankPercent * segments).toInt()
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .height(14.dp),
                 horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
@@ -363,6 +369,9 @@ fun HeroVehicleStatusCard(
                             .background(color)
                     )
                 }
+            }
+            Spacer(Modifier.width(6.dp))
+            Text("F", style = monoStyle(12, FontWeight.Bold), color = CyberOnAcid)
             }
         }
 

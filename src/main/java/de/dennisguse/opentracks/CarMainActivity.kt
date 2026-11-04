@@ -41,10 +41,13 @@ import de.dennisguse.opentracks.io.TrackExportHelper
 import de.dennisguse.opentracks.services.RecordingData
 import de.dennisguse.opentracks.services.TrackRecordingService
 import de.dennisguse.opentracks.services.TrackRecordingServiceConnection
+import de.dennisguse.opentracks.ui.components.QuickEditOdometerDialog
+import de.dennisguse.opentracks.ui.components.VehicleSetupDialog
 import de.dennisguse.opentracks.ui.model.*
 import de.dennisguse.opentracks.ui.screens.*
 import de.dennisguse.opentracks.ui.theme.*
-import de.dennisguse.opentracks.util.FuelEfficiencyCalculator
+import de.dennisguse.opentracks.util.FuelConsumptionModel
+import de.dennisguse.opentracks.util.FuelFamily
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -132,6 +135,7 @@ class CarMainActivity : ComponentActivity() {
     private val initialSetupDoneState = mutableStateOf(false)
     private val showInitialSetupDialogState = mutableStateOf(false)
     private val showEditOdometerDialogState = mutableStateOf(false)
+    private val consumptionState = mutableStateOf(FuelConsumptionModel(emptyMap(), true, emptyMap(), emptyList(), "Gasolina Comum"))
 
     private val appLocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
@@ -208,7 +212,6 @@ class CarMainActivity : ComponentActivity() {
 
         loadPreferences()
         loadCustomLocations()
-        loadTrips()
         loadFuelEntries()
         checkBatteryOptimization()
         loadParkingInfo()
@@ -241,7 +244,6 @@ class CarMainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         serviceConnection?.bind(this)
-        loadTrips()
         loadFuelEntries()
         checkBatteryOptimization()
         loadParkingInfo()
@@ -315,12 +317,24 @@ class CarMainActivity : ComponentActivity() {
         return if (base > 0) base + totalRecordedKm else totalRecordedKm
     }
 
+    /**
+     * Liters in the tank: start from the last full fill (or from the setup answer "km since
+     * the tank was full"), add partial fills after it and subtract the fuel of later trips.
+     */
     private fun getCurrentFuelLiters(): Double {
         val cap = tankCapacityState.value
-        val kmL = if (fuelDb.overallRealKmL in 4.0..30.0) fuelDb.overallRealKmL else estimatedKmLState.value
-        val kmSinceFull = kmSinceLastFullState.value + tripsState.value.sumOf { it.distanceKm }
-        val litersUsed = if (kmL > 0) kmSinceFull / kmL else 0.0
-        return (cap - litersUsed).coerceIn(0.0, cap)
+        val model = consumptionState.value
+        val fills = fuelState.value
+        val setupRefMs = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE).getLong("tank_ref_time_ms", 0L)
+        val lastFull = fills.filter { it.isFullTank }.maxByOrNull { it.dateTime }
+        val (refMs, startLiters) = if (lastFull != null && lastFull.dateTime >= setupRefMs) {
+            lastFull.dateTime to cap
+        } else {
+            setupRefMs to cap - kmSinceLastFullState.value / model.baseKmL(model.familyAt(setupRefMs))
+        }
+        val added = fills.filter { !it.isFullTank && it.dateTime > refMs }.sumOf { it.liters }
+        val burned = tripsState.value.filter { it.startTimeMs > refMs }.sumOf { it.fuelLiters }
+        return (startLiters + added - burned).coerceIn(0.0, cap)
     }
 
     private fun saveOdometer(newOdometer: Double) {
@@ -353,6 +367,8 @@ class CarMainActivity : ComponentActivity() {
             .putFloat("odometer_base_km", baseOdo.toFloat())
             .putFloat("estimated_km_per_liter", estimatedKmL.toFloat())
             .putFloat("km_since_last_full", kmSinceLastFull.toFloat())
+            .putFloat(FuelFamily.of(primaryFuelType).prefKey, estimatedKmL.toFloat())
+            .putLong("tank_ref_time_ms", System.currentTimeMillis())
             .putBoolean("initial_setup_completed", true)
             .apply()
 
@@ -365,6 +381,7 @@ class CarMainActivity : ComponentActivity() {
         kmSinceLastFullState.value = kmSinceLastFull
         initialSetupDoneState.value = true
         showInitialSetupDialogState.value = false
+        reloadConsumption()
         Toast.makeText(this, "Dados do veículo salvos!", Toast.LENGTH_SHORT).show()
     }
 
@@ -462,6 +479,7 @@ class CarMainActivity : ComponentActivity() {
         lifecycleScope.launch {
             val list = mutableListOf<TripItem>()
             val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+            val model = consumptionState.value
             try {
                 providerUtils.searchTracks(null)?.use { it ->
                     while (it.hasNext()) {
@@ -488,11 +506,11 @@ class CarMainActivity : ComponentActivity() {
                             maxSpd = avgSpd * 1.35
                         }
 
-                        val realKmL = fuelDb.overallRealKmL
-                        val lastPrice = fuelDb.latestPricePerLiter
-                        val tripKmL = if (realKmL in 4.0..30.0) realKmL else FuelEfficiencyCalculator.estimateTripKmL(avgSpd)
-                        val fuel = if (tripKmL > 0) km / tripKmL else km * 0.08
-                        val cost = fuel * lastPrice
+                        val startMs = item.startTime().toEpochMilli()
+                        val family = model.familyAt(startMs)
+                        val tripKmL = model.tripKmL(avgSpd, startMs)
+                        val fuel = if (tripKmL > 0) km / tripKmL else 0.0
+                        val cost = fuel * model.pricePerLiter(family, startMs)
 
                         // Compute Commute Badge if start/end matches Home or Work
                         val badge = detectCommuteBadge(item.id().id())
@@ -510,7 +528,10 @@ class CarMainActivity : ComponentActivity() {
                                 maxSpeedKmh = maxSpd,
                                 fuelLiters = fuel,
                                 fuelCost = cost,
-                                commuteBadge = badge
+                                commuteBadge = badge,
+                                kmL = tripKmL,
+                                fuelLabel = family.label,
+                                trafficLabel = FuelConsumptionModel.trafficLabel(avgSpd)
                             )
                         )
                     }
@@ -593,6 +614,19 @@ class CarMainActivity : ComponentActivity() {
             )
         }
         fuelState.value = entries
+        reloadConsumption()
+    }
+
+    /** Rebuilds the consumption model (pump cycles + Ajustes) and re-prices every trip. */
+    private fun reloadConsumption() {
+        consumptionState.value = FuelConsumptionModel.load(this, fuelState.value, primaryFuelTypeState.value)
+        loadTrips()
+    }
+
+    private fun saveConsumption(values: Map<FuelFamily, Double>, usePump: Boolean) {
+        FuelConsumptionModel.saveManual(this, values, usePump)
+        reloadConsumption()
+        Toast.makeText(this, "Consumo atualizado. Viagens recalculadas.", Toast.LENGTH_SHORT).show()
     }
 
     private fun getTripPoints(trackId: Long): List<TripPoint> {
@@ -668,8 +702,12 @@ class CarMainActivity : ComponentActivity() {
             }
         }
 
-        val fuel = km * 0.08
-        val cost = fuel * 5.89
+        val model = consumptionState.value
+        val family = model.currentFamily()
+        val avgSoFar = if (sec > 0) km / (sec / 3600.0) else 0.0
+        val liveKmL = model.baseKmL(family) * FuelConsumptionModel.trafficFactor(avgSoFar)
+        val fuel = if (liveKmL > 0) km / liveKmL else 0.0
+        val cost = fuel * model.pricePerLiter(family)
 
         // Breadcrumbs
         val currentBreadcrumbs = liveCockpitState.value.breadcrumbPoints.toMutableList()
@@ -765,6 +803,7 @@ class CarMainActivity : ComponentActivity() {
         var selectedTab by remember { mutableStateOf(0) }
         var activeDetailTrip by remember { mutableStateOf<TripItem?>(null) }
         var isPeriodMapOpen by remember { mutableStateOf(false) }
+        var isReportOpen by remember { mutableStateOf(false) }
         var isCockpitFullscreen by remember { mutableStateOf(false) }
         var selectedPeriod by remember { mutableStateOf(PeriodFilter.TODAS) }
 
@@ -792,7 +831,11 @@ class CarMainActivity : ComponentActivity() {
             isPeriodMapOpen = false
         }
 
-        BackHandler(enabled = !isCockpitFullscreen && activeDetailTrip == null && !isPeriodMapOpen && selectedTab != 0) {
+        BackHandler(enabled = isReportOpen && activeDetailTrip == null) {
+            isReportOpen = false
+        }
+
+        BackHandler(enabled = !isCockpitFullscreen && activeDetailTrip == null && !isPeriodMapOpen && !isReportOpen && selectedTab != 0) {
             selectedTab = 0
         }
 
@@ -801,6 +844,31 @@ class CarMainActivity : ComponentActivity() {
             if (liveData.isRecording && !isCockpitFullscreen && activeDetailTrip == null && !isPeriodMapOpen) {
                 isCockpitFullscreen = true
             }
+        }
+
+        // Vehicle dialogs (Início: botão de ajustes e lápis do odômetro; também o onboarding)
+        if (showInitialSetupDialogState.value) {
+            VehicleSetupDialog(
+                isInitialOnboarding = !initialSetupDoneState.value,
+                initialName = vehicleName,
+                initialPlate = vehiclePlate,
+                initialTankCapacity = tankCapacity,
+                initialFuelType = primaryFuelType,
+                initialOdometer = getCurrentOdometer(),
+                initialEstimatedKmL = estimatedKmLState.value,
+                initialKmSinceLastFull = kmSinceLastFullState.value,
+                onConfirm = { name, plate, cap, fType, odo, estKmL, kmSince ->
+                    saveFullVehicleConfig(name, plate, cap, fType, odo, estKmL, kmSince)
+                },
+                onDismiss = { showInitialSetupDialogState.value = false }
+            )
+        }
+        if (showEditOdometerDialogState.value) {
+            QuickEditOdometerDialog(
+                currentOdometer = getCurrentOdometer(),
+                onConfirm = { saveOdometer(it) },
+                onDismiss = { showEditOdometerDialogState.value = false }
+            )
         }
 
         // Fullscreen Overlays First
@@ -844,6 +912,18 @@ class CarMainActivity : ComponentActivity() {
             return
         }
 
+        if (isReportOpen) {
+            ReportScreen(
+                trips = trips,
+                fills = fuelEntries,
+                home = homeLoc,
+                work = workLoc,
+                loadPoints = { getTripPoints(it) },
+                onBack = { isReportOpen = false }
+            )
+            return
+        }
+
         if (isPeriodMapOpen) {
             val now = System.currentTimeMillis()
             val filtered = remember(trips, selectedPeriod) {
@@ -872,8 +952,8 @@ class CarMainActivity : ComponentActivity() {
                     selected = selectedTab,
                     onSelect = { selectedTab = it },
                     items = listOf(
-                        Icons.Default.Dashboard to "Início",
-                        Icons.Default.DirectionsCar to "Viagens",
+                        Icons.Default.Speed to "Início",
+                        Icons.Default.Route to "Viagens",
                         Icons.Default.LocalGasStation to "Posto",
                         Icons.Default.Settings to "Ajustes"
                     )
@@ -896,7 +976,7 @@ class CarMainActivity : ComponentActivity() {
                         tankCapacityLiters = tankCapacity,
                         primaryFuelType = primaryFuelType,
                         currentFuelLiters = getCurrentFuelLiters(),
-                        estimatedKmL = if (fuelDb.overallRealKmL in 4.0..30.0) fuelDb.overallRealKmL else estimatedKmLState.value,
+                        estimatedKmL = consumptionState.value.let { it.baseKmL(it.currentFamily()) },
                         odometerKm = getCurrentOdometer(),
                         parkingInfo = parkingInfoState.value,
                         onNavigateToParking = { lat, lon ->
@@ -930,7 +1010,8 @@ class CarMainActivity : ComponentActivity() {
                         onTripClicked = { activeDetailTrip = it },
                         onPeriodMapClicked = { isPeriodMapOpen = true },
                         onDeleteTrip = { tripId -> deleteTrip(tripId) },
-                        onUpdateTrip = { tripId, name, desc -> updateTrip(tripId, name, desc) }
+                        onUpdateTrip = { tripId, name, desc -> updateTrip(tripId, name, desc) },
+                        onOpenReport = { isReportOpen = true }
                     )
                     2 -> FuelScreen(
                         fuelEntries = fuelEntries,
@@ -976,6 +1057,8 @@ class CarMainActivity : ComponentActivity() {
                         onPurgeDemoData = {
                             cleanDemoData(showToast = true)
                         },
+                        consumption = consumptionState.value,
+                        onSaveConsumption = { values, usePump -> saveConsumption(values, usePump) },
                         onExportBackup = {
                             CarTracksBackupHelper.exportBackup(this@CarMainActivity)
                         },

@@ -12,7 +12,10 @@ data class TripItem(
     val maxSpeedKmh: Double,
     val fuelLiters: Double,
     val fuelCost: Double,
-    val commuteBadge: String? = null
+    val commuteBadge: String? = null,
+    val kmL: Double = 0.0,
+    val fuelLabel: String = "",
+    val trafficLabel: String = ""
 )
 
 data class TripPoint(

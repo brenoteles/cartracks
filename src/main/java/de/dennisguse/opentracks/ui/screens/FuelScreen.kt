@@ -341,6 +341,7 @@ fun FuelScreen(
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = CyberAcid,
                                         selectedLabelColor = CyberOnAcid,
+                                selectedLeadingIconColor = CyberOnAcid,
                                         containerColor = CyberPanel,
                                         labelColor = TextSecondary
                                     ),
@@ -679,6 +680,7 @@ fun FuelScreen(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = CyberAcid,
                                 selectedLabelColor = CyberOnAcid,
+                                selectedLeadingIconColor = CyberOnAcid,
                                 containerColor = CyberPanel,
                                 labelColor = TextSecondary
                             ),
@@ -705,6 +707,7 @@ fun FuelScreen(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = CyberAcid,
                                 selectedLabelColor = CyberOnAcid,
+                                selectedLeadingIconColor = CyberOnAcid,
                                 containerColor = CyberPanel,
                                 labelColor = TextSecondary
                             ),

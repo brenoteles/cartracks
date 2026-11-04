@@ -40,7 +40,8 @@ fun TripsScreen(
     onTripClicked: (TripItem) -> Unit,
     onPeriodMapClicked: () -> Unit,
     onDeleteTrip: ((Long) -> Unit)? = null,
-    onUpdateTrip: ((Long, String, String) -> Unit)? = null
+    onUpdateTrip: ((Long, String, String) -> Unit)? = null,
+    onOpenReport: (() -> Unit)? = null
 ) {
     val now = System.currentTimeMillis()
     var selectedDestination by remember { mutableStateOf(DestinationFilter.TODOS) }
@@ -107,14 +108,14 @@ fun TripsScreen(
                         color = CyberAcid
                     )
                     Text(
-                        text = "// " + "Filtros por período e destino com mapa HD".uppercase(),
+                        text = "// " + "Filtros por período e destino".uppercase(),
                         style = EyebrowStyle,
                         color = TextSecondary
                     )
                 }
 
                 Button(
-                    onClick = { showMonthlyReport = true },
+                    onClick = { if (onOpenReport != null) onOpenReport() else showMonthlyReport = true },
                     shape = RectangleShape,
                     colors = ButtonDefaults.buttonColors(containerColor = CyberPanelRaised),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
@@ -159,7 +160,8 @@ fun TripsScreen(
                             shape = RectangleShape,
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = CyberAcid,
-                                selectedLabelColor = TextPrimary,
+                                selectedLabelColor = CyberOnAcid,
+                                selectedLeadingIconColor = CyberOnAcid,
                                 containerColor = CyberPanel,
                                 labelColor = TextSecondary
                             ),
@@ -193,7 +195,8 @@ fun TripsScreen(
                             shape = RectangleShape,
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = CyberAcid,
-                                selectedLabelColor = TextPrimary,
+                                selectedLabelColor = CyberOnAcid,
+                                selectedLeadingIconColor = CyberOnAcid,
                                 containerColor = CyberPanel,
                                 labelColor = TextSecondary
                             ),
@@ -285,7 +288,7 @@ fun TripsScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Ver Rotas Filtradas no Mapa HD",
+                            text = "Ver Rotas Filtradas no Mapa",
                             color = TextPrimary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,

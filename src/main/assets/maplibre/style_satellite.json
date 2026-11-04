@@ -1,14 +1,15 @@
 {
   "version": 8,
-  "name": "CarTracks Esri Satellite HD",
+  "name": "CarTracks Satélite",
   "sources": {
     "esri-sat": {
       "type": "raster",
       "tiles": [
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}.jpg"
       ],
-      "tileSize": 256,
-      "attribution": "© Esri, Maxar, Earthstar Geographics"
+      "tileSize": 128,
+      "attribution": "© Esri, Maxar, Earthstar Geographics",
+      "maxzoom": 19
     }
   },
   "layers": [

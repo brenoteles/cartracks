@@ -15,9 +15,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.dennisguse.opentracks.ui.components.CarMapView
+import de.dennisguse.opentracks.ui.components.SpeedGauge
 import de.dennisguse.opentracks.ui.model.LiveCockpitData
 import de.dennisguse.opentracks.ui.theme.*
-import de.dennisguse.opentracks.util.FuelEfficiencyCalculator
 import java.util.Locale
 
 @Composable
@@ -38,9 +38,7 @@ fun LiveCockpitScreen(
         String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
     }
 
-    val currentKmL = remember(liveData.currentSpeedKmh) {
-        FuelEfficiencyCalculator.estimateTripKmL(liveData.currentSpeedKmh)
-    }
+    val currentKmL = if (liveData.fuelLiters > 0) liveData.distanceKm / liveData.fuelLiters else 0.0
 
     val speedColor = when {
         liveData.currentSpeedKmh > 120 -> CyberRed
@@ -134,24 +132,21 @@ fun LiveCockpitScreen(
         }
 
         if (!isMapExpanded) {
-            // Speed readout
-            Row(
+            // Instrument cluster speedometer
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .cyberPanel(border = speedColor)
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.Bottom
+                    .cyberPanel(border = speedColor),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "${liveData.currentSpeedKmh.toInt()}",
-                    style = displayStyle(112).copy(lineHeight = 112.sp),
-                    color = speedColor
+                SpeedGauge(
+                    speedKmh = liveData.currentSpeedKmh,
+                    maxSpeedKmh = liveData.maxSpeedKmh,
+                    color = speedColor,
+                    modifier = Modifier
+                        .fillMaxWidth(0.82f)
+                        .padding(vertical = 6.dp)
                 )
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.padding(bottom = 18.dp)) {
-                    Text("KM/H", style = displayStyle(28), color = CyberText)
-                    Text("MÁX ${liveData.maxSpeedKmh.toInt()}", style = monoStyle(12), color = CyberTextSecondary)
-                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

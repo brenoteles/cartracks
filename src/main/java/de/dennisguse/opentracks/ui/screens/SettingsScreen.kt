@@ -1,5 +1,10 @@
 package de.dennisguse.opentracks.ui.screens
 
+import de.dennisguse.opentracks.ui.components.ConsumptionSettingsSection
+import de.dennisguse.opentracks.util.FuelConsumptionModel
+import de.dennisguse.opentracks.util.FuelFamily
+import de.dennisguse.opentracks.util.OfflineMapDownloader
+
 import androidx.compose.ui.graphics.RectangleShape
 import android.content.Context
 import android.net.Uri
@@ -49,6 +54,8 @@ fun SettingsScreen(
     onSaveLocation: (key: String, lat: Double, lon: Double, label: String) -> Unit,
     onSaveVehicleConfig: (name: String, plate: String, tankCapacity: Double, primaryFuelType: String, odometer: Double, estimatedKmL: Double, kmSinceLastFull: Double) -> Unit,
     onPurgeDemoData: () -> Unit = {},
+    consumption: FuelConsumptionModel? = null,
+    onSaveConsumption: (Map<FuelFamily, Double>, Boolean) -> Unit = { _, _ -> },
     onExportBackup: () -> Unit,
     onImportBackup: (Uri) -> Unit
 ) {
@@ -81,10 +88,12 @@ fun SettingsScreen(
     var offlineDownloaded by remember {
         mutableStateOf(
             context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
-                .getBoolean("offline_sp_downloaded", false)
+                .getBoolean("offline_sp_v2_downloaded", false)
         )
     }
     var isDownloadingMap by remember { mutableStateOf(false) }
+    var offlineProgress by remember { mutableStateOf(0) }
+    var offlineMb by remember { mutableStateOf(0.0) }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
@@ -278,6 +287,7 @@ fun SettingsScreen(
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = CyberAcid,
                                     selectedLabelColor = CyberOnAcid,
+                                selectedLeadingIconColor = CyberOnAcid,
                                     containerColor = CyberPanelRaised,
                                     labelColor = TextSecondary
                                 ),
@@ -313,6 +323,19 @@ fun SettingsScreen(
         }
 
         // Section: Battery Optimization
+        if (consumption != null) {
+            item {
+                CyberSectionHeader(title = "Consumo médio", eyebrow = "km/L por combustível")
+            }
+            item {
+                ConsumptionSettingsSection(
+                    model = consumption,
+                    manualValues = consumption.manualKmL,
+                    onSave = onSaveConsumption
+                )
+            }
+        }
+
         item {
             CyberSectionHeader(title = "Segundo Plano e Bateria")
         }
@@ -395,23 +418,51 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Baixa a malha viária completa da Região Metropolitana de São Paulo (Capital, ABCD, Guarulhos, Osasco) para visualização instantânea sem necessidade de internet.",
+                        text = "Baixa a malha viária completa da Região Metropolitana de São Paulo (Capital, ABCD, Guarulhos, Osasco) nos estilos Noite e Ruas, para usar o mapa sem internet.",
                         color = TextSecondary,
                         fontSize = 12.sp,
                         lineHeight = 17.sp
                     )
 
+                    val startDownload = {
+                        isDownloadingMap = true
+                        offlineProgress = 0
+                        OfflineMapDownloader.download(
+                            context,
+                            onProgress = { pct, mb ->
+                                if (pct >= 0) offlineProgress = pct
+                                offlineMb = mb
+                            },
+                            onFinished = { ok, msg ->
+                                isDownloadingMap = false
+                                if (ok) {
+                                    offlineDownloaded = true
+                                    context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).edit()
+                                        .putBoolean("offline_sp_v2_downloaded", true).apply()
+                                }
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    }
+
                     if (isDownloadingMap) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             LinearProgressIndicator(
+                                progress = { offlineProgress / 100f },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RectangleShape),
-                                color = CyberCyan,
-                                trackColor = CyberPanelRaised
+                                    .height(8.dp),
+                                color = CyberAcid,
+                                trackColor = CyberPanelRaised,
+                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Butt,
+                                gapSize = 0.dp,
+                                drawStopIndicator = {}
                             )
-                            Text("Baixando malha da Grande SP para cache local...", color = CyberCyan, fontSize = 12.sp)
+                            Text(
+                                String.format(java.util.Locale.getDefault(), "BAIXANDO %d%% · %.1f MB", offlineProgress, offlineMb),
+                                style = EyebrowStyle,
+                                color = CyberAcid
+                            )
                         }
                     } else if (offlineDownloaded) {
                         Row(
@@ -419,45 +470,19 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Box(modifier = Modifier.size(8.dp).clip(RectangleShape).background(CyberGreen))
-                                Text("Grande SP Pronta e Offline", color = CyberGreen, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            }
-                            TextButton(
-                                shape = RectangleShape,
-                                onClick = {
-                                    isDownloadingMap = true
-                                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                        isDownloadingMap = false
-                                        Toast.makeText(context, "Malha da Grande SP atualizada!", Toast.LENGTH_SHORT).show()
-                                    }, 2000L)
-                                }
-                            ) {
-                                Text("Atualizar", color = CyberAcid, fontSize = 12.sp)
+                            CyberChip("Grande SP offline", CyberGreen)
+                            TextButton(shape = RectangleShape, onClick = startDownload) {
+                                Text("ATUALIZAR", style = EyebrowStyle, color = CyberAcid)
                             }
                         }
                     } else {
-                        Button(
-                            onClick = {
-                                isDownloadingMap = true
-                                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                    isDownloadingMap = false
-                                    offlineDownloaded = true
-                                    context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).edit()
-                                        .putBoolean("offline_sp_downloaded", true).apply()
-                                    Toast.makeText(context, "Área da Grande SP baixada com sucesso!", Toast.LENGTH_LONG).show()
-                                }, 2500L)
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(44.dp),
-                            shape = RectangleShape,
-                            colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
-                        ) {
-                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Baixar Área da Grande SP (~45 MB)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
+                        CyberActionButton(
+                            text = "Baixar Grande SP",
+                            icon = Icons.Default.Download,
+                            height = 48.dp,
+                            onClick = startDownload
+                        )
+                        Text("Wi-Fi recomendado: cerca de 100-200 MB (dois estilos de mapa).", color = TextTertiary, fontSize = 11.sp)
                     }
                 }
             }

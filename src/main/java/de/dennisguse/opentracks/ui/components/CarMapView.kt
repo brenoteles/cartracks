@@ -107,17 +107,29 @@ object ModernMarkerFactory {
     }
 }
 
-enum class MapLayer(val label: String) {
-    STREET("Ruas"),
-    DARK("Escuro"),
-    SATELLITE("Satélite")
+/** Vector styles (Noite, Ruas) stay sharp at any zoom and screen density. */
+enum class MapLayer(val label: String, val styleUri: String) {
+    DARK("Noite", "asset://maplibre/style_night.json"),
+    STREET("Ruas", "asset://maplibre/style_streets.json"),
+    SATELLITE("Satélite", "asset://maplibre/style_satellite.json");
+
+    companion object {
+        private const val PREF = "map_layer"
+
+        fun load(context: Context): MapLayer =
+            context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).getString(PREF, null)
+                ?.let { name -> values().firstOrNull { it.name == name } } ?: DARK
+
+        fun save(context: Context, layer: MapLayer) =
+            context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).edit().putString(PREF, layer.name).apply()
+    }
 }
 
 /**
  * Modern High-Performance MapLibre GL Surface Map Composable for CarTracks.
  * Features:
  * - Hardware-accelerated OpenGL / Vulkan vector & raster rendering.
- * - Dynamic Automotive layer switching (Wanda Dark, Esri Streets HD, Esri Satellite).
+ * - Layer switching: Noite and Ruas (OpenFreeMap vector), Satélite (Esri raster).
  * - Multi-colored speed gradient polylines (OsmAnd style).
  * - Full interactive camera framing, gestures, pinch zoom, center GPS.
  */
@@ -138,7 +150,7 @@ fun CarMapView(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var selectedLayer by remember { mutableStateOf(MapLayer.STREET) }
+    var selectedLayer by remember { mutableStateOf(MapLayer.load(context)) }
 
     var mapLibreMapInstance by remember { mutableStateOf<MapLibreMap?>(null) }
     var isMapStyleLoaded by remember { mutableStateOf(false) }
@@ -169,11 +181,7 @@ fun CarMapView(
     }
 
     // Helper to get style asset URL
-    fun getStyleUri(layer: MapLayer): String = when (layer) {
-        MapLayer.DARK -> "asset://maplibre/style_dark.json"
-        MapLayer.STREET -> "asset://maplibre/style_streets.json"
-        MapLayer.SATELLITE -> "asset://maplibre/style_satellite.json"
-    }
+    fun getStyleUri(layer: MapLayer): String = layer.styleUri
 
     // Initialize Map and load style
     LaunchedEffect(mapView) {
@@ -402,7 +410,10 @@ fun CarMapView(
                         Box(
                             modifier = Modifier
                                 .background(if (isSelected) CyberAcid else Color.Transparent)
-                                .clickable { selectedLayer = layer }
+                                .clickable {
+                                    selectedLayer = layer
+                                    MapLayer.save(context, layer)
+                                }
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Text(
