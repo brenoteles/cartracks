@@ -50,7 +50,8 @@ fun DashboardScreen(
     onOpenCockpitClicked: () -> Unit,
     onAddFuelClicked: () -> Unit,
     onTripClicked: (TripItem) -> Unit,
-    onViewAllTripsClicked: () -> Unit
+    onViewAllTripsClicked: () -> Unit,
+    maintenanceCard: (@Composable () -> Unit)? = null
 ) {
     val totalKm = trips.sumOf { it.distanceKm }
     val totalFuel = trips.sumOf { it.fuelLiters }
@@ -149,6 +150,10 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+        }
+
+        if (maintenanceCard != null) {
+            item { maintenanceCard() }
         }
 
         // Parking spot

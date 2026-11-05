@@ -99,7 +99,7 @@ fun SpeedGauge(
             val h = maxHeight
             val d = minOf(w, h) * 0.86f
             val r = d / 2 - (minOf(w, h) * 0.07f) * 2.7f
-            for (v in 0..scaleMax step 40) {
+            for (v in (0..scaleMax step 40).filter { it * 3 <= scaleMax || it * 3 >= scaleMax * 2 }) {  // top labels would sit behind the speed digits
                 val angle = Math.toRadians((GAUGE_START + GAUGE_SWEEP * v / scaleMax).toDouble())
                 val cx = w / 2 + r * cos(angle).toFloat()
                 val cy = (minOf(w, h) * 0.07f) + h * 0.04f + d / 2 + r * sin(angle).toFloat()

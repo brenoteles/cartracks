@@ -48,6 +48,8 @@ import de.dennisguse.opentracks.ui.screens.*
 import de.dennisguse.opentracks.ui.theme.*
 import de.dennisguse.opentracks.util.FuelConsumptionModel
 import de.dennisguse.opentracks.util.FuelFamily
+import de.dennisguse.opentracks.util.MaintenanceItem
+import de.dennisguse.opentracks.util.MaintenanceStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -188,6 +190,27 @@ class CarMainActivity : ComponentActivity() {
         }
     }
 
+    private val maintenanceState = mutableStateOf<List<MaintenanceItem>>(emptyList())
+
+    private fun saveMaintenance(items: List<MaintenanceItem>) {
+        MaintenanceStore.save(this, items)
+        maintenanceState.value = items
+        MaintenanceStore.notifyDue(this, getCurrentOdometer())
+        android.app.backup.BackupManager(this).dataChanged()
+    }
+
+    private val driveBackupLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        try {
+            CarTracksBackupHelper.writeBackupTo(this, uri)
+            Toast.makeText(this, "Backup salvo no destino escolhido.", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Erro ao salvar backup: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -213,6 +236,7 @@ class CarMainActivity : ComponentActivity() {
         loadPreferences()
         loadCustomLocations()
         loadFuelEntries()
+        maintenanceState.value = MaintenanceStore.load(this)
         checkBatteryOptimization()
         loadParkingInfo()
         try {
@@ -257,6 +281,7 @@ class CarMainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        MaintenanceStore.notifyDue(this, getCurrentOdometer())
         startLocationUpdates()
         checkBatteryOptimization()
         loadParkingInfo()
@@ -518,7 +543,7 @@ class CarMainActivity : ComponentActivity() {
                         list.add(
                             TripItem(
                                 id = item.id().id(),
-                                name = item.name(),
+                                name = friendlyTripName(item.name(), item.startTime().atOffset(item.zoneOffset())),
                                 description = item.description(),
                                 distanceKm = km,
                                 durationMin = minutes,
@@ -541,6 +566,12 @@ class CarMainActivity : ComponentActivity() {
             }
             tripsState.value = list
         }
+    }
+
+    /** Default track names are ISO timestamps ("2026-11-04T18:06-03"); show a readable one. */
+    private fun friendlyTripName(name: String?, start: java.time.OffsetDateTime): String {
+        if (name != null && name.isNotBlank() && !Regex("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}.*""").matches(name)) return name
+        return "Viagem · " + start.format(DateTimeFormatter.ofPattern("EEE dd/MM HH:mm", Locale("pt", "BR")))
     }
 
     private fun detectCommuteBadge(trackId: Long): String? {
@@ -787,6 +818,8 @@ class CarMainActivity : ComponentActivity() {
             }
             service.endCurrentTrack()
             val autoFile = CarTracksBackupHelper.saveAutoBackup(this)
+            android.app.backup.BackupManager(this).dataChanged()
+            MaintenanceStore.notifyDue(this, getCurrentOdometer())
             val msg = if (autoFile != null) {
                 "Viagem salva! Local de parada e backup automático registrados."
             } else {
@@ -804,6 +837,7 @@ class CarMainActivity : ComponentActivity() {
         var activeDetailTrip by remember { mutableStateOf<TripItem?>(null) }
         var isPeriodMapOpen by remember { mutableStateOf(false) }
         var isReportOpen by remember { mutableStateOf(false) }
+        var isMaintenanceOpen by remember { mutableStateOf(false) }
         var isCockpitFullscreen by remember { mutableStateOf(false) }
         var selectedPeriod by remember { mutableStateOf(PeriodFilter.TODAS) }
 
@@ -835,7 +869,11 @@ class CarMainActivity : ComponentActivity() {
             isReportOpen = false
         }
 
-        BackHandler(enabled = !isCockpitFullscreen && activeDetailTrip == null && !isPeriodMapOpen && !isReportOpen && selectedTab != 0) {
+        BackHandler(enabled = isMaintenanceOpen) {
+            isMaintenanceOpen = false
+        }
+
+        BackHandler(enabled = !isCockpitFullscreen && activeDetailTrip == null && !isPeriodMapOpen && !isReportOpen && !isMaintenanceOpen && selectedTab != 0) {
             selectedTab = 0
         }
 
@@ -908,6 +946,16 @@ class CarMainActivity : ComponentActivity() {
                     deleteTrip(tripId)
                     activeDetailTrip = null
                 }
+            )
+            return
+        }
+
+        if (isMaintenanceOpen) {
+            MaintenanceScreen(
+                items = maintenanceState.value,
+                odometerKm = getCurrentOdometer(),
+                onSave = { saveMaintenance(it) },
+                onBack = { isMaintenanceOpen = false }
             )
             return
         }
@@ -1001,7 +1049,14 @@ class CarMainActivity : ComponentActivity() {
                         onOpenCockpitClicked = { isCockpitFullscreen = true },
                         onAddFuelClicked = { selectedTab = 2 },
                         onTripClicked = { activeDetailTrip = it },
-                        onViewAllTripsClicked = { selectedTab = 1 }
+                        onViewAllTripsClicked = { selectedTab = 1 },
+                        maintenanceCard = {
+                            MaintenanceSummaryCard(
+                                items = maintenanceState.value,
+                                odometerKm = getCurrentOdometer(),
+                                onClick = { isMaintenanceOpen = true }
+                            )
+                        }
                     )
                     1 -> TripsScreen(
                         trips = trips,
@@ -1058,6 +1113,10 @@ class CarMainActivity : ComponentActivity() {
                             cleanDemoData(showToast = true)
                         },
                         consumption = consumptionState.value,
+                        onBackupToDrive = {
+                            val stamp = java.text.SimpleDateFormat("yyyy-MM-dd_HHmm", Locale.US).format(java.util.Date())
+                            driveBackupLauncher.launch("CarTracks_backup_$stamp.json")
+                        },
                         onSaveConsumption = { values, usePump -> saveConsumption(values, usePump) },
                         onExportBackup = {
                             CarTracksBackupHelper.exportBackup(this@CarMainActivity)
@@ -1069,6 +1128,7 @@ class CarMainActivity : ComponentActivity() {
                                 loadFuelEntries()
                                 loadPreferences()
                                 loadCustomLocations()
+                                maintenanceState.value = MaintenanceStore.load(this@CarMainActivity)
                                 val msg = if (result.skippedCount > 0) {
                                     "Backup importado: ${result.tripsCount} viagens novas (${result.skippedCount} já existentes ignoradas), ${result.fuelCount} abastecimentos."
                                 } else {

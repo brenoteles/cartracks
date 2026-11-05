@@ -91,18 +91,31 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
     private TrackPointCreator trackPointCreator;
     private TrackRecordingManager trackRecordingManager;
 
-    // Smart idle pause: stop storing points while the car is parked, never while it moves.
-    private static final long SMART_PAUSE_AFTER_MS = 180_000L;
-    private static final double STATIONARY_SPEED_MPS = 0.8;
-    private static final double MOVING_SPEED_MPS = 2.5;
-    private static final float MOVED_RADIUS_M = 40f;
+    // Auto-stop when parked: traffic jams keep recording, only a parked car ends the trip.
+    private final ParkedDetector parkedDetector = new ParkedDetector();
+    private long lastFixAt = 0;
+    private boolean autoStopping = false;
+    /** No fix at all for this long (underground parking) also ends the trip. */
+    static final long NO_FIX_END_MS = 15 * 60_000L;
+    private final Runnable noFixWatchdog = new Runnable() {
+        @Override
+        public void run() {
+            if (!isRecording() || autoStopping) return;
+            boolean enabled = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
+                    .getBoolean("auto_stop_parked_enabled", true);
+            if (enabled && lastFixAt > 0 && System.currentTimeMillis() - lastFixAt > NO_FIX_END_MS) {
+                Log.i(TAG, "No GPS fix for 15 min (garage?); ending the trip automatically.");
+                autoStopping = true;
+                autoEndParkedTrip();
+                return;
+            }
+            handler.postDelayed(this, 60_000L);
+        }
+    };
 
-    private long stationaryStartTime = 0;
-    private TrackPoint stationaryAnchor = null;
-    private boolean isSmartAutoPaused = false;
-
+    /** Kept for the UI; recording is never paused any more. */
     public boolean isSmartPaused() {
-        return isSmartAutoPaused;
+        return false;
     }
 
     private VoiceAnnouncementManager voiceAnnouncementManager;
@@ -202,6 +215,11 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
     }
 
     private void startRecording(Track.Id trackId) {
+        lastFixAt = 0;
+        parkedDetector.reset();
+        autoStopping = false;
+        handler.removeCallbacks(noFixWatchdog);
+        handler.postDelayed(noFixWatchdog, 60_000L);
         updateRecordingStatus(RecordingStatus.record(trackId));
         TrackIdStorage.set(this, trackId);
 
@@ -243,9 +261,9 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
 
         // Set recording status
         updateRecordingStatus(STATUS_DEFAULT);
-        isSmartAutoPaused = false;
-        stationaryStartTime = 0;
-        stationaryAnchor = null;
+        parkedDetector.reset();
+        autoStopping = false;
+        handler.removeCallbacks(noFixWatchdog);
 
         trackRecordingManager.endCurrentTrack();
         TrackIdStorage.unset(this);
@@ -293,11 +311,7 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
             return false;
         }
 
-        updateSmartPause(trackPoint);
-
-        if (isSmartAutoPaused) {
-            return false;
-        }
+        checkParked(trackPoint);
 
         boolean stored = trackRecordingManager.onNewTrackPoint(trackPoint);
         //TODO Should be done during updateRecordingDataWhileRecording()
@@ -306,54 +320,48 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
     }
 
     /**
-     * Decides whether the car is parked. Resumes as soon as the GPS reports speed OR the
-     * position moved away from where the car stopped: some chipsets report speed 0 (or no
-     * speed) while driving, and relying on speed alone left trips paused until the end,
-     * storing only the start and end points.
+     * Ends the trip when every fix of the last 10 minutes stayed within 200 m of the current
+     * position. Stop-and-go traffic moves more than that, so it keeps recording; a parked car
+     * ends the trip without touching the phone.
      */
-    private void updateSmartPause(TrackPoint trackPoint) {
+    private void checkParked(TrackPoint trackPoint) {
         boolean enabled = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE)
-                .getBoolean("smart_idle_pause_enabled", true);
-        if (!enabled || !trackPoint.position().hasLocation()) {
-            if (!enabled) {
-                resumeFromSmartPause();
-            }
+                .getBoolean("auto_stop_parked_enabled", true);
+        if (!enabled || autoStopping || !trackPoint.position().hasLocation()) {
             return;
         }
-
-        double speedMps = trackPoint.position().hasSpeed() ? trackPoint.position().speed().toMPS() : -1;
-        boolean moved = false;
-        if (stationaryAnchor != null) {
-            float accuracy = trackPoint.position().hasHorizontalAccuracy()
-                    ? (float) trackPoint.position().horizontalAccuracy().toM() : 0f;
-            float radius = Math.max(MOVED_RADIUS_M, 2 * accuracy);
-            moved = trackPoint.position().toLocation().distanceTo(stationaryAnchor.position().toLocation()) > radius;
-        }
-
-        if (speedMps > MOVING_SPEED_MPS || moved) {
-            resumeFromSmartPause();
-            return;
-        }
-
-        if (speedMps < STATIONARY_SPEED_MPS) {
-            long now = System.currentTimeMillis();
-            if (stationaryAnchor == null) {
-                stationaryAnchor = trackPoint;
-                stationaryStartTime = now;
-            } else if (!isSmartAutoPaused && now - stationaryStartTime > SMART_PAUSE_AFTER_MS) {
-                isSmartAutoPaused = true;
-                notificationManager.updateGPSStatus("⏸️ Pausa Inteligente: veículo parado");
-            }
+        long now = System.currentTimeMillis();
+        lastFixAt = now;
+        if (parkedDetector.onFix(now, trackPoint.position().latitude(), trackPoint.position().longitude())) {
+            Log.i(TAG, "Parked for 10 min; ending the trip automatically.");
+            autoStopping = true;
+            handler.post(this::autoEndParkedTrip);
         }
     }
 
-    private void resumeFromSmartPause() {
-        stationaryAnchor = null;
-        stationaryStartTime = 0;
-        if (isSmartAutoPaused) {
-            isSmartAutoPaused = false;
-            notificationManager.updateGPSStatus("🚗 Viagem retomada!");
+    private void autoEndParkedTrip() {
+        if (!isRecording()) {
+            return;
         }
+        TrackPoint last = trackRecordingManager.getLastStoredTrackPointWithLocation();
+        if (last != null) {
+            getSharedPreferences("CarTracksParking", MODE_PRIVATE).edit()
+                    .putBoolean("parking_active", true)
+                    .putString("parking_lat", String.valueOf(last.position().latitude()))
+                    .putString("parking_lon", String.valueOf(last.position().longitude()))
+                    .putLong("parking_time_ms", System.currentTimeMillis())
+                    .putString("parking_address", "Local de parada do veículo")
+                    .apply();
+        }
+        endCurrentTrack();
+        try {
+            de.dennisguse.opentracks.io.CarTracksBackupHelper.INSTANCE.saveAutoBackup(this);
+        } catch (Exception e) {
+            Log.w(TAG, "Auto backup after auto-stop failed", e);
+        }
+        new android.app.backup.BackupManager(this).dataChanged();
+        de.dennisguse.opentracks.util.CarNotifications.autoStopped(this);
+        stopSelf();
     }
 
     @Override
@@ -408,7 +416,7 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
     }
 
     public void onIdle() {
-        voiceAnnouncementManager.announceIdle();
+        // No voice announcement: the "becoming idle" speech was annoying while driving.
     }
 
     @VisibleForTesting

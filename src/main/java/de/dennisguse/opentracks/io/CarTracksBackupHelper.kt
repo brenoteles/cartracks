@@ -42,8 +42,17 @@ object CarTracksBackupHelper {
             put("plate", sp.getString("vehicle_plate", ""))
             put("tankCapacity", sp.getFloat("tank_capacity_liters", 50f).toDouble())
             put("primaryFuel", sp.getString("primary_fuel_type", "Gasolina Comum"))
+            put("odometerBaseKm", sp.getFloat("odometer_base_km", 0f).toDouble())
+            put("kmSinceLastFull", sp.getFloat("km_since_last_full", 0f).toDouble())
+            put("tankRefTimeMs", sp.getLong("tank_ref_time_ms", 0L))
+            de.dennisguse.opentracks.util.FuelFamily.values().forEach { f ->
+                if (sp.contains(f.prefKey)) put(f.prefKey, sp.getFloat(f.prefKey, 0f).toDouble())
+            }
+            put("consumptionUsePump", sp.getBoolean("consumption_use_pump", true))
         }
         root.put("vehicle", vehicleObj)
+        root.put("maintenance", de.dennisguse.opentracks.util.MaintenanceStore.toJson(
+            de.dennisguse.opentracks.util.MaintenanceStore.load(context)))
 
         // 2. Custom Locations (Casa & Trabalho)
         val spLoc = context.getSharedPreferences("CarTracksLocations", Context.MODE_PRIVATE)
@@ -226,6 +235,15 @@ object CarTracksBackupHelper {
         }
     }
 
+    /** Writes the full JSON backup to a document the user picked (e.g. a Google Drive folder). */
+    fun writeBackupTo(context: Context, uri: Uri) {
+        val json = generateBackupJsonObject(context).toString()
+        context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+            ?: throw IllegalStateException("Não foi possível gravar no destino escolhido.")
+        context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).edit()
+            .putLong("last_drive_backup_ms", System.currentTimeMillis()).apply()
+    }
+
     fun importBackup(context: Context, uri: Uri): ImportResult {
         val inputStream: InputStream = context.contentResolver.openInputStream(uri)
             ?: throw IllegalStateException("Não foi possível abrir o arquivo selecionado.")
@@ -244,12 +262,23 @@ object CarTracksBackupHelper {
             val tankCap = vObj.optDouble("tankCapacity", 50.0)
             val primaryFuel = vObj.optString("primaryFuel", "Gasolina Comum")
 
-            context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).edit()
+            val edit = context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).edit()
                 .putString("vehicle_name", vehicleName)
                 .putString("vehicle_plate", vehiclePlate)
                 .putFloat("tank_capacity_liters", tankCap.toFloat())
                 .putString("primary_fuel_type", primaryFuel)
-                .apply()
+            if (vObj.has("odometerBaseKm")) edit.putFloat("odometer_base_km", vObj.getDouble("odometerBaseKm").toFloat())
+            if (vObj.has("kmSinceLastFull")) edit.putFloat("km_since_last_full", vObj.getDouble("kmSinceLastFull").toFloat())
+            if (vObj.has("tankRefTimeMs")) edit.putLong("tank_ref_time_ms", vObj.getLong("tankRefTimeMs"))
+            de.dennisguse.opentracks.util.FuelFamily.values().forEach { f ->
+                if (vObj.has(f.prefKey)) edit.putFloat(f.prefKey, vObj.getDouble(f.prefKey).toFloat())
+            }
+            if (vObj.has("consumptionUsePump")) edit.putBoolean("consumption_use_pump", vObj.getBoolean("consumptionUsePump"))
+            edit.apply()
+        }
+        if (root.has("maintenance")) {
+            de.dennisguse.opentracks.util.MaintenanceStore.save(context,
+                de.dennisguse.opentracks.util.MaintenanceStore.fromJson(root.getJSONArray("maintenance")))
         }
 
         // 2. Restore Locations

@@ -3,10 +3,10 @@ package de.dennisguse.opentracks.ui.screens
 import de.dennisguse.opentracks.ui.components.ConsumptionSettingsSection
 import de.dennisguse.opentracks.util.FuelConsumptionModel
 import de.dennisguse.opentracks.util.FuelFamily
-import de.dennisguse.opentracks.util.OfflineMapDownloader
 
 import androidx.compose.ui.graphics.RectangleShape
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -55,6 +55,7 @@ fun SettingsScreen(
     onSaveVehicleConfig: (name: String, plate: String, tankCapacity: Double, primaryFuelType: String, odometer: Double, estimatedKmL: Double, kmSinceLastFull: Double) -> Unit,
     onPurgeDemoData: () -> Unit = {},
     consumption: FuelConsumptionModel? = null,
+    onBackupToDrive: () -> Unit = {},
     onSaveConsumption: (Map<FuelFamily, Double>, Boolean) -> Unit = { _, _ -> },
     onExportBackup: () -> Unit,
     onImportBackup: (Uri) -> Unit
@@ -73,7 +74,7 @@ fun SettingsScreen(
 
     // Auto backup, Smart Pause & Map Matching
     var smartPauseEnabled by remember {
-        mutableStateOf(context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).getBoolean("smart_idle_pause_enabled", true))
+        mutableStateOf(context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).getBoolean("auto_stop_parked_enabled", true))
     }
     var autoMapMatchEnabled by remember {
         mutableStateOf(context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).getBoolean("auto_map_match_enabled", true))
@@ -85,15 +86,6 @@ fun SettingsScreen(
         )
     }
 
-    var offlineDownloaded by remember {
-        mutableStateOf(
-            context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
-                .getBoolean("offline_sp_v2_downloaded", false)
-        )
-    }
-    var isDownloadingMap by remember { mutableStateOf(false) }
-    var offlineProgress by remember { mutableStateOf(0) }
-    var offlineMb by remember { mutableStateOf(0.0) }
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) {
@@ -393,100 +385,6 @@ fun SettingsScreen(
             }
         }
 
-        // Section: Offline Maps (Grande São Paulo)
-        item {
-            CyberSectionHeader(title = "Mapas Offline")
-        }
-
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RectangleShape)
-                    .background(CyberPanel)
-                    .border(1.dp, CyberLineSubtle, RectangleShape),
-                colors = CardDefaults.cardColors(containerColor = CyberPanel)
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Área da Grande São Paulo",
-                        color = TextPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Baixa a malha viária completa da Região Metropolitana de São Paulo (Capital, ABCD, Guarulhos, Osasco) nos estilos Noite e Ruas, para usar o mapa sem internet.",
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        lineHeight = 17.sp
-                    )
-
-                    val startDownload = {
-                        isDownloadingMap = true
-                        offlineProgress = 0
-                        OfflineMapDownloader.download(
-                            context,
-                            onProgress = { pct, mb ->
-                                if (pct >= 0) offlineProgress = pct
-                                offlineMb = mb
-                            },
-                            onFinished = { ok, msg ->
-                                isDownloadingMap = false
-                                if (ok) {
-                                    offlineDownloaded = true
-                                    context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).edit()
-                                        .putBoolean("offline_sp_v2_downloaded", true).apply()
-                                }
-                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                            }
-                        )
-                    }
-
-                    if (isDownloadingMap) {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            LinearProgressIndicator(
-                                progress = { offlineProgress / 100f },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp),
-                                color = CyberAcid,
-                                trackColor = CyberPanelRaised,
-                                strokeCap = androidx.compose.ui.graphics.StrokeCap.Butt,
-                                gapSize = 0.dp,
-                                drawStopIndicator = {}
-                            )
-                            Text(
-                                String.format(java.util.Locale.getDefault(), "BAIXANDO %d%% · %.1f MB", offlineProgress, offlineMb),
-                                style = EyebrowStyle,
-                                color = CyberAcid
-                            )
-                        }
-                    } else if (offlineDownloaded) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            CyberChip("Grande SP offline", CyberGreen)
-                            TextButton(shape = RectangleShape, onClick = startDownload) {
-                                Text("ATUALIZAR", style = EyebrowStyle, color = CyberAcid)
-                            }
-                        }
-                    } else {
-                        CyberActionButton(
-                            text = "Baixar Grande SP",
-                            icon = Icons.Default.Download,
-                            height = 48.dp,
-                            onClick = startDownload
-                        )
-                        Text("Wi-Fi recomendado: cerca de 100-200 MB (dois estilos de mapa).", color = TextTertiary, fontSize = 11.sp)
-                    }
-                }
-            }
-        }
 
         // Section: Favorite Locations
         item {
@@ -518,6 +416,55 @@ fun SettingsScreen(
         }
 
         // Section: Backup & Restore
+        item {
+            CyberSectionHeader(title = "Backup no Google Drive", eyebrow = "Nuvem")
+        }
+        item {
+            val lastDrive = context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE).getLong("last_drive_backup_ms", 0L)
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .cyberPanel()
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    "1. Backup automático do Android: viagens, abastecimentos, manutenção e ajustes entram no backup do Google (Drive / Google One) do aparelho, feito pelo sistema com Wi-Fi e carregador. Confira se está ativo:",
+                    color = TextSecondary, fontSize = 12.sp, lineHeight = 17.sp
+                )
+                CyberGhostButton(
+                    text = "Abrir backup do Google",
+                    icon = Icons.Default.CloudSync,
+                    accent = CyberCyan,
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        val intents = listOf(
+                            Intent().setClassName("com.google.android.gms", "com.google.android.gms.backup.component.BackupSettingsActivity"),
+                            Intent("android.settings.PRIVACY_SETTINGS"),
+                            Intent(android.provider.Settings.ACTION_SETTINGS)
+                        )
+                        intents.firstOrNull { runCatching { context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess }
+                    }
+                )
+                Text(
+                    "2. Cópia manual: salva o arquivo JSON completo direto numa pasta do Google Drive (escolha \"Drive\" no seletor). Serve para restaurar em outro celular pelo botão Importar abaixo.",
+                    color = TextSecondary, fontSize = 12.sp, lineHeight = 17.sp
+                )
+                CyberActionButton(
+                    text = "Salvar cópia no Drive",
+                    icon = Icons.Default.CloudUpload,
+                    height = 48.dp,
+                    onClick = onBackupToDrive
+                )
+                if (lastDrive > 0) {
+                    Text(
+                        "ÚLTIMA CÓPIA: " + java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(lastDrive)),
+                        style = EyebrowStyle, color = CyberGreen
+                    )
+                }
+            }
+        }
+
         item {
             CyberSectionHeader(title = "Backup e Restauração de Dados")
         }
@@ -657,7 +604,7 @@ fun SettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Pausa inteligente por imobilidade prolongada
+                // Encerramento automático ao estacionar
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -665,13 +612,13 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Pausa Inteligente por Imobilidade",
+                            text = "Encerrar ao Estacionar",
                             color = TextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp
                         )
                         Text(
-                            text = "Pausa a gravação após 3 min parado e retoma ao acelerar",
+                            text = "Encerra a viagem se o carro ficar 10 min sem sair de um raio de 200 m. Trânsito lento continua gravando.",
                             color = TextSecondary,
                             fontSize = 12.sp
                         )
@@ -681,7 +628,7 @@ fun SettingsScreen(
                         onCheckedChange = {
                             smartPauseEnabled = it
                             context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
-                                .edit().putBoolean("smart_idle_pause_enabled", it).apply()
+                                .edit().putBoolean("auto_stop_parked_enabled", it).apply()
                         },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = CyberGreen,

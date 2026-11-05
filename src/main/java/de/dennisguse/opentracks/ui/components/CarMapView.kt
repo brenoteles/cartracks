@@ -353,7 +353,7 @@ fun CarMapView(
                     .icon(iconFactory.fromBitmap(ModernMarkerFactory.getPinnedMarkerBitmap(context)))
                     .title(pinnedTitle)
             )
-            if (!userInteracted && points.isEmpty()) {
+            if (!userInteracted && points.size < 2) {
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(pinLatLng, 16.0))
             }
         }
@@ -378,7 +378,7 @@ fun CarMapView(
                     .icon(iconFactory.fromBitmap(ModernMarkerFactory.getGpsVehicleBitmap(context)))
                     .title("Veículo")
             )
-            if (!userInteracted && points.isEmpty() && pinnedLocation == null) {
+            if (!userInteracted && points.size < 2 && pinnedLocation == null) {
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(gpsLatLng, 16.5))
             }
         }

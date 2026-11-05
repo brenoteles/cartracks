@@ -114,22 +114,6 @@ fun LiveCockpitScreen(
             }
         }
 
-        if (liveData.isSmartPaused) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .cyberPanel(border = CyberOrange, shadow = false)
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.PauseCircle, contentDescription = null, tint = CyberOrange)
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text("PAUSA INTELIGENTE", style = EyebrowStyle, color = CyberOrange)
-                    Text("Veículo parado. Retoma ao voltar a andar.", color = TextSecondary, fontSize = 12.sp)
-                }
-            }
-        }
 
         if (!isMapExpanded) {
             // Instrument cluster speedometer

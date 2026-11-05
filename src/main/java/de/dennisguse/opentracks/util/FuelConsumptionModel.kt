@@ -62,7 +62,7 @@ class FuelConsumptionModel(
         val sorted = fills.filter { it.dateTime <= atMs && it.pricePerLiter > 0 }.sortedByDescending { it.dateTime }
         return sorted.firstOrNull { FuelFamily.of(it.fuelType) == family }?.pricePerLiter
             ?: sorted.firstOrNull()?.pricePerLiter
-            ?: fills.maxByOrNull { it.dateTime }?.pricePerLiter
+            ?: fills.filter { it.pricePerLiter > 0 }.maxByOrNull { it.dateTime }?.pricePerLiter
             ?: DEFAULT_PRICE
     }
 
