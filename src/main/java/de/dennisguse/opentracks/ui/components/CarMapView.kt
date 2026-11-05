@@ -31,6 +31,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import de.dennisguse.opentracks.ui.model.MapMarkerItem
 import de.dennisguse.opentracks.ui.model.TripPoint
 import de.dennisguse.opentracks.ui.theme.*
+import de.dennisguse.opentracks.util.RouteAnalysis
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.annotations.PolylineOptions
@@ -107,6 +108,14 @@ object ModernMarkerFactory {
     }
 }
 
+/** Sequential encoding for the frequency map: (alpha, line width) by number of trips. */
+fun heatStyle(trips: Int): Pair<Float, Float> = when {
+    trips >= 7 -> 1f to 9f
+    trips >= 4 -> 0.85f to 7f
+    trips >= 2 -> 0.6f to 5f
+    else -> 0.32f to 3.2f
+}
+
 /** Vector styles (Noite, Ruas) stay sharp at any zoom and screen density. */
 enum class MapLayer(val label: String, val styleUri: String) {
     DARK("Noite", "asset://maplibre/style_night.json"),
@@ -146,7 +155,13 @@ fun CarMapView(
     showLayerSwitcher: Boolean = true,
     showZoomControls: Boolean = true,
     floatingControlsBottomPadding: Dp = 24.dp,
-    onCenterGpsClicked: (() -> Unit)? = null
+    onCenterGpsClicked: (() -> Unit)? = null,
+    /** Trips drawn by how many of them share each stretch (repeated commutes become one strong line). */
+    heatRoutes: List<List<TripPoint>> = emptyList(),
+    /** Trips highlighted on top (e.g. one route group picked in a list); the camera frames them. */
+    focusRoutes: List<List<TripPoint>> = emptyList(),
+    /** Receives a function that renders the current map to a bitmap (for exporting reports). */
+    onSnapshotProvider: ((suspend () -> Bitmap?) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -220,7 +235,26 @@ fun CarMapView(
     }
 
     // Update markers, polylines, and camera when state changes or style loads
-    LaunchedEffect(isMapStyleLoaded, points, multiRoutes, extraMarkers, pinnedLocation, currentLocation) {
+    val heat = remember(heatRoutes) { RouteAnalysis.heatSegments(heatRoutes) }
+
+    // Everything on the map, for the recenter button and the first framing
+    fun contentBounds(): LatLngBounds? {
+        val all = (focusRoutes.takeIf { it.isNotEmpty() } ?: (listOf(points) + multiRoutes + heatRoutes)).flatten()
+        if (all.isEmpty()) return null
+        val b = LatLngBounds.Builder()
+        all.forEach { b.include(LatLng(it.lat, it.lon)) }
+        if (all.size == 1) b.include(LatLng(all[0].lat + 0.002, all[0].lon + 0.002))
+        return runCatching { b.build() }.getOrNull()
+    }
+
+    LaunchedEffect(mapLibreMapInstance, isMapStyleLoaded) {
+        val map = mapLibreMapInstance ?: return@LaunchedEffect
+        onSnapshotProvider?.invoke {
+            kotlinx.coroutines.suspendCancellableCoroutine { cont -> map.snapshot { bmp -> if (cont.isActive) cont.resumeWith(Result.success(bmp)) } }
+        }
+    }
+
+    LaunchedEffect(isMapStyleLoaded, points, multiRoutes, extraMarkers, pinnedLocation, currentLocation, heat, focusRoutes) {
         val map = mapLibreMapInstance ?: return@LaunchedEffect
         if (!isMapStyleLoaded) return@LaunchedEffect
 
@@ -344,6 +378,32 @@ fun CarMapView(
             }
         }
 
+        // 2b. Frequency map: one hue, stronger and wider where more trips share the road
+        if (heat.isNotEmpty()) {
+            heatRoutes.filter { it.size >= 2 }.forEach { route ->
+                map.addPolyline(PolylineOptions().addAll(route.map { LatLng(it.lat, it.lon) }).color(AndroidColor.parseColor("#0E0D1A")).width(7f))
+            }
+            heat.sortedBy { it.trips }.forEach { seg ->
+                val (alpha, width) = heatStyle(seg.trips)
+                map.addPolyline(
+                    PolylineOptions()
+                        .addAll(seg.points.map { LatLng(it.lat, it.lon) })
+                        .color(AndroidColor.argb((alpha * 255).toInt(), 0xE8, 0xFF, 0x3A))
+                        .width(width)
+                )
+            }
+        }
+
+        // 2c. Focused routes on top
+        focusRoutes.filter { it.size >= 2 }.forEach { route ->
+            val latLngs = route.map { LatLng(it.lat, it.lon) }
+            map.addPolyline(PolylineOptions().addAll(latLngs).color(AndroidColor.parseColor("#0E0D1A")).width(10f))
+            map.addPolyline(PolylineOptions().addAll(latLngs).color(AndroidColor.parseColor("#F478D9")).width(5.5f))
+        }
+        if (focusRoutes.isNotEmpty() || (heat.isNotEmpty() && !userInteracted)) {
+            contentBounds()?.let { runCatching { map.animateCamera(CameraUpdateFactory.newLatLngBounds(it, 120)) } }
+        }
+
         // 3. Pinned Location Marker (Home, Work, or Selected Location)
         if (pinnedLocation != null) {
             val pinLatLng = LatLng(pinnedLocation.first, pinnedLocation.second)
@@ -426,6 +486,25 @@ fun CarMapView(
                 }
             }
 
+            if (heat.isNotEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .background(CyberInk.copy(alpha = 0.9f), RectangleShape)
+                        .border(1.dp, CyberLine, RectangleShape)
+                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                ) {
+                    Text("VIAGENS NO TRECHO", style = EyebrowStyle.copy(fontSize = 9.sp), color = TextSecondary)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        listOf(1 to "1×", 2 to "2-3×", 4 to "4-6×", 7 to "7+×").forEach { (n, label) ->
+                            val (a, w) = heatStyle(n)
+                            Column(Modifier.padding(end = 4.dp)) {
+                                Box(Modifier.size(width = 26.dp, height = (w / 2).dp).background(CyberAcid.copy(alpha = a)))
+                                Text(label, style = monoStyle(9, FontWeight.Normal), color = TextPrimary)
+                            }
+                        }
+                    }
+                }
+            }
             if (points.size >= 2) {
                 Column(
                     modifier = Modifier
@@ -505,12 +584,10 @@ fun CarMapView(
                                     16.5
                                 )
                             )
-                        } else if (points.isNotEmpty()) {
-                            try {
-                                val boundsBuilder = LatLngBounds.Builder()
-                                points.forEach { boundsBuilder.include(LatLng(it.lat, it.lon)) }
-                                mapLibreMapInstance?.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), 130))
-                            } catch (ignored: Exception) {}
+                        } else {
+                            contentBounds()?.let { b ->
+                                runCatching { mapLibreMapInstance?.animateCamera(CameraUpdateFactory.newLatLngBounds(b, 130)) }
+                            }
                         }
                     },
                     shape = RectangleShape,

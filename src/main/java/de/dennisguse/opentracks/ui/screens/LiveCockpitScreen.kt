@@ -129,6 +129,7 @@ fun LiveCockpitScreen(
                     color = speedColor,
                     modifier = Modifier
                         .fillMaxWidth(0.82f)
+                        .heightIn(max = 260.dp)  // landscape: keep the dial inside its panel
                         .padding(vertical = 6.dp)
                 )
             }

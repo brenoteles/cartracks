@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import de.dennisguse.opentracks.data.ContentProviderUtils
 import de.dennisguse.opentracks.data.FuelDatabaseHelper
+import de.dennisguse.opentracks.data.Expense
+import de.dennisguse.opentracks.data.ExpenseDatabaseHelper
 import de.dennisguse.opentracks.data.MockDataGenerator
 import de.dennisguse.opentracks.data.TrackListIterator
 import de.dennisguse.opentracks.data.TrackPointIterator
@@ -41,6 +43,7 @@ import de.dennisguse.opentracks.io.TrackExportHelper
 import de.dennisguse.opentracks.services.RecordingData
 import de.dennisguse.opentracks.services.TrackRecordingService
 import de.dennisguse.opentracks.services.TrackRecordingServiceConnection
+import de.dennisguse.opentracks.services.QuickControls
 import de.dennisguse.opentracks.ui.components.QuickEditOdometerDialog
 import de.dennisguse.opentracks.ui.components.VehicleSetupDialog
 import de.dennisguse.opentracks.ui.model.*
@@ -191,6 +194,31 @@ class CarMainActivity : ComponentActivity() {
     }
 
     private val maintenanceState = mutableStateOf<List<MaintenanceItem>>(emptyList())
+    private val expensesState = mutableStateOf<List<Expense>>(emptyList())
+
+    private fun loadExpenses() {
+        expensesState.value = ExpenseDatabaseHelper.get(this).all()
+    }
+
+    /** Saves an expense; a maintenance expense can also mark its reminder as done. */
+    private fun saveExpense(e: Expense, markDoneId: Int?) {
+        val db = ExpenseDatabaseHelper.get(this)
+        if (e.id == 0L) db.insert(e) else db.update(e)
+        if (markDoneId != null) {
+            saveMaintenance(maintenanceState.value.map {
+                if (it.id == markDoneId) it.copy(lastDoneKm = e.odometerKm ?: getCurrentOdometer(), lastDoneMs = e.dateTime) else it
+            })
+        }
+        loadExpenses()
+        android.app.backup.BackupManager(this).dataChanged()
+        Toast.makeText(this, "Custo salvo!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun deleteExpense(id: Long) {
+        ExpenseDatabaseHelper.get(this).delete(id)
+        loadExpenses()
+        Toast.makeText(this, "Custo excluído", Toast.LENGTH_SHORT).show()
+    }
 
     private fun saveMaintenance(items: List<MaintenanceItem>) {
         MaintenanceStore.save(this, items)
@@ -237,6 +265,7 @@ class CarMainActivity : ComponentActivity() {
         loadCustomLocations()
         loadFuelEntries()
         maintenanceState.value = MaintenanceStore.load(this)
+        loadExpenses()
         checkBatteryOptimization()
         loadParkingInfo()
         try {
@@ -257,6 +286,10 @@ class CarMainActivity : ComponentActivity() {
                 updateLiveRecordingStatus()
             }
         }
+
+        // Only on a fresh start: after rotation the system re-delivers the original intent,
+        // which would toggle (and end) the trip that the widget just started.
+        if (savedInstanceState == null) handleQuickAction(intent)
 
         setContent {
             CarTracksTheme {
@@ -767,6 +800,24 @@ class CarMainActivity : ComponentActivity() {
         )
     }
 
+    /** Widget / Quick Settings tile: start a trip, or end the one being recorded. */
+    private fun handleQuickAction(intent: Intent?) {
+        if (intent?.action != QuickControls.ACTION_TOGGLE) return
+        intent.action = null
+        TrackRecordingServiceConnection.execute(this) { service, _ ->
+            if (service.isRecording) {
+                stopTrip(service)
+            } else {
+                checkPermissionsAndStartTrip()
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleQuickAction(intent)
+    }
+
     private fun checkPermissionsAndStartTrip() {
         val permissions = mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -793,7 +844,7 @@ class CarMainActivity : ComponentActivity() {
                     val currentLoc = currentGpsState.value
                     liveCockpitState.value = LiveCockpitData(
                         isRecording = true,
-                        trackId = trackId.id(),
+                        trackId = trackId?.id() ?: 0L,
                         currentLat = currentLoc?.first,
                         currentLon = currentLoc?.second,
                         breadcrumbPoints = if (currentLoc != null) {
@@ -811,6 +862,10 @@ class CarMainActivity : ComponentActivity() {
     private fun stopTrip() {
         val conn = serviceConnection ?: return
         val service = conn.trackRecordingService ?: return
+        stopTrip(service)
+    }
+
+    private fun stopTrip(service: TrackRecordingService) {
         if (service.isRecording) {
             val lastLoc = currentGpsState.value
             if (lastLoc != null) {
@@ -967,7 +1022,8 @@ class CarMainActivity : ComponentActivity() {
                 home = homeLoc,
                 work = workLoc,
                 loadPoints = { getTripPoints(it) },
-                onBack = { isReportOpen = false }
+                onBack = { isReportOpen = false },
+                expenses = expensesState.value
             )
             return
         }
@@ -986,8 +1042,11 @@ class CarMainActivity : ComponentActivity() {
                 filtered.map { getTripPoints(it.id) }
             }
             PeriodMapScreen(
+                trips = filtered,
                 routes = multiRoutes,
                 periodName = selectedPeriod.label,
+                home = homeLoc,
+                work = workLoc,
                 onBackClicked = { isPeriodMapOpen = false }
             )
             return
@@ -1002,7 +1061,7 @@ class CarMainActivity : ComponentActivity() {
                     items = listOf(
                         Icons.Default.Speed to "Início",
                         Icons.Default.Route to "Viagens",
-                        Icons.Default.LocalGasStation to "Posto",
+                        Icons.Default.LocalGasStation to "Custos",
                         Icons.Default.Settings to "Ajustes"
                     )
                 )
@@ -1068,7 +1127,15 @@ class CarMainActivity : ComponentActivity() {
                         onUpdateTrip = { tripId, name, desc -> updateTrip(tripId, name, desc) },
                         onOpenReport = { isReportOpen = true }
                     )
-                    2 -> FuelScreen(
+                    2 -> CostsScreen(
+                        fills = fuelEntries,
+                        expenses = expensesState.value,
+                        trips = trips,
+                        maintenance = maintenanceState.value,
+                        currentOdometer = getCurrentOdometer(),
+                        onSaveExpense = { e, markDone -> saveExpense(e, markDone) },
+                        onDeleteExpense = { deleteExpense(it) }
+                    ) { FuelScreen(
                         fuelEntries = fuelEntries,
                         tankCapacityLiters = tankCapacity,
                         currentGps = currentGps,
@@ -1089,7 +1156,7 @@ class CarMainActivity : ComponentActivity() {
                         onDeleteFuel = { entryId ->
                             deleteFuelEntry(entryId)
                         }
-                    )
+                    ) }
                     3 -> SettingsScreen(
                         homeLoc = homeLoc,
                         workLoc = workLoc,
@@ -1129,6 +1196,7 @@ class CarMainActivity : ComponentActivity() {
                                 loadPreferences()
                                 loadCustomLocations()
                                 maintenanceState.value = MaintenanceStore.load(this@CarMainActivity)
+                                loadExpenses()
                                 val msg = if (result.skippedCount > 0) {
                                     "Backup importado: ${result.tripsCount} viagens novas (${result.skippedCount} já existentes ignoradas), ${result.fuelCount} abastecimentos."
                                 } else {

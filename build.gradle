@@ -52,7 +52,7 @@ android {
 
     defaultConfig {
         applicationId 'de.dennisguse.cartracks'
-        versionCode 6769
+        versionCode 6770
         versionName getVersionName()
 
         buildConfigField "String", "VERSION_NAME_FULL", "\"${getVersionName()}\""
@@ -150,7 +150,7 @@ android {
 dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 
-    def composeBom = platform('androidx.compose:compose-bom:2024.10.01')
+    def composeBom = platform('androidx.compose:compose-bom:2025.08.00')
     implementation composeBom
     androidTestImplementation composeBom
 

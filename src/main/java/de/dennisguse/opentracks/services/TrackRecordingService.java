@@ -220,6 +220,7 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
         autoStopping = false;
         handler.removeCallbacks(noFixWatchdog);
         handler.postDelayed(noFixWatchdog, 60_000L);
+        QuickControls.setRecording(this, true);
         updateRecordingStatus(RecordingStatus.record(trackId));
         TrackIdStorage.set(this, trackId);
 
@@ -264,6 +265,7 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
         parkedDetector.reset();
         autoStopping = false;
         handler.removeCallbacks(noFixWatchdog);
+        QuickControls.setRecording(this, false);
 
         trackRecordingManager.endCurrentTrack();
         TrackIdStorage.unset(this);

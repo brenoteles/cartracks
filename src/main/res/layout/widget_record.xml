@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CarTracks start/stop widget: ink panel, acid action band (Cyberpunk tokens). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0E0D1A"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="@font/bebas_neue_regular"
+            android:text="CARTRACKS"
+            android:textColor="#E8FF3A"
+            android:textSize="20sp" />
+
+        <TextView
+            android:id="@+id/widget_state"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/ibm_plex_mono_semibold"
+            android:text="PARADO"
+            android:textColor="#BDC1A3"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_action"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:layout_weight="1"
+        android:background="#E8FF3A"
+        android:fontFamily="@font/bebas_neue_regular"
+        android:gravity="center"
+        android:minHeight="40dp"
+        android:text="▶  INICIAR VIAGEM"
+        android:textColor="#0C0C14"
+        android:textSize="22sp" />
+</LinearLayout>

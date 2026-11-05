@@ -23,6 +23,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.dennisguse.opentracks.ui.components.CarMapView
+import de.dennisguse.opentracks.data.Expense
+import de.dennisguse.opentracks.io.ReportImageExporter
+import de.dennisguse.opentracks.util.PlaceNames
+import de.dennisguse.opentracks.util.RouteAnalysis
+import de.dennisguse.opentracks.util.RouteGroup
+import de.dennisguse.opentracks.util.TripTrace
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import kotlinx.coroutines.launch
 import de.dennisguse.opentracks.ui.model.CustomLocation
 import de.dennisguse.opentracks.ui.model.FuelItem
 import de.dennisguse.opentracks.ui.model.TripItem
@@ -57,8 +68,13 @@ fun ReportScreen(
     home: CustomLocation,
     work: CustomLocation,
     loadPoints: (Long) -> List<TripPoint>,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    expenses: List<Expense> = emptyList()
 ) {
+    val scope = rememberCoroutineScope()
+    val bodyLayer = rememberGraphicsLayer()
+    var mapSnapshot by remember { mutableStateOf<(suspend () -> android.graphics.Bitmap?)?>(null) }
+    var exporting by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val zone = ZoneId.systemDefault()
     var period by remember { mutableStateOf(ReportPeriod.MONTH) }
@@ -88,10 +104,20 @@ fun ReportScreen(
 
     val pTrips = remember(trips, fromMs, toMs) { trips.filter { it.startTimeMs in fromMs..toMs }.sortedBy { it.startTimeMs } }
     val pFills = remember(fills, fromMs, toMs) { fills.filter { it.dateTime in fromMs..toMs } }
+    val pExpenses = remember(expenses, fromMs, toMs) { expenses.filter { it.dateTime in fromMs..toMs } }
 
     val routes by produceState<List<List<TripPoint>>?>(null, pTrips) {
         value = null
         value = withContext(Dispatchers.IO) { pTrips.map { loadPoints(it.id) } }
+    }
+
+    val topRoutes by produceState<List<Pair<RouteGroup, String>>?>(null, routes) {
+        val r = routes ?: return@produceState
+        value = withContext(Dispatchers.IO) {
+            RouteAnalysis.groupRoutes(pTrips.zip(r).map { (t, pts) -> TripTrace(t.id, t.startTimeMs, t.durationMin, t.distanceKm, pts) })
+                .filter { it.count > 1 }.take(3)
+                .map { g -> g to (PlaceNames.label(context, g.startLat, g.startLon, home, work) + " → " + PlaceNames.label(context, g.endLat, g.endLon, home, work)) }
+        }
     }
 
     // Most frequent destinations: cluster trip end points within 400 m
@@ -178,6 +204,7 @@ fun ReportScreen(
     val pumpMeasure = remember(pFills) { FuelConsumptionModel.measureAtPump(pFills) }
     val pumpKm = pumpMeasure.values.sumOf { it.km }
     val pumpKmL = if (pumpKm > 0) pumpKm / pumpMeasure.values.sumOf { it.liters } else null
+    val otherCost = pExpenses.sumOf { it.amount }
 
     Column(
         modifier = Modifier
@@ -190,6 +217,25 @@ fun ReportScreen(
             Column(Modifier.weight(1f)) {
                 Text("RELATÓRIO", style = displayStyle(28), color = CyberText)
                 Text(rangeLabel, style = monoStyle(11, FontWeight.Normal), color = TextSecondary)
+            }
+            if (exporting) {
+                CircularProgressIndicator(color = CyberAcid, strokeWidth = 2.dp, modifier = Modifier.size(24.dp).padding(end = 4.dp))
+            } else {
+                IconButton(onClick = {
+                    exporting = true
+                    scope.launch {
+                        try {
+                            val map = mapSnapshot?.invoke()
+                            val body = bodyLayer.toImageBitmap().asAndroidBitmap()
+                            val img = ReportImageExporter.compose(context, "CARTRACKS · RELATÓRIO", rangeLabel, map, body)
+                            ReportImageExporter.share(context, img, "CarTracks_relatorio_" + System.currentTimeMillis() + ".png")
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(context, "Falha ao gerar imagem: " + e.message, android.widget.Toast.LENGTH_LONG).show()
+                        } finally {
+                            exporting = false
+                        }
+                    }
+                }) { Icon(Icons.Default.Share, contentDescription = "Exportar como imagem", tint = CyberAcid) }
             }
         }
         Box(Modifier.fillMaxWidth().height(2.dp).background(CyberAcid))
@@ -229,12 +275,26 @@ fun ReportScreen(
                 if (r == null) {
                     CircularProgressIndicator(color = CyberAcid, modifier = Modifier.align(Alignment.Center))
                 } else {
-                    CarMapView(multiRoutes = r, modifier = Modifier.fillMaxSize(), showZoomControls = true)
+                    CarMapView(
+                        heatRoutes = r,
+                        modifier = Modifier.fillMaxSize(),
+                        showZoomControls = true,
+                        onSnapshotProvider = { mapSnapshot = it }
+                    )
                 }
                 CyberChip("${pTrips.size} viagens no mapa", CyberAcid, Modifier.align(Alignment.BottomStart).padding(10.dp), filled = true)
             }
 
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(
+                Modifier
+                    .background(CyberInk)
+                    .drawWithContent {
+                        bodyLayer.record { this@drawWithContent.drawContent() }
+                        drawLayer(bodyLayer)
+                    }
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 if (pTrips.isEmpty() && pFills.isEmpty()) {
                     Text("Nenhuma viagem ou abastecimento neste período.", color = TextSecondary)
                     return@Column
@@ -267,7 +327,11 @@ fun ReportScreen(
                     MetricCard("Vel. máxima", "${maxSpeed.toInt()} km/h", Icons.Default.TrendingUp, CyberRed, Modifier.weight(1f))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MetricCard("Custo / km", if (km > 0) String.format(Locale.getDefault(), "R$ %.2f", estCost / km) else "—", Icons.Default.AttachMoney, CyberGreen, Modifier.weight(1f))
+                    MetricCard("Outros custos", brl(otherCost), Icons.Default.Build, CyberPink, Modifier.weight(1f))
+                    MetricCard("Custo total/km", if (km > 0) brl((estCost + otherCost) / km) else "—", Icons.Default.AttachMoney, CyberGreen, Modifier.weight(1f))
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricCard("Combustível/km", if (km > 0) String.format(Locale.getDefault(), "R$ %.2f", estCost / km) else "—", Icons.Default.AttachMoney, CyberGreen, Modifier.weight(1f))
                     MetricCard("Viagem média", if (pTrips.isNotEmpty()) String.format(Locale.getDefault(), "%.1f km", km / pTrips.size) else "—", Icons.Default.Route, CyberPink, Modifier.weight(1f))
                 }
 
@@ -296,6 +360,33 @@ fun ReportScreen(
                             BarRow(type, liters, String.format(Locale.getDefault(), "%.1f L · R$ %.2f · R$ %.2f/L", liters, cost, if (liters > 0) cost / liters else 0.0))
                         },
                         color = CyberOrange
+                    )
+                }
+
+                // Other costs by category
+                if (pExpenses.isNotEmpty()) {
+                    CyberSectionHeader("Outros custos", eyebrow = brl(otherCost) + " no período")
+                    BarList(
+                        pExpenses.groupBy { it.category }
+                            .map { (cat, l) -> BarRow(cat.emoji + " " + cat.label, l.sumOf { it.amount }, "" + l.size + "× · " + brl(l.sumOf { it.amount })) }
+                            .sortedByDescending { it.value },
+                        CyberPink
+                    )
+                }
+
+                // Repeated routes with timing insight
+                val tr = topRoutes
+                if (!tr.isNullOrEmpty()) {
+                    CyberSectionHeader("Rotas repetidas", eyebrow = "Tempo típico e horário")
+                    BarList(
+                        tr.map { (g, name) ->
+                            BarRow(
+                                name, g.count.toDouble(),
+                                String.format(Locale("pt", "BR"), "%d× · %.0f–%.0f min", g.count, g.medianDurationMin, g.p90DurationMin) +
+                                    (if (g.bestHour != null) " · melhor " + g.bestHour + "h" else "")
+                            )
+                        },
+                        CyberCyan
                     )
                 }
 

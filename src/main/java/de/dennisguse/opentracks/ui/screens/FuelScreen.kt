@@ -605,14 +605,14 @@ fun FuelScreen(
                 ) {
                     MetricCard(
                         title = "Consumo Real Médio",
-                        value = String.format(Locale.getDefault(), "%.1f km/L", efficiencyStats.averageKmL),
+                        value = if (efficiencyStats.fullTankCyclesCount > 0) String.format(Locale.getDefault(), "%.1f km/L", efficiencyStats.averageKmL) else "—",  // needs two full tanks
                         icon = Icons.Default.LocalGasStation,
                         tint = CyberGreen,
                         modifier = Modifier.weight(1f)
                     )
                     MetricCard(
                         title = "Custo Médio / Km",
-                        value = String.format(Locale.getDefault(), "R$ %.2f /km", efficiencyStats.averageCostPerKm),
+                        value = if (efficiencyStats.fullTankCyclesCount > 0) String.format(Locale.getDefault(), "R$ %.2f /km", efficiencyStats.averageCostPerKm) else "—",
                         icon = Icons.Default.AttachMoney,
                         tint = CyberAcid,
                         modifier = Modifier.weight(1f)

@@ -53,6 +53,18 @@ object CarTracksBackupHelper {
         root.put("vehicle", vehicleObj)
         root.put("maintenance", de.dennisguse.opentracks.util.MaintenanceStore.toJson(
             de.dennisguse.opentracks.util.MaintenanceStore.load(context)))
+        root.put("expenses", org.json.JSONArray().apply {
+            de.dennisguse.opentracks.data.ExpenseDatabaseHelper.get(context).all().forEach { e ->
+                put(JSONObject().apply {
+                    put("dateTime", e.dateTime)
+                    put("category", e.category.name)
+                    put("description", e.description)
+                    put("amount", e.amount)
+                    e.odometerKm?.let { put("odometerKm", it) }
+                    e.maintenanceId?.let { put("maintenanceId", it) }
+                })
+            }
+        })
 
         // 2. Custom Locations (Casa & Trabalho)
         val spLoc = context.getSharedPreferences("CarTracksLocations", Context.MODE_PRIVATE)
@@ -274,11 +286,30 @@ object CarTracksBackupHelper {
                 if (vObj.has(f.prefKey)) edit.putFloat(f.prefKey, vObj.getDouble(f.prefKey).toFloat())
             }
             if (vObj.has("consumptionUsePump")) edit.putBoolean("consumption_use_pump", vObj.getBoolean("consumptionUsePump"))
+            // a restored vehicle is a configured vehicle: skip the first-run setup dialog
+            edit.putBoolean("initial_setup_completed", true)
             edit.apply()
         }
         if (root.has("maintenance")) {
             de.dennisguse.opentracks.util.MaintenanceStore.save(context,
                 de.dennisguse.opentracks.util.MaintenanceStore.fromJson(root.getJSONArray("maintenance")))
+        }
+        if (root.has("expenses")) {
+            val db = de.dennisguse.opentracks.data.ExpenseDatabaseHelper.get(context)
+            val arr = root.getJSONArray("expenses")
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val e = de.dennisguse.opentracks.data.Expense(
+                    id = 0,
+                    dateTime = o.getLong("dateTime"),
+                    category = de.dennisguse.opentracks.data.ExpenseCategory.of(o.optString("category")),
+                    description = o.optString("description", ""),
+                    amount = o.getDouble("amount"),
+                    odometerKm = if (o.has("odometerKm") && !o.isNull("odometerKm")) o.getDouble("odometerKm") else null,
+                    maintenanceId = if (o.has("maintenanceId") && !o.isNull("maintenanceId")) o.getInt("maintenanceId") else null
+                )
+                if (!db.exists(e)) db.insert(e)
+            }
         }
 
         // 2. Restore Locations

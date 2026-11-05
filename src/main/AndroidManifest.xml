@@ -374,6 +374,32 @@ limitations under the License.
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Start/stop trip: home-screen widget and Quick Settings tile -->
+        <receiver
+            android:name=".services.RecordWidget"
+            android:exported="true"
+            android:label="@string/tile_record_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_record_info" />
+        </receiver>
+
+        <service
+            android:name=".services.RecordTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_logo_color_24dp"
+            android:label="@string/tile_record_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.TOGGLEABLE_TILE"
+                android:value="true" />
+        </service>
     </application>
 
     <queries>
