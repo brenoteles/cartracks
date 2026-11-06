@@ -1,3 +1,0 @@
-v4.17.7: OpenTracks
-
-Tekrarlanabilir(reproducible) yapı için serbest bırakma.

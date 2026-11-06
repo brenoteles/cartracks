@@ -1,8 +1,0 @@
-v4.20.0: OpenTracks
-
-Změny:
-- Umožnění změny časového pásma stop
-- Zjednodušené rozhraní značek
-
-Oprava chyby:
-- Edge-2-edge: reakce na virtuální klávesnici

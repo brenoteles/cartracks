@@ -1,4 +1,0 @@
-v4.22.2: OpenTracks
-
-Bugfix:
-- Voice annoucements setting for time and unit were linked

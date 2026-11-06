@@ -1,5 +1,0 @@
-v4.12.1: OpenTracks
-
-Hata Ayıklama:
-- Android 14: eksik izinleri bildir (hata yerine)
-- POST_NOTIFICATION opsiyonel

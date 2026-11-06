@@ -3,21 +3,14 @@
     <!-- Do not translate anything in this file directly. -->
 
     <!-- Main settings -->
-    <string name="settings_defaults_key" translatable="false">settingsDefaults</string>
 
-    <string name="settings_ui_key" translatable="false">settingsUI</string>
 
-    <string name="settings_gps_key" translatable="false">settingsGps</string>
 
-    <string name="settings_sensors_key" translatable="false">settingsSensorsGps</string>
 
-    <string name="settings_announcements_key" translatable="false">settingsAnnouncements</string>
 
-    <string name="settings_import_export_key" translatable="false">settingsImportExport</string>
 
     <!-- Setting's categories -->
 
-    <string name="settings_reset_key" translatable="false">settingsReset</string>
 
     <string name="settings_sensor_bluetooth_heart_rate_key" translatable="false">bluetoothSensor</string>
     <string name="settings_sensor_bluetooth_temperature_key" translatable="false">bluetoothTemperature</string>
@@ -27,16 +20,6 @@
     <string name="settings_sensor_bluetooth_running_speed_and_cadence_key" translatable="false">bluetoothRunningSpeedAndCadenceSensor</string>
     <string name="settings_sensor_bluetooth_pressure_key" translatable="false">bluetoothPressureSensor</string>
     <string name="settings_sensor_gps_key" translatable="false">bluetoothGPSSensor</string>
-    <string name="sensor_type_value_none" translatable="false">NONE</string>
-    <string name="sensor_type_value_internal" translatable="false">INTERNAL</string>
-    <string-array name="sensor_type_no_bluetooth_entryValues">
-        <item>@string/sensor_type_value_none</item>
-        <item>@string/sensor_type_value_internal</item>
-    </string-array>
-    <string-array name="sensor_type_no_bluetooth_entries">
-        <item>@string/value_none</item>
-        <item>@string/value_internal_sensor</item>
-    </string-array>
 
     <string name="settings_sensor_bluetooth_cycling_speed_wheel_circumference_key" translatable="false">bluetoothCyclingSpeedWheelCircumference</string>
     <string name="settings_sensor_bluetooth_cycling_speed_wheel_circumference_default" translatable="false">2135</string>
@@ -62,7 +45,6 @@
     <bool name="post_workout_export_health_connect_enabled_default" translatable="false">false</bool>
 
     <!-- Stats layout customization default layout -->
-    <string name="settings_layout_reset_key" translatable="false">settingsLayoutReset</string>
 
     <string name="default_activity_key" translatable="false">defaultActivity</string>
     <string name="default_activity_default" translatable="false">@string/activity_type_driving</string>
@@ -143,65 +125,22 @@
 
     <string name="stats_rate_key" translatable="false">statsRate</string>
     <string name="stats_rate_default" translatable="false">@string/stats_rate_speed</string>
-    <string-array name="stats_rate_metric_options">
-        <item>@string/description_default_speed_or_pace</item>
-        <item>@string/description_speed_metric</item>
-        <item>@string/description_pace_metric</item>
-    </string-array>
-    <string-array name="stats_rate_imperial_options">
-        <item>@string/description_default_speed_or_pace</item>
-        <item>@string/description_speed_imperial</item>
-        <item>@string/description_pace_imperial</item>
-    </string-array>
-    <string-array name="stats_rate_nautical_options">
-        <item>@string/description_default_speed_or_pace</item>
-        <item>@string/description_speed_nautical</item>
-        <item>@string/description_pace_imperial</item>
-    </string-array>
 
     <string name="stats_rate_speed_or_pace_default" translatable="false">ACTIVITY_TYPE</string>
-    <string name="stats_rate_pace" translatable="false">PACE</string>
     <string name="stats_rate_speed" translatable="false">SPEED</string>
-    <string-array name="stats_rate_values">
-        <item>@string/stats_rate_speed_or_pace_default</item>
-        <item>@string/stats_rate_speed</item>
-        <item>@string/stats_rate_pace</item>
-    </string-array>
 
     <string name="stats_units_key" translatable="false">statsUnits</string>
     <string name="stats_units_default" translatable="false">@string/stats_units_metric</string>
-    <string-array name="stats_units_values">
-        <item>@string/stats_units_metric</item>
-        <item>@string/stats_units_imperial_feet</item>
-        <item>@string/stats_units_imperial_meter</item>
-        <item>@string/stats_units_nautical</item>
-    </string-array>
     <string name="stats_units_metric" translatable="false">METRIC</string>
     <string name="stats_units_imperial_feet" translatable="false">IMPERIAL</string>
     <string name="stats_units_imperial_meter" translatable="false">IMPERIAL_METER</string>
     <string name="stats_units_nautical" translatable="false">NAUTICAL</string>
-    <string-array name="stats_units_options">
-        <item>@string/settings_stats_units_metric</item>
-        <item>@string/settings_stats_units_imperial</item>
-        <item>@string/settings_stats_units_imperial_meter</item>
-        <item>@string/settings_stats_units_nautical</item>
-    </string-array>
 
     <string name="track_name_key" translatable="false">trackName</string>
     <string name="track_name_default" translatable="false">@string/settings_recording_track_name_date_iso_8601_value</string>
     <string name="settings_recording_track_name_date_iso_8601_value" translatable="false">DATE_ISO_8601</string>
     <string name="settings_recording_track_name_date_local_value" translatable="false">DATE_LOCAL</string>
     <string name="settings_recording_track_name_number_value" translatable="false">NUMBER</string>
-    <string-array name="track_name_values">
-        <item>@string/settings_recording_track_name_date_local_value</item>
-        <item>@string/settings_recording_track_name_date_iso_8601_value</item>
-        <item>@string/settings_recording_track_name_number_value</item>
-    </string-array>
-    <string-array name="track_name_options">
-        <item>@string/settings_recording_track_name_date_local_option</item>
-        <item>@string/settings_recording_track_name_date_iso_8601_option</item>
-        <item>@string/settings_recording_track_name_number_option</item>
-    </string-array>
 
     <string name="announcement_off" translatable="false">0</string>
     <string name="voice_announcement_frequency_key" translatable="false">voiceFrequencyV2</string>
@@ -232,39 +171,20 @@
     </string-array>
     <string name="voice_speed_rate_key" translatable="false">voiceSpeedRate</string>
     <string name="voice_speed_rate_default" translatable="false">0.9</string>
-    <string-array name="voice_speed_rate_values">
-        <item>0.7</item>
-        <item>0.8</item>
-        <item>@string/voice_speed_rate_default</item>
-        <item>1.0</item>
-        <item>1.1</item>
-        <item>1.2</item>
-        <item>1.3</item>
-    </string-array>
     <string name="voice_on_device_speaker_key" translatable="false">voiceOnDeviceSpeaker</string>
     <bool name="voice_on_device_speaker_default" translatable="false">true</bool>
     <string name="voice_announce_idle_key" translatable="false">voice_announce_idle_key</string>
-    <bool name="voice_announce_idle_default" translatable="false">false</bool>
 
     <string name="voice_announce_total_distance_key" translatable="false">voiceAnnounceTotalDistance</string>
-    <bool name="voice_announce_total_distance_default" translatable="false">true</bool>
     <string name="voice_announce_moving_time_key" translatable="false">voiceAnnounceMovingTime</string>
-    <bool name="voice_announce_moving_time_default" translatable="false">true</bool>
     <string name="voice_announce_average_speed_pace_key" translatable="false">voiceAnnounceAverageSpeedPace</string>
-    <bool name="voice_announce_average_speed_pace_default" translatable="false">true</bool>
     <string name="voice_announce_lap_speed_pace_key" translatable="false">voiceAnnounceLapSpeedPace</string>
-    <bool name="voice_announce_lap_speed_pace_default" translatable="false">true</bool>
     <string name="voice_announce_time_key" translatable="false">voiceAnnounceTime</string>
-    <bool name="voice_announce_time_default" translatable="false">true</bool>
     <string name="voice_announce_unit_key" translatable="false">voiceAnnounceUnit</string>
-    <bool name="voice_announce_unit_default" translatable="false">true</bool>
 
     <string name="voice_announce_heart_rate_current_key" translatable="false">voiceAnnounceHeartRateCurrent</string>
-    <bool name="voice_announce_heart_rate_current_default" translatable="false">false</bool>
     <string name="voice_announce_average_heart_rate_key" translatable="false">voiceAnnounceAverageHeartRate</string>
-    <bool name="voice_announce_average_heart_rate_default" translatable="false">false</bool>
     <string name="voice_announce_lap_heart_rate_key" translatable="false">voiceAnnounceLapHeartRate</string>
-    <bool name="voice_announce_lap_heart_rate_default" translatable="false">false</bool>
 
     <string name="voice_announce_lap_power_key" translateable="false">voiceAnnounceLapPower</string>
     <bool name="voice_announce_lap_power_default" translateable="false">false</bool>
@@ -276,8 +196,6 @@
     <string name="import_prevent_reimport_key" translatable="false">preventReimportTrackKey</string>
     <bool name="import_prevent_reimport_default">true</bool>
 
-    <string name="settings_api_key" translatable="false">settingsAPI</string>
-    <string name="publicapi_package_key" translatable="false">apiPackageKey</string>
     <string name="publicapi_enabled_key" translatable="false">apiEnabledKey</string>
     <bool name="publicapi_enabled_default">false</bool>
     <string name="publicapi_dashboard_enabled_key" translatable="false">apiDashboardEnabledKey</string>
@@ -288,7 +206,6 @@
 
     <!-- User Interface Settings -->
 
-    <string name="deleted20250703" translatable="false">uiDynamicColors</string> <!-- DELETED -->
 
     <!-- Recording Settings -->
     <string name="stats_show_on_lockscreen_while_recording_key" translatable="false">trackdetail_show_on_lockscreen_while_recording</string>
@@ -315,43 +232,13 @@
 
 
     <!-- androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode() -->
-    <string name="locale_key" translatable="false">localeKey</string>
 
     <!-- androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode() -->
     <string name="theme_key" translatable="false">nightMode</string>
     <string name="theme_default" translatable="false">@string/theme_daynight_value</string>
     <string name="theme_daynight_value" translatable="false">0</string>
-    <string name="theme_daynight_dynamic_value" translatable="false">1</string>
-    <string name="theme_day_value" translatable="false">2</string>
-    <string name="theme_day_dynamic_value" translatable="false">3</string>
-    <string name="theme_night_value" translatable="false">4</string>
-    <string name="theme_night_dynamic_value" translatable="false">5</string>
-    <string name="theme_oled_value" translatable="false">6</string>
-    <string name="theme_oled_dynamic_value" translatable="false">7</string>
-    <string-array name="night_mode_values">
-        <item>@string/theme_daynight_value</item>
-        <item>@string/theme_daynight_dynamic_value</item>
-        <item>@string/theme_day_value</item>
-        <item>@string/theme_day_dynamic_value</item>
-        <item>@string/theme_night_value</item>
-        <item>@string/theme_night_dynamic_value</item>
-        <item>@string/theme_oled_value</item>
-        <item>@string/theme_oled_dynamic_value</item>
-    </string-array>
-    <string-array name="night_mode_options">
-        <!-- TODO: rename night_mode to theme and night_oled to oled -->
-        <item>@string/settings_night_mode_option_system</item>
-        <item>@string/settings_night_mode_option_system_dynamic</item>
-        <item>@string/settings_night_mode_option_day</item>
-        <item>@string/settings_night_mode_option_day_dynamic</item>
-        <item>@string/settings_night_mode_option_night</item>
-        <item>@string/settings_night_mode_option_night_dynamic</item>
-        <item>@string/settings_night_mode_option_night_oled</item>
-        <item>@string/settings_night_mode_option_night_oled_dynamic</item>
-    </string-array>
 
     <!-- Stats layout customization -->
-    <string name="stats_custom_layout_key" translatable="false">statsCustomLayoutKey</string>
 
     <!-- Stats layout customization: key -->
     <string name="stats_custom_layouts_key" translatable="false">statsCustomLayoutFieldsKey</string>
@@ -375,37 +262,16 @@
     <string name="stats_custom_layout_fastest_pace_key" translatable="false">fastest_pace</string>
     <string name="stats_custom_layout_coordinates_key" translatable="false">coordinates</string>
     <string name="stats_custom_layout_heart_rate_key" translatable="false">heart_rate</string>
-    <string name="stats_custom_layout_average_heart_rate_key" translatable="false">average_heart_rate</string>
     <string name="stats_custom_layout_temperature_key" translatable="false">temperature</string>
     <string name="stats_custom_layout_cadence_key" translatable="false">cadence</string>
-    <string name="stats_custom_layout_average_cadence_key" translatable="false">average_cadence</string>
     <string name="stats_custom_layout_power_key" translatable="false">power</string>
     <string name="stats_custom_layout_clock_key" translatable="false">time</string>
 
     <!-- Stats empty values -->
-    <string name="stats_empty_value_integer" translatable="false">0</string>
-    <string name="stats_empty_value_float" translatable="false">0.0</string>
-    <string name="stats_empty_value_time" translatable="false">00:00</string>
-    <string name="stats_empty_value_coordinates" translatable="false">0.0, 0.0</string>
 
     <!-- Statistics dataFields: columns per row -->
-    <integer-array name="stats_custom_layout_fields_columns_per_row">
-        <item>1</item>
-        <item>2</item>
-        <item>3</item>
-    </integer-array>
 
     <string name="prefs_last_version_key" translatable="false">lastVersionKey</string>
 
-    <string name="settings_auto_recording_title">Automated Tracking</string>
-    <string name="settings_auto_start_power_key" translatable="false">auto_start_power</string>
-    <bool name="settings_auto_start_power_default" translatable="false">true</bool>
-    <string name="settings_auto_stop_power_key" translatable="false">auto_stop_power</string>
-    <bool name="settings_auto_stop_power_default" translatable="false">true</bool>
-    <string name="settings_auto_start_bluetooth_key" translatable="false">auto_start_bluetooth</string>
-    <bool name="settings_auto_start_bluetooth_default" translatable="false">false</bool>
-    <string name="settings_auto_start_bluetooth_device_key" translatable="false">auto_start_bluetooth_device</string>
-    <string name="settings_auto_start_bluetooth_device_default" translatable="false"></string>
     <string name="stats_custom_layout_fuel_key" translatable="false">fuel_consumption</string>
-    <string name="settings_auto_tracking_key" translatable="false">settingsAutoTracking</string>
 </resources>

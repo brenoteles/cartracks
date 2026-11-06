@@ -1,6 +1,0 @@
-v3.20.1: OpenTracks
-
-Veranderingen:
-- Aankondigingen kunnen nu zowel op afstand als op tijd worden gebruikt
-- Aankondigingen piepen als er geen tekst-naar-spraak-software is geïnstalleerd
-- Adaptieve GPS-locatiefrequentie verwijderd

@@ -1,7 +1,0 @@
-v3.15.2: OpenTracks
-
-Athruithe:
-- Aistriúcháin nuashonraithe
-
-Ceartúchán Bug:
-- Tuairteála ar onnmhairiú GPX

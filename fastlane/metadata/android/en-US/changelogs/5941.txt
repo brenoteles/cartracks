@@ -1,5 +1,0 @@
-v4.16.0: OpenTracks
-
-Bugfix:
-- PublicAPI: starting a recording didn't record no data
-

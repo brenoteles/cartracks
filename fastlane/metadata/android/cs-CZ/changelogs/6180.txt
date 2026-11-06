@@ -1,5 +1,0 @@
-v4.19.5: OpenTracks
-
-Oprava chyby:
-- Ikona v launcheru byla někdy příliš malá
-- Ikona trasy v podrobnostech používá lokalizovaný typ aktivity

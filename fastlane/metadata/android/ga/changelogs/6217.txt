@@ -1,8 +1,0 @@
-v4.20.0: OpenTracks
-
-Athruithe:
-- Ceadaítear athrú ar fhritháireamh crios ama rianta
-- Comhéadan Úsáideora Marcóra Simplithe
-
-Ceartú:
-- Imeall-2-imeall: imoibríonn le méarchlár fíorúil

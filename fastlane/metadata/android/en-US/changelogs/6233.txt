@@ -1,5 +1,0 @@
-v4.21.0: OpenTracks
-
-Changes:
-- Track list supports swipe-to-delete
-- Re-implemented themes (for DynamicColor and OLED)

@@ -37,7 +37,7 @@ import de.dennisguse.opentracks.data.models.Position;
 import de.dennisguse.opentracks.data.models.Speed;
 import de.dennisguse.opentracks.data.models.Track;
 import de.dennisguse.opentracks.io.file.TrackFileFormat;
-import de.dennisguse.opentracks.io.file.importer.ExportImportTest;
+import de.dennisguse.opentracks.util.MockLocations;
 import de.dennisguse.opentracks.services.TrackRecordingService;
 import de.dennisguse.opentracks.services.handlers.TrackPointCreator;
 import de.dennisguse.opentracks.settings.PreferencesUtils;
@@ -76,7 +76,7 @@ public class KMLTrackExporterTest {
             trackPointCreator.setClock("2020-02-02T02:02:02Z");
             trackIdOne = service.startNewTrack();
 
-            Position position = ExportImportTest.sendLocation(trackPointCreator, "2020-02-02T02:02:03Z", 3.1234567, 14.0014567, 10, 13, 15, 1020.25, 1f);
+            Position position = MockLocations.sendLocation(trackPointCreator, "2020-02-02T02:02:03Z", 3.1234567, 14.0014567, 10, 13, 15, 1020.25, 1f);
             contentProviderUtils.insertMarker(
                     new Marker(
                             null,
@@ -95,7 +95,7 @@ public class KMLTrackExporterTest {
             trackPointCreator.setClock("2022-02-02T02:02:02Z");
             trackIdTwo = service.startNewTrack();
 
-            Position position = ExportImportTest.sendLocation(trackPointCreator, "2022-02-02T02:02:03Z", 3.1234567, 14.0014567, 10, 13, 15, 1020.25, 1f);
+            Position position = MockLocations.sendLocation(trackPointCreator, "2022-02-02T02:02:03Z", 3.1234567, 14.0014567, 10, 13, 15, 1020.25, 1f);
             contentProviderUtils.insertMarker(
                     new Marker(
                             null,

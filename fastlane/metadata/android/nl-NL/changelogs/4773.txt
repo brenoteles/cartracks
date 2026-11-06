@@ -1,8 +1,0 @@
-v3.26.0: OpenTracks
-
-Wijzigingen:
-- Gesproken meldingen zijn instelbaar
-- Gesproken meldingen van hartslag
-
-Bugfix:
-- Vastloper door race condities

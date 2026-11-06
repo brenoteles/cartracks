@@ -1,4 +1,0 @@
-v4.8.2: OpenTracks
-
-Cambios:
-- Apos exportar as gravacións: mostra mensaxe de aviso se falla

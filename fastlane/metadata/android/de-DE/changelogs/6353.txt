@@ -1,8 +1,0 @@
-v4.23.1: OpenTracks
-
-Änderungen:
-
-- Neue UI-Komponente zur Anzeige der verstrichenen Zeit im aktuellen Segment
-
-Fehlerbehebung:
-- Sofortiger Export nach Workout abgestürzt (eingeführt in v4.23.0)

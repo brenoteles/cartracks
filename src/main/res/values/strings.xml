@@ -14,70 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 --><resources>
-    <string name="about_preference_title">About</string>
-    <string name="about_description"><i>OpenTracks</i> is a sport tracking application that completely respects your privacy.</string>
-    <string name="about_url">Project webpage: <a href="%1$s">%1$s</a></string>
-    <string name="about_version_name">Version name: %1$s</string>
-    <string name="about_version_code">Version code: %1$d</string>
-    <string name="about_history">OpenTracks is a fork of <a href="https://code.google.com/archive/p/mytracks/"><i>Google\'s MyTracks</i></a> (discontinued in 2016).</string>
-    <string name="about_third_party_data">Third-party data</string>
-    <string name="about_libraries">Libraries</string>
     <!-- Help -->
-    <string name="help_feature_title">OpenTracks has the following features:</string>
-    <string name="help_feature_content">* create GPS tracks
-\n* use a heart rate sensor (Bluetooth LE only)
-\n* voice announcements (by time or distance)
-\n* create markers (incl. pictures)
-\n* works completely offline
-\n* show tracks on a map (see below)</string>
-    <string name="help_track_map_title">How to show a track on a map?</string>
-    <string name="help_track_map_content">
-        Use the small map icon.\n
-        a)
-        (live updates) Install <a href="https://codeberg.org/OpenTracksApp/OSMDashboard">OSMDashboard</a>.
-        It provides online or offline maps via <a href="https://www.openstreetmap.org">OpenStreetMap</a>.\n
-        Actually, OSMDashboard is a separate app that only can access (temporarily) the data of track(s) that are going to be shown.
-
-        \n
-        b)
-        Via a "normal" map application (e.g., <a href="http://osmand.net/">OsmAnd</a> and <a href="https://maps.me/">MAPS.ME</a>).
-        These apps need to support the KMZ file format (only locations and timestamps).
-        In fact, an app needs to support <i>ACTION_VIEW</i> with MIME <i>application/vnd.google-earth.kmz</i>.
-    </string>
-    <string name="help_storage_pictures_title">How does OpenTracks store pictures that were taken as markers?</string>
-    <string name="help_storage_pictures_content">These are stored in the app internal storage (i.e., only accessible within OpenTracks).</string>
-    <string name="help_track_export_title">How can I export/share recorded tracks?</string>
-    <string name="help_track_export_content"> Tracks can be exported from the Settings as KMZ, KML, or GPX. KMZ/KML all data; GPX only locations. Tracks shared via the <i>share icon</i> are shared as KMZ. </string>
-    <string name="help_data_google_play_services_title">Does OpenTracks require/use Google Play Service?</string>
-    <string name="help_data_google_play_services_content">No</string>
-    <string name="help_recording_title">How does OpenTracks record data?</string>
-    <string name="help_recording_content">
-        OpenTracks uses the GPS sensor of the device to record the location continuously.
-        If the GPS device reports inaccurate data (e.g., location, speed, elevation), OpenTracks cannot do anything about it.
-    </string>
-    <string name="help_data_storage_title">How does OpenTracks store sensor data?</string>
-    <string name="help_data_storage_content"> Sensor data is stored per recorded location. In terms of a heart rate sensor, this means that only <i>one</i> heart rate measurement is stored per location. If you are standing still or are indoors, no sensor data will be recorded (but it will be shown). </string>
-    <string name="help_gps_troubleshooting_title">OpenTracks is not recording locations?</string>
-    <string name="help_gps_troubleshooting_content">
-        What you can do:\n
-        a) check if GPS is enabled,\n
-        b) improve GPS reception (e.g., go outdoors),\n
-        c) check with <a href="https://f-droid.org/en/packages/com.android.gpstest.osmdroid/">GPSTest</a> app, and\n
-        d) disable power saving.\n
-        \n
-        If everything does not help please report a bug.
-    </string>
-    <string name="help_support_title">How can I support OpenTracks?</string>
-    <string name="help_support_content">
-        You can:\n
-        a) spread the word about OpenTracks,\n
-        b) <a href="https://codeberg.org/OpenTracksApp/OpenTracks/issues">propose features</a>,\n
-        c) <a href="https://codeberg.org/OpenTracksApp/OpenTracks/issues">report bugs</a>,\n
-        d) help in software development,\n
-        e) buy in <a href="https://play.google.com/store/apps/details?id=de.dennisguse.opentracks.playstore">Google Play Store</a>,\n
-        f) donate, and\n
-        g) do whatever you think helps OpenTracks.
-    </string>
     <!-- Activity Type -->
     <string name="activity_type_airplane">airplane</string>
     <string name="activity_type_atv">ATV</string>
@@ -120,7 +57,6 @@ limitations under the License.
     <string name="activity_type_rc_airplane">RC airplane</string>
     <string name="activity_type_rc_boat">RC boat</string>
     <string name="activity_type_rc_helicopter">RC helicopter</string>
-    <string name="activity_type_riding">riding</string>
     <string name="activity_type_road_biking">road biking</string>
     <string name="activity_type_roller_skiing">roller skiing</string>
     <string name="activity_type_rowing">rowing</string>
@@ -138,7 +74,6 @@ limitations under the License.
     <string name="activity_type_street_running">street running</string>
     <string name="activity_type_surfing">surfing</string>
     <string name="activity_type_track_cycling">track cycling</string>
-    <string name="activity_type_track_running">track running</string>
     <string name="activity_type_trail_hiking">trail hiking</string>
     <string name="activity_type_trail_running">trail running</string>
     <string name="activity_type_train">train</string>
@@ -152,361 +87,74 @@ limitations under the License.
     <string name="activity_type_swimming_open">swimming in open water</string>
     <string name="activity_type_workout">workout</string>
     <!-- Description -->
-    <string name="description_activity_type">Activity type: %1$s</string>
-    <string name="description_average_moving_pace_in_minute">Average moving pace: %1$s min/km (%2$s min/mi)</string>
-    <string name="description_average_moving_speed">Average moving speed: %1$.2f km/h (%2$.1f mi/h)</string>
     <string name="description_average_pace_in_minute">Average pace: %1$s min/km (%2$s min/mi)</string>
     <string name="description_average_speed">Average speed: %1$.2f km/h (%2$.1f mi/h)</string>
-    <string name="description_altitude_gain">Elevation gain: %1$d m (%2$d ft)</string>
-    <string name="description_altitude_loss">Elevation loss: %1$d m (%2$d ft)</string>
     <string name="description_altitude_imperial">Elevation (ft)</string>
     <string name="description_altitude_metric">Elevation (m)</string>
-    <string name="description_fastest_pace_in_minute">Fastest pace: %1$s min/km (%2$s min/mi)</string>
-    <string name="description_max_altitude">Max elevation: %1$d m (%2$d ft)</string>
-    <string name="description_max_speed">Max speed: %1$.2f km/h (%2$.1f mi/h)</string>
     <string name="description_min_altitude">Min elevation: %1$d m (%2$d ft)</string>
-    <string name="description_moving_time">Moving time: %1$s</string>
-    <string name="description_pace_imperial">Pace (min/mi)</string>
-    <string name="description_pace_nautical">Pace (min/NM)</string>
-    <string name="description_pace_metric">Pace (min/km)</string>
-    <string name="description_recorded_time">Recorded: %1$s</string>
     <string name="description_speed_ms">Speed (m/s)</string>
     <string name="description_sensor_cadence">Cadence (rpm)</string>
     <string name="description_sensor_heart_rate">Heart rate (bpm)</string>
     <string name="description_sensor_temperature">Temperature (Celsius)</string>
     <string name="description_sensor_power">Power (W)</string>
-    <string name="description_default_speed_or_pace">By activity type</string>
-    <string name="description_speed_imperial">Speed (mi/hr)</string>
-    <string name="description_speed_nautical">Speed (knots)</string>
-    <string name="description_speed_metric">Speed (km/hr)</string>
-    <string name="description_time">Time</string>
     <string name="description_total_distance">Total distance: %1$.2f km (%2$.1f mi)</string>
     <string name="description_total_time">Total time: %1$s</string>
-    <string name="description_speed_source_gps">GPS</string>
     <!-- Export -->
     <string name="export_with_photos">with photos</string>
     <string name="export_without_photos">without photos</string>
-    <string name="export_error_post_workout">Post-workout export failed, please check the export directory.</string>
-    <string name="export_cannot_write_to_dir">Cannot write to export directory.</string>
-    <string name="export_dir_not_writable">" (not writable!)"</string>
-    <string name="export_progress_message">Exporting to %1$sâ€¦</string>
-    <string name="export_track_already_exists_msg">The file %1$s already exists at the destination directory.</string>
-    <string name="export_all_do_it_for_all">do it for all conflicts</string>
-    <string name="export_track_errors">Files not exported</string>
-    <string name="export_progress_summary_new_msg">New files exported</string>
-    <string name="export_progress_summary_overwrite_msg">Files overwritten</string>
-    <string name="export_progress_summary_skip_msg">Files skipped</string>
-    <string name="export_progress_summary_errors_msg">Errors</string>
     <!-- External Storage -->
     <!-- Generic -->
-    <string name="generic_add">Add</string>
-    <string name="generic_delete_selected_confirm_title">Delete selected?</string>
-    <string name="generic_description">Description</string>
-    <string name="generic_description_line">Description: %1$s</string>
-    <string name="generic_name">Name</string>
-    <string name="generic_name_line">Name: %1$s</string>
-    <string name="generic_open_track">Open Track</string>
-    <string name="generic_recording">Recordingâ€¦</string>
-    <string name="generic_save">Save</string>
     <string name="generic_tracks">Tracks</string>
-    <string name="generic_overwrite">Overwrite</string>
-    <string name="generic_skip">Skip</string>
-    <string name="generic_separator_done_total">/</string>
-    <string name="generic_show_errors">Show Errors</string>
-    <plurals name="generic_completed_with_errors">
-        <item quantity="one">Completed with one error</item>
-        <item quantity="other">Completed with %1$d errors</item>
-    </plurals>
-    <string name="generic_completed">Completed</string>
-    <string name="generic_click_twice_cancel">Click back again to cancel</string>
-    <string name="generic_choose_an_option">Choose an option</string>
-    <string name="generic_undo">Undo</string>
-    <string name="generic_filter">Filter</string>
-    <string name="generic_from">From</string>
-    <string name="generic_to">To</string>
     <string name="generic_today">Today</string>
     <string name="generic_yesterday">Yesterday</string>
-    <string name="generic_dismiss">Dismiss</string>
     <!-- Gps -->
     <string name="gps_starting">Starting GPS</string>
     <string name="gps_wait_for_better_signal">Waiting for a better GPS signal</string>
     <string name="gps_wait_for_signal">Waiting for GPS signal</string>
     <string name="gps_disabled_msg">GPS disabled</string>
     <string name="gps_fixed_and_ready">GPS fixed and ready</string>
-    <string name="gps_recording_status">%1$s: %2$s</string>
-    <string name="gps_recording_without_signal">OpenTracks is recording without GPS data.</string>
     <!-- Image -->
-    <string name="image_marker_count">Marker count</string>
-    <string name="image_photo_marker">Photo marker</string>
-    <string name="image_record">Record</string>
-    <string name="image_stop">Stop</string>
-    <string name="image_discard">Discard</string>
-    <string name="image_track">Track</string>
     <!-- Import -->
-    <string name="import_thread_interrupted">Thread interrupted</string>
-    <string name="import_unsupported_format">Unsupported file format</string>
-    <string name="import_parser_error">Parser error: %1$s</string>
-    <string name="import_unable_to_import_file">Unable to import file: %1$s</string>
-    <string name="import_no_kml_file_found">No kml file found in KMZ</string>
-    <string name="import_error_info">%1$s: %2$s</string>
-    <string name="import_error_list_dialog_title">Files not imported</string>
-    <string name="import_file_imported">File %1$s imported</string>
-    <string name="import_prevent_reimport">You have set prevent re-import track</string>
-    <string name="import_progress_message">Importing from %1$sâ€¦</string>
-    <string name="import_progress_summary_ok_msg">Files imported</string>
-    <string name="import_progress_summary_exists_msg">Already exists</string>
-    <string name="import_progress_summary_errors_msg">Errors</string>
     <!-- Marker -->
-    <string name="create_marker_error">Unable to create a marker. Try again.</string>
-    <string name="marker_add_error">Unable to insert a marker. No GPS signal. Try again.</string>
-    <string name="marker_add_success">A marker was inserted</string>
-    <string name="marker_add_canceled">Canceled, no marker added</string>
-    <string name="marker_add_photo_canceled">Canceled, no photo marker added</string>
-    <string name="marker_delete_one_confirm_message">The marker will be permanently deleted from the device</string>
-    <string name="marker_delete_one_confirm_title">Delete marker?</string>
-    <string name="marker_delete_multiple_confirm_message">The selected markers will be permanently deleted from the device</string>
-    <string name="marker_name_format">Marker %1$d</string>
-    <string name="marker_detail_title">%1$d of %2$d: %3$s</string>
     <!-- Marker Detail -->
     <!-- Marker Edit -->
-    <string name="marker_edit_marker_type">Marker type (e.g. waterfall)</string>
     <!-- Marker List -->
-    <string name="marker_list_empty_message">You don\'t have any markers</string>
     <!-- Menu -->
-    <string name="menu_aggregated_statistics">Aggregated stats</string>
     <string name="menu_delete">Delete</string>
     <string name="menu_edit">Edit</string>
-    <string name="menu_export_all">Export all (one file per track)</string>
-    <string name="menu_export_all_one_file">Export all (one file for all tracks)</string>
-    <string name="menu_export_all_to_health_connect">Export all</string>
-    <string name="menu_help">Help</string>
-    <string name="menu_import_all">Import all</string>
-    <string name="menu_insert_marker">Insert marker</string>
-    <string name="menu_insert_photo">Insert photo</string>
-    <string name="menu_insert_gallery_img">Insert gallery image</string>
-    <string name="menu_markers">Markers</string>
-    <string name="menu_search">Search</string>
-    <string name="menu_select_all">Select all</string>
-    <string name="menu_settings">Settings</string>
-    <string name="menu_share">Share</string>
-    <string name="menu_select_layout">Select Layout</string>
-    <string name="menu_show_on_map">Show on map</string>
-    <string name="menu_voice_rate">Voice speed</string>
-    <string name="menu_resume_track">Resume track</string>
-    <string name="menu_add_custom_layout">New Layout</string>
-    <string name="menu_filter">Filter</string>
     <!-- OpenTracks -->
     <string name="recording_service">Recording service</string>
     <!-- Permission -->
-    <string name="permission_gps_failed">OpenTracks requires permission to use GPS.</string>
-    <string name="permission_recording_failed">OpenTracks requires permission to access your location as well as nearby devices.</string>
-    <string name="permission_bluetooth_failed">OpenTracks requires permission to use Bluetooth.</string>
-    <string name="permission_bluetooth_failed_rejected">You manually need to grant OpenTracks access to Nearby Devices in system settings.</string>
     <!-- Search -->
     <!-- Sensor State -->
-    <string name="sensor_state_cadence_avg">Avg Cadence</string>
-    <string name="sensor_state_cadence_max">Max Cadence</string>
-    <string name="sensor_state_cadence_unit">rpm</string>
-    <string name="sensor_state_heart_rate">Heart rate</string>
-    <string name="sensor_state_heart_rate_avg">Avg Heart rate</string>
-    <string name="sensor_state_heart_rate_max">Max Heart rate</string>
-    <string name="sensor_state_heart_rate_unit">bpm</string>
     <string name="sensor_state_heart_rate_value">%1$d bpm</string>
-    <string name="sensor_state_power">Power</string>
-    <string name="sensor_state_temperature">Thermometer</string>
-    <string name="sensor_state_pressure">Barometer</string>
-    <string name="sensor_state_power_avg">Avg Power</string>
-    <string name="sensor_state_power_max">Max Power</string>
-    <string name="sensor_state_power_unit">W</string>
-    <string name="sensor_could_not_scan">Could not scan for Bluetooth devices (error %1$i).</string>
-    <string name="bluetooth_disabled">Please enable Bluetooth.</string>
-    <string name="bluetooth_sensor_summary">%1$s (%2$s)</string>
-    <string name="settings_defaults_title">Default Units and Activity</string>
-    <string name="settings_defaults_summary">Preferred Units, Default Activity, Track Default Name</string>
-    <string name="settings_ui_title">User Interface</string>
-    <string name="settings_ui_summary">Appearance, Recording Layout, Theme</string>
-    <string name="settings_gps_sensor">GPS</string>
-    <string name="settings_gps_summary">Time interval, Distance interval, Max Distance, Accuracy</string>
-    <string name="settings_sensors_title">Sensors</string>
-    <string name="settings_sensors_summary">Cycling Sensors, Wheel Circumference, Running Sensors</string>
-    <string name="settings_announcements_idle_category_title">Idle Announcements</string>
-    <string name="settings_announcements_idle_title">Idle</string>
-    <string name="settings_announcements_statistics_title">Statistics Announcements</string>
-    <string name="settings_announcements_summary">Time, Distance, Voice Speed</string>
-    <string name="settings_import_export_title">Import and Export</string>
-    <string name="settings_import_export_summary">Import, Export, Auto Export</string>
-    <string name="settings_units_category">Units</string>
-    <string name="settings_activity_defaults_category">Activity\'s Defaults</string>
-    <string name="settings_reset_summary">Reset Settings to Default Values</string>
     <!-- Settings Advanced -->
-    <string name="settings_advanced">Advanced</string>
-    <string name="settings_default_trackfileformat">Export/sharing file format</string>
-    <string name="settings_export_filename_title">Format of the filename</string>
     <!-- Settings Chart -->
-    <string name="settings_chart_by_distance">By distance</string>
-    <string name="settings_chart_by_time">By time</string>
-    <string name="settings_charts_title">Charts</string>
-    <string name="settings_chart_display_elevation_title">Display elevation</string>
-    <string name="settings_chart_display_pace_or_speed_title">Display pace or speed</string>
-    <string name="settings_chart_display_heart_rate_title">Display heart rate</string>
     <!-- Settings Recording -->
-    <string name="settings_recording_title">Recording</string>
-    <string name="settings_theme_switch_restart">Theme changes may require a manual restart.</string>
-    <string name="settings_ui_dynamic_colors_title">Dynamic Colors</string>
-    <string name="settings_ui_dynamic_colors_summary">Use user-defined Dynamic Colors (Android 12+ only; requires a manual restart)</string>
-    <string name="settings_recording_customize_layout_title">Customize your recording layout</string>
-    <string name="settings_recording_customize_layout_select_columns">Data fields per row</string>
-    <string name="settings_recording_show_on_lockscreen_while_recording_title">Show statistics on lockscreen</string>
-    <string name="settings_recording_show_on_lockscreen_while_recording_summary">While recording, show statistics without unlocking the device.</string>
-    <string name="settings_recording_keep_screen_on_while_recording_title">Keep screen on</string>
-    <string name="settings_recording_keep_screen_on_while_recording_summary">While recording, keep the screen on.</string>
-    <string name="settings_recording_fullscreen_on_while_recording_title">Fullscreen</string>
-    <string name="settings_recording_fullscreen_on_while_recording_summary">While recording, present in fullscreen.</string>
-    <string name="settings_recording_show_gps_disabled_warning_title">GPS disabled warning</string>
-    <string name="settings_recording_show_gps_disabled_warning_summary">While recording, show a warning if GPS is disabled.</string>
-    <string name="settings_recording_default_activity_title">Default activity type</string>
-    <string name="settings_recording_location_frequency_summary">%1$s between location checks</string>
-    <string name="settings_recording_max_recording_distance_summary">A new segment is created if the distance between two locations is greater than %1$s</string>
-    <string name="settings_recording_max_recording_distance_title">Max distance</string>
-    <string name="settings_recording_min_recording_distance_title">Recording distance interval</string>
-    <string name="settings_recording_min_recording_interval_title">Recording time interval</string>
-    <string name="settings_recording_min_required_accuracy_summary">Location is ignored if its accuracy is greater than %1$s</string>
-    <string name="settings_recording_min_required_accuracy_title">GPS accuracy</string>
-    <string name="settings_recording_track_name_date_iso_8601_option">Date (ISO 8601)</string>
-    <string name="settings_recording_track_name_date_local_option">Date (local)</string>
-    <string name="settings_recording_track_name_number_option">Number</string>
-    <string name="settings_recording_track_name_title">Default track name</string>
-    <string name="settings_recording_idle_timeout_title">Idle threshold</string>
-    <string name="settings_locale_title">Language</string>
-    <string name="settings_locale_system_default">System default</string>
-    <string name="settings_night_mode_title">UI Theme</string>
-    <string name="settings_night_mode_option_system">System</string>
-    <string name="settings_night_mode_option_system_dynamic">System (DynamicColor)</string>
-    <string name="settings_night_mode_option_day">Day</string>
-    <string name="settings_night_mode_option_day_dynamic">Day (DynamicColor)</string>
-    <string name="settings_night_mode_option_night">Night</string>
-    <string name="settings_night_mode_option_night_dynamic">Night (DynamicColor)</string>
-    <string name="settings_night_mode_option_night_oled">OLED friendly</string>
-    <string name="settings_night_mode_option_night_oled_dynamic">OLED friendly (DynamicColor)</string>
-    <string name="settings_announcements_totaltime_frequency">Time interval</string>
-    <string name="settings_announcements_distance_frequency">Lap length</string>
-    <string name="settings_announcements_average_heart_rate">Average heart rate</string>
-    <string name="settings_announcements_lap_heart_rate">Lap heart rate</string>
-    <string name="settings_announcements_average_speed_pace">Average speed/pace</string>
-    <string name="settings_announcements_segment_average_speed_pace">Average speed/pace (Segment)</string>
-    <string name="settings_announcements_lap_speed_pace">Lap speed/pace</string>
-    <string name="settings_announcements_unit">Distance/speed unit</string>
     <!-- Custom Layout -->
 
 
-    <string name="custom_layout_list_title">Layouts</string>
-    <string name="custom_layout_list_edit_name">Type layout\'s name to add</string>
-    <string name="custom_layout_list_edit_already_exists">Layout\'s name already exists</string>
-    <string name="custom_layout_list_layout_removed">Layout was removed</string>
-    <string name="custom_layout_select_layout">Select Layout</string>
     <string name="stats_custom_layout_default_layout">Default Layout</string>
     <!-- Custom Layout Reset -->
-    <string name="settings_layout_reset">Reset Custom Layout</string>
-    <string name="settings_layout_reset_confirm_message">All layout settings will be reverted to the default values. This will not delete any tracks on the device.</string>
-    <string name="settings_layout_reset_confirm_title">Reset your layouts?</string>
-    <string name="settings_layout_reset_done">All layout settings have been reverted to the default values</string>
     <!-- Settings Reset -->
-    <string name="settings_all_reset">Reset</string>
-    <string name="settings_reset_confirm_message">All settings will be reverted to the default values. This will not delete any tracks on the device.</string>
-    <string name="settings_reset_confirm_title">Reset now?</string>
-    <string name="settings_reset_done">All settings have been reverted to the default values</string>
     <!-- Settings Sensor -->
-    <string name="settings_generic_sensor">Generic</string>
-    <string name="settings_cycling_sensor">Cycling</string>
-    <string name="settings_running_sensor">Running</string>
-    <string name="settings_sensor_cycling_distance_speed">Distance and Speed</string>
-    <string name="settings_sensor_cycling_cadence">Cadence</string>
-    <string name="settings_sensor_running_speed_and_cadence">Distance, Speed, and Cadence</string>
-    <string name="settings_sensor_wheel_circumference">Wheel Circumference (mm)</string>
-    <string name="settings_sensor_bluetooth_service_filter_title">Filter Bluetooth Devices</string>
-    <string name="settings_sensor_bluetooth_service_filter_on">Only show Bluetooth devices that announce required services</string>
-    <string name="settings_sensor_bluetooth_service_filter_off">Show all discoverable Bluetooth devices</string>
-    <string name="settings_sensor_heart_rate_max">Zones: maximum Heart rate (bpm)</string>
     <!-- Settings Stats -->
-    <string name="settings_stats_rate_title">Preferred rate</string>
-    <string name="settings_stats_units_imperial">Imperial (mi, ft)</string>
-    <string name="settings_stats_units_imperial_meter">Imperial (mi, m)</string>
-    <string name="settings_stats_units_metric">Metric (km, m)</string>
-    <string name="settings_stats_units_nautical">Nautical (NM, ft)</string>
-    <string name="settings_stats_units_title">Preferred units</string>
     <!-- Settings public api -->
-    <string name="settings_api_title">Public API</string>
-    <string name="settings_api_summary">Remote control and statistics API for other apps</string>
-    <string name="settings_public_api_package_title">Package name for Public API</string>
-    <string name="settings_public_api_enabled_title">Public API</string>
-    <string name="settings_public_api_enabled_summary_on">Other installed applications can start or stop recordings.</string>
-    <string name="settings_public_api_enabled_summary_off">Only OpenTracks can start and stop recordings.</string>
-    <string name="settings_public_api_disabled_toast">OpenTracks Public API is disabled: it can be enabled in the settings.</string>
-    <string name="settings_public_api_dashboard_enabled_title">Automatic data transfer</string>
-    <string name="settings_public_api_dashboard_enabled_summary_on">An application that started a recording can also access the recorded data.</string>
-    <string name="settings_public_api_dashboard_enabled_summary_off">Recorded data will not be shared automatically with other applications.</string>
     <!-- Settings import/export -->
-    <string name="settings_import_section">Import</string>
-    <string name="settings_export_as_file_section">Export as file</string>
-    <string name="settings_export_to_health_connect">Export to Health Connect</string>
-    <string name="settings_prevent_reimport_tracks_title">Prevent re-import of tracks</string>
     <!-- Share Track -->
-    <string name="share_track_share_file_body">I think you might be interested in this track.\n\n%1$s</string>
-    <string name="share_track_subject">I would like to share a track with you</string>
     <!-- Stats -->
-    <string name="stats_average_moving_pace">Avg moving pace</string>
-    <string name="stats_average_moving_speed">Avg moving speed</string>
-    <string name="stats_average_pace">Avg pace</string>
-    <string name="stats_average_segment_pace">Avg Segment pace</string>
-    <string name="stats_elapsed_segment_time">Elapsed Segment time</string>
-    <string name="stats_average_speed">Avg speed</string>
-    <string name="stats_altitude">Elevation</string>
-    <string name="stats_fastest_pace">Fastest pace</string>
-    <string name="stats_gain">Gain</string>
-    <string name="stats_loss">Loss</string>
-    <string name="stats_gain_loss">Gain &amp; Loss</string>
-    <string name="stats_coordinates">Latitude/Longitude</string>
-    <string name="stats_max_speed">Max speed</string>
-    <string name="stats_moving_time">Moving time</string>
-    <string name="stats_pace">Pace</string>
-    <string name="stats_speed">Speed</string>
-    <string name="stats_distance">Distance</string>
-    <string name="stats_total_time">Total time</string>
-    <string name="stats_split_interval">Split interval</string>
-    <string name="stats_sensors_heart_rate">Heart rate</string>
-    <string name="stats_sensors_temperature">Temperature</string>
-    <string name="stats_sensors_cadence">Cadence</string>
-    <string name="stats_sensors_power">Power</string>
-    <string name="stats_clock">Clock</string>
     <!-- Track -->
     <string name="track_name_format">Track %1$d</string>
     <string name="track_recording_notification_accuracy">Location accuracy: %1$s</string>
     <string name="track_distance_notification">Distance: %1$s</string>
     <string name="track_speed_notification">Speed: %1$s</string>
-    <string name="track_pace_notification">Pace: %1$s</string>
     <string name="track_markers">%1$s Markers</string>
     <!-- Track Delete -->
-    <string name="track_delete_one_confirm_message">The track and its markers will be permanently deleted from the device.</string>
-    <string name="track_delete_one_confirm_title">Delete track?</string>
-    <string name="track_delete_multiple_confirm_message">The selected tracks and their markers will be permanently deleted from the device.</string>
-    <string name="track_delete_progress_message">Deletingâ€¦</string>
-    <string name="track_delete_number_of_tracks">%1$d tracks</string>
-    <string name="track_delete_not_recording">This track cannot be deleted as it is currently recorded.</string>
-    <string name="track_discarding">Discarding Track</string>
     <!-- Track Detail -->
-    <string name="track_detail_stats_tab">Stats</string>
-    <string name="track_detail_intervals_tab">Intervals</string>
     <!-- Track Edit -->
-    <string name="track_edit_activity_type">Activity type (e.g. hiking)</string>
-    <string name="track_edit_activity_type_hint">Activity type</string>
-    <string name="track_edit_time_offset">Timezone Offset</string>
     <!-- Track List -->
-    <string name="track_list_empty_message">Start recording your next adventure here</string>
     <!-- Aggregated Statistics -->
-    <string name="aggregated_stats_empty_message">Record your first track to see aggregated statistics</string>
-    <string name="aggregated_stats_filter_no_results">There are not activities for the specified filter</string>
     <!-- Interval List -->
-    <string name="interval_list_empty_message">There are not any interval yet</string>
     <!-- Unit -->
     <string name="unit_feet">ft</string>
     <string name="unit_kilometer">km</string>
@@ -523,23 +171,13 @@ limitations under the License.
 
     <string name="value_integer_feet_excellent_gps">%1$d ft (excellent GPS)</string>
     <string name="value_integer_feet_recommended">%1$d ft (recommended)</string>
-    <string name="value_integer_kilometer_hour">%1$d km/h</string>
-    <string name="value_float_kilometer_hour">%1$.1f km/h</string>
-    <string name="value_float_kilometer_hour_recommended">%1$.1f km/h (recommended)</string>
     <string name="value_integer_meter_excellent_gps">%1$d m (excellent GPS)</string>
     <string name="value_integer_meter_poor_gps">%1$d m (poor GPS)</string>
     <string name="value_integer_meter_recommended">%1$d m (recommended)</string>
-    <string name="value_integer_mile_hour">%1$d mi/h</string>
-    <string name="value_integer_knots">%1$d knots</string>
-    <string name="value_float_mile_hour">%1$.1f mi/h</string>
-    <string name="value_float_knots">%1$.1f knots</string>
-    <string name="value_float_mile_hour_recommended">%1$.1f mi/h (recommended)</string>
-    <string name="value_float_knots_recommended">%1$.1f knots (recommended)</string>
     <string name="value_integer_minute">%1$d min</string>
     <string name="value_integer_second">%1$d s</string>
     <string name="value_none">None</string>
     <string name="value_off">Off</string>
-    <string name="value_internal_sensor">Internal sensor</string>
     <string name="value_smallest_recommended">Smallest (recommended)</string>
     <string name="value_int_seconds">%1$d s (recommended)</string>
     <string name="voiceIdle">Becoming idle.</string>
@@ -585,7 +223,6 @@ limitations under the License.
         other {{n,number,#.0}}
         }
     </string>
-    <string name="voice_on_device_speaker_title">Use the device\'s speaker</string>
     <string name="voice_per_kilometer">per kilometer</string>
     <string name="voice_per_mile">per mile</string>
     <string name="voice_per_nautical_mile">per nautical mile</string>
@@ -674,46 +311,11 @@ limitations under the License.
     <string name="waypoint_type_water_fountain">water fountain</string>
     <string name="waypoint_type_waypoint">waypoint</string>
     <!-- Share image -->
-    <string name="share_image_subject">I would like to share an image with you</string>
-    <string name="share_image_body">I think you might be interested in this image.</string>
-    <string name="hold_to_stop">Hold to stop</string>
-    <string name="instant_export_enabled_summary">Export track to storage after recording is finished</string>
-    <string name="instant_export_enabled_title">Instant post-workout export</string>
-    <string name="health_connect_export_enabled_summary">Export activity to Health Connect after recording is finished</string>
-    <string name="health_connect_not_available">Health Connect is not available on this device</string>
-    <string name="health_connect_open_settings_title">Health Connect settings</string>
-    <string name="health_connect_open_settings_summary">Open the Health Connect settings</string>
-    <string name="health_connect_permissions_rationale_title">Health Connect permissions</string>
-    <string name="health_connect_permissions_rationale_heading">How OpenTracks uses Health Connect</string>
-    <string name="health_connect_permissions_rationale_summary">If enabled in the settings, OpenTracks writes exercise to Health Connect. OpenTracks does not read data from Health Connect.</string>
-    <string name="settings_default_export_uri_title">Track export directory</string>
     <!-- Fields -->
-    <string name="field_set_primary">Primary</string>
-    <string name="field_set_secondary">Secondary</string>
-    <string name="field_remove_from_layout">Remove</string>
-    <string name="no_compatible_file_manager_installed">No compatible file manager installed</string>
-    <string name="no_compatible_camera_installed">No compatible camera application installed</string>
-    <string name="no_compatible_gallery_installed">No compatible image gallery application installed</string>
     <string name="error_crash_title">%1$s crashed</string>
     <string name="share_crash_report">Share crash report</string>
     <string name="report_bug">Report bug</string>
-    <string name="show_on_dashboard">OpenTracks Dashboard API</string>
     <string name="show_on_dashboard_not_installed">No application supporting OpenTracks Dashboard API installed.</string>
-    <string name="introduction_osm_dashboard">OpenTracks itself does not provide a map. Please install OSMDashboard to view your recordings on a map.</string>
-    <string name="settings_recording_min_sampling_interval_title">Sampling time interval</string>
-    <string name="settings_recording_location_distance_summary">%1$s between recorded locations</string>
-    <string name="settings_announcements_lap_power">Lap power</string>
     <string name="power_x_watt">Power {x, plural,  =1 {1 watt} other {# watts} }</string>
     <string name="power">Power</string>
-    <string name="stats_fuel_consumption">Est. Fuel</string>
-    <string name="stats_fuel_consumption_unit">L</string>
-    <string name="settings_auto_tracking_title">Automated Tracking</string>
-    <string name="settings_auto_tracking_summary">Auto start/stop recording on charger or car Bluetooth</string>
-    <string name="settings_auto_power_connected_title">Start when connected to power</string>
-    <string name="settings_auto_power_connected_summary">Automatically begin trip recording when car charger is plugged in</string>
-    <string name="settings_auto_power_disconnected_title">Stop when power is disconnected</string>
-    <string name="settings_auto_power_disconnected_summary">Stop trip recording when car charger is unplugged</string>
-    <string name="settings_auto_bluetooth_title">Start when car Bluetooth connects</string>
-    <string name="settings_auto_bluetooth_summary">Automatically begin trip recording when connected to vehicle Bluetooth</string>
-    <string name="track_detail_map_tab">Mapa (OSM)</string>
 </resources>

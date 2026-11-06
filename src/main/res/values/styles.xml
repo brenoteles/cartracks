@@ -16,58 +16,27 @@ limitations under the License.
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- bottom buttons bar -->
-    <style name="BottomButton" parent="Widget.Material3.Button.TextButton">
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_weight">1</item>
-        <item name="android:layout_width">0dp</item>
-        <item name="android:maxLines">2</item>
-    </style>
 
-    <style name="BottomButtonBar" parent="Widget.AppCompat.ButtonBar">
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:measureWithLargestChild">true</item>
-    </style>
 
-    <style name="BottomButtonDivider">
-        <item name="android:background">?android:attr/dividerVertical</item>
-        <item name="android:layout_height">1dp</item>
-        <item name="android:layout_marginLeft">4dp</item>
-        <item name="android:layout_marginRight">4dp</item>
-        <item name="android:layout_width">match_parent</item>
-    </style>
 
     <!-- scroll view -->
+
+    <!-- scroll view with bottom buttons -->
+    <!-- implicit parent of ScrollView.WithBottomButtons (lint reports it unused) -->
     <style name="ScrollView">
         <item name="android:layout_height">match_parent</item>
         <item name="android:layout_width">match_parent</item>
         <item name="android:scrollbarStyle">outsideInset</item>
     </style>
 
-    <!-- scroll view with bottom buttons -->
     <style name="ScrollView.WithBottomButtons">
         <item name="android:layout_height">0dp</item>
         <item name="android:layout_weight">1</item>
     </style>
 
     <!-- horizontal line -->
-    <style name="HorizontalLine">
-        <item name="android:background">@color/stats_separator</item>
-        <item name="android:layout_height">1dp</item>
-        <item name="android:layout_marginTop">8dp</item>
-        <item name="android:layout_marginBottom">8dp</item>
-        <item name="android:layout_width">match_parent</item>
-    </style>
 
     <!-- card view -->
-    <style name="OpenTracksCardView">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">wrap_content</item>
-        <item name="cardElevation">1dp</item>
-        <item name="cardMaxElevation">1dp</item>
-        <item name="cardPreventCornerOverlap">true</item>
-        <item name="cardUseCompatPadding">true</item>
-    </style>
 
     <!-- Snackbar -->
     <style name="MaterialSnackbarTheme" parent="@style/Widget.Material3.Snackbar">
@@ -97,7 +66,4 @@ limitations under the License.
         <item name="fabCustomSize">64dp</item>
     </style>
 
-    <style name="MaterialSwitchPreferenceCompat" parent="@style/Preference.SwitchPreferenceCompat.Material">
-        <item name="widgetLayout">@layout/view_preference_switch</item>
-    </style>
 </resources>

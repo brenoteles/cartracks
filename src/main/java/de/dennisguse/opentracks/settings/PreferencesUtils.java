@@ -779,21 +779,15 @@ public class PreferencesUtils {
             DynamicColors.applyToActivitiesIfAvailable(application);
     }
 
+    /**
+     * Every getter passes its own default, so nothing has to be written up front. The old
+     * PreferenceManager.setDefaultValues(R.xml.settings_*) inflated OpenTracks preference
+     * screens whose classes no longer exist and crashed a fresh install.
+     */
     public static void resetPreferences(Context context, boolean readAgain) {
         if (readAgain) {
-            // We want to really clear settings now.
             sharedPreferences.edit().clear().commit();
         }
-
-        // Each setting file must be mentioned here: see xml/settings.xml
-        PreferenceManager.setDefaultValues(context, R.xml.settings, readAgain);
-        PreferenceManager.setDefaultValues(context, R.xml.settings_defaults, readAgain);
-        PreferenceManager.setDefaultValues(context, R.xml.settings_user_interface, readAgain);
-        PreferenceManager.setDefaultValues(context, R.xml.settings_recording, readAgain);
-        PreferenceManager.setDefaultValues(context, R.xml.settings_sensors, readAgain);
-        PreferenceManager.setDefaultValues(context, R.xml.settings_announcements, readAgain);
-        PreferenceManager.setDefaultValues(context, R.xml.settings_import_export, readAgain);
-        PreferenceManager.setDefaultValues(context, R.xml.settings_public_api, readAgain);
     }
 
     public static Uri getDefaultExportDirectoryUri() {

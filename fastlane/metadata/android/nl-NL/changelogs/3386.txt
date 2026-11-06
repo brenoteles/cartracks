@@ -1,7 +1,0 @@
-v3.7.3: OpenTracks
-
-Bugfix :
-- Berekening van cadans en snelheid (via Bluetooth LE-sensor)
-
-Ontwikkelaar:
-- Ongebruikte vertalingen verwijderd

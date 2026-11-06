@@ -1,7 +1,0 @@
-v4.28.2: OpenTracks
-
-Changes:
-- Import: ignore GPX waypoints without time
-
-Bugfix:
-- Only start GPS once

@@ -1,4 +1,0 @@
-v4.9.7: OpenTracks
-
-Bugfix:
-- prevent crash when stopping a recording(introduced in v4.9.6)

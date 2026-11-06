@@ -1,4 +1,0 @@
-v3.6.2: OpenTracks
-
-Bugfix :
-- Grafieken zijn niet correct weergegeven (geïntroduceerd in v3.6.0)

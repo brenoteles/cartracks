@@ -1,3 +1,0 @@
-v4.17.7: OpenTracks
-
-Versie voor reproduceerbare build.

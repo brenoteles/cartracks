@@ -28,7 +28,7 @@ import de.dennisguse.opentracks.data.models.AltitudeGainLoss;
 import de.dennisguse.opentracks.data.models.Position;
 import de.dennisguse.opentracks.data.models.Speed;
 import de.dennisguse.opentracks.data.models.TrackPoint;
-import de.dennisguse.opentracks.io.file.importer.ExportImportTest;
+import de.dennisguse.opentracks.util.MockLocations;
 import de.dennisguse.opentracks.io.file.importer.TrackPointAssert;
 import de.dennisguse.opentracks.sensors.GpsHandler;
 import de.dennisguse.opentracks.sensors.driver.GpsInternal;
@@ -77,7 +77,7 @@ public class TrackRecordingServiceUITest {
         // when
         // In this step, the data is saved (and Aggregator.resetAggregated called), but data should still be shown in the UI.
         trackPointCreator.setClock("2020-02-02T02:02:03Z");
-        ExportImportTest.sendLocation(trackPointCreator, "2020-02-02T02:02:03Z", 3.1234567, 14.0014567, 10, 13, 15, 1020.25, 1f);
+        MockLocations.sendLocation(trackPointCreator, "2020-02-02T02:02:03Z", 3.1234567, 14.0014567, 10, 13, 15, 1020.25, 1f);
         recordingData = waitUntilLatestTrackPointMatches(service, Instant.parse("2020-02-02T02:02:03Z"), true);
 
         // then

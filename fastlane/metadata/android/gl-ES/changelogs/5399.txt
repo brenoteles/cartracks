@@ -1,7 +1,0 @@
-v4.8.4: OpenTracks
-
-Cambios:
-- Mostra a potencia máxima nas rutas gravadas
-
-Desenvolvemento:
-- agora TrackList usa RecyclerView

@@ -1,3 +1,0 @@
-v4.17.7 : OpenTracks
-
-Publication pour les builds reproductibles.

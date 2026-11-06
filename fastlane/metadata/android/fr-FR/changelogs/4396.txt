@@ -1,8 +1,0 @@
-v3.19.1 : OpenTracks
-
-Changements :
-- Traductions mises à jour.
-
-Correction de bogue :
-- Correction du bug de l'exportation de toutes les pistes.
-- Correction du bogue "Reprendre une piste".

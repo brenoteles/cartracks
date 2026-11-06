@@ -1,5 +1,0 @@
-v4.17.1: OpenTracks
-
-Changes:
-- Reproducible build: let's see if it works.
-  The PlayStore variant will be submitted to F-Droid, verified and published them.

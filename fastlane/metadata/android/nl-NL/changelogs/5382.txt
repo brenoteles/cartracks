@@ -1,4 +1,0 @@
-v4.8.2: OpenTracks
-
-Veranderingen:
-- Na export van opname: toon foutmelding indien niet succesvol

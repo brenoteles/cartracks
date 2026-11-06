@@ -1,5 +1,0 @@
-v4.3.3: OpenTracks
-
-Bugfixes :
-- Verborgen velden werden getoond (geïntroduceerd in v4.2.0)
-- Snelheid werd getoond in plaats van tempo (geïntroduceerd in v4.2.0)

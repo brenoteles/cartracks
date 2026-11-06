@@ -1,8 +1,0 @@
-v4.12.4: OpenTracks
-
-Changes:
-- Announcements: units can be omitted
-- Announcements: added lap cycling power
-
-Bugfix:
-- Delete markers from list crashed
