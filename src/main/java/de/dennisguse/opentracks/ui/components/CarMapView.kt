@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -35,7 +36,6 @@ import de.dennisguse.opentracks.ui.theme.*
 import de.dennisguse.opentracks.util.HeatSegment
 import de.dennisguse.opentracks.util.RouteAnalysis
 import org.maplibre.android.annotations.IconFactory
-import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.annotations.PolylineOptions
 import org.maplibre.android.camera.CameraPosition
@@ -45,6 +45,7 @@ import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.SymbolLayer
@@ -94,6 +95,35 @@ object ModernMarkerFactory {
     fun getGpsVehicleBitmap(context: Context): Bitmap = square(context, "gps", 24, "#00B9B0", "#0E0D1A")
 
     fun getFuelMarkerBitmap(context: Context): Bitmap = square(context, "fuel", 22, "#E3881E")
+
+    /** Car as a navigation arrow pointing north; the vehicle layer rotates it to the heading. */
+    fun getVehicleArrowBitmap(context: Context): Bitmap = cache.getOrPut("vehicle") {
+        val density = context.resources.displayMetrics.density
+        val size = (30 * density).toInt().coerceAtLeast(44)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val c = size / 2f
+        val path = android.graphics.Path().apply {
+            moveTo(c, size * 0.08f)
+            lineTo(size * 0.86f, size * 0.9f)
+            lineTo(c, size * 0.7f)
+            lineTo(size * 0.14f, size * 0.9f)
+            close()
+        }
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeJoin = Paint.Join.ROUND }
+        // ink halo, neon body, light rim
+        paint.strokeWidth = 5f * density
+        paint.color = AndroidColor.parseColor("#0E0D1A")
+        canvas.drawPath(path, paint)
+        paint.style = Paint.Style.FILL
+        paint.color = AndroidColor.parseColor("#00B9B0")
+        canvas.drawPath(path, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.4f * density
+        paint.color = AndroidColor.parseColor("#F3F5E6")
+        canvas.drawPath(path, paint)
+        bitmap
+    }
 
     /** Small chevron pointing along +x; line-placed symbols turn it to the direction of travel. */
     fun getArrowBitmap(context: Context): Bitmap = cache.getOrPut("arrow") {
@@ -202,6 +232,39 @@ fun heatBins(maxTrips: Int): List<HeatBin> {
 
 private fun heatBinOf(bins: List<HeatBin>, trips: Int) = bins.lastOrNull { trips >= it.min } ?: bins.first()
 
+private const val VEHICLE_SOURCE = "cartracks-vehicle-source"
+private const val VEHICLE_LAYER = "cartracks-vehicle"
+private const val VEHICLE_IMAGE = "cartracks-vehicle-arrow"
+
+/** Time the car marker takes to glide to a new GPS fix instead of jumping. */
+private const val VEHICLE_GLIDE_MS = 900.0
+
+private fun vehicleFeature(lat: Double, lon: Double, bearing: Float) =
+    FeatureCollection.fromFeature(Feature.fromGeometry(Point.fromLngLat(lon, lat)).apply { addNumberProperty("bearing", bearing) })
+
+/** Adds (or re-adds on top of everything drawn so far) the rotating car symbol. */
+private fun raiseVehicleLayer(context: Context, style: Style, lat: Double, lon: Double, bearing: Float) {
+    style.getLayer(VEHICLE_LAYER)?.let { style.removeLayer(it) }
+    val source = style.getSourceAs<GeoJsonSource>(VEHICLE_SOURCE) ?: GeoJsonSource(VEHICLE_SOURCE).also { style.addSource(it) }
+    source.setGeoJson(vehicleFeature(lat, lon, bearing))
+    if (style.getImage(VEHICLE_IMAGE) == null) style.addImage(VEHICLE_IMAGE, ModernMarkerFactory.getVehicleArrowBitmap(context))
+    style.addLayer(
+        SymbolLayer(VEHICLE_LAYER, VEHICLE_SOURCE).withProperties(
+            PropertyFactory.iconImage(VEHICLE_IMAGE),
+            PropertyFactory.iconRotate(Expression.get("bearing")),
+            PropertyFactory.iconRotationAlignment(Property.ICON_ROTATION_ALIGNMENT_MAP),
+            PropertyFactory.iconPitchAlignment(Property.ICON_PITCH_ALIGNMENT_MAP),
+            PropertyFactory.iconAllowOverlap(true),
+            PropertyFactory.iconIgnorePlacement(true)
+        )
+    )
+}
+
+private fun removeVehicleLayer(style: Style) {
+    style.getLayer(VEHICLE_LAYER)?.let { style.removeLayer(it) }
+    style.getSource(VEHICLE_SOURCE)?.let { style.removeSource(it) }
+}
+
 private const val ARROW_SOURCE = "cartracks-direction-source"
 private const val ARROW_LAYER = "cartracks-direction-arrows"
 private const val ARROW_IMAGE = "cartracks-direction-arrow"
@@ -276,6 +339,8 @@ fun CarMapView(
     heatRoutes: List<List<TripPoint>> = emptyList(),
     /** Trips highlighted on top (e.g. one route group picked in a list); the camera frames them. */
     focusRoutes: List<List<TripPoint>> = emptyList(),
+    /** Pre-coloured stretches (ARGB), e.g. historical traffic; drawn over an ink casing and framed by the camera. */
+    coloredSegments: List<Pair<List<TripPoint>, Int>> = emptyList(),
     /** Numbered badges for frequent destinations on the frequency map. */
     hotspots: List<MapHotspot> = emptyList(),
     /** Small chevrons showing the direction of travel on single, individual and focused routes. */
@@ -284,7 +349,13 @@ fun CarMapView(
     onSnapshotProvider: ((suspend () -> Bitmap?) -> Unit)? = null,
     /** Live trip: camera stays on the car, tilted and turned to [vehicleBearing], until the user drags the map. */
     followVehicle: Boolean = false,
-    vehicleBearing: Float? = null
+    vehicleBearing: Float? = null,
+    /** Glide the car between fixes (live GPS); replay already sends a position every frame. */
+    animateVehicle: Boolean = true,
+    /** Replay: pan (without zooming) whenever the car leaves the middle of the map or slides under the legends. */
+    keepVehicleInView: Boolean = false,
+    /** Tap near the drawn route: receives the closest point of [points] (trip "ficha"). */
+    onRoutePointTapped: ((TripPoint) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -293,8 +364,12 @@ fun CarMapView(
     var mapLibreMapInstance by remember { mutableStateOf<MapLibreMap?>(null) }
     var isMapStyleLoaded by remember { mutableStateOf(false) }
     var userInteracted by remember { mutableStateOf(false) }
-    // moved in place on every GPS fix instead of clearing and redrawing the whole map
-    val vehicleMarker = remember { arrayOfNulls<Marker>(1) }
+    // car position/heading currently on screen (lat, lon, bearing), the start of the next glide
+    val shownVehicle = remember { doubleArrayOf(Double.NaN, Double.NaN, 0.0) }
+    // the click listener is registered once; read the latest callbacks and points through these
+    val latestPoints by rememberUpdatedState(points)
+    val latestRouteTap by rememberUpdatedState(onRoutePointTapped)
+    val latestMapTap by rememberUpdatedState(onMapTapped)
 
     val mapView = remember {
         MapView(context).apply {
@@ -344,7 +419,24 @@ fun CarMapView(
             })
 
             map.addOnMapClickListener { latLng ->
-                onMapTapped?.invoke(latLng.latitude, latLng.longitude)
+                val routeTap = latestRouteTap
+                val pts = latestPoints
+                if (routeTap != null && pts.size >= 2) {
+                    val tap = map.projection.toScreenLocation(latLng)
+                    val nearest = pts.minByOrNull { p ->
+                        val s = map.projection.toScreenLocation(LatLng(p.lat, p.lon))
+                        (s.x - tap.x) * (s.x - tap.x) + (s.y - tap.y) * (s.y - tap.y)
+                    }
+                    if (nearest != null) {
+                        val s = map.projection.toScreenLocation(LatLng(nearest.lat, nearest.lon))
+                        val touchPx = 28 * context.resources.displayMetrics.density
+                        if (Math.hypot((s.x - tap.x).toDouble(), (s.y - tap.y).toDouble()) <= touchPx) {
+                            routeTap(nearest)
+                            return@addOnMapClickListener true
+                        }
+                    }
+                }
+                latestMapTap?.invoke(latLng.latitude, latLng.longitude)
                 true
             }
         }
@@ -383,12 +475,11 @@ fun CarMapView(
         }
     }
 
-    LaunchedEffect(isMapStyleLoaded, points, multiRoutes, extraMarkers, pinnedLocation, heat, focusRoutes, hotspots) {
+    LaunchedEffect(isMapStyleLoaded, points, multiRoutes, extraMarkers, pinnedLocation, heat, focusRoutes, hotspots, coloredSegments) {
         val map = mapLibreMapInstance ?: return@LaunchedEffect
         if (!isMapStyleLoaded) return@LaunchedEffect
 
         map.clear()
-        vehicleMarker[0] = null
         val iconFactory = IconFactory.getInstance(context)
 
         // 1. Draw Single Route with Speed Gradient (OsmAnd style)
@@ -547,6 +638,23 @@ fun CarMapView(
             }
         }
 
+        // 2d. Caller-coloured stretches (historical traffic)
+        if (coloredSegments.isNotEmpty()) {
+            coloredSegments.filter { it.first.size >= 2 }.forEach { (pts, _) ->
+                map.addPolyline(PolylineOptions().addAll(pts.map { LatLng(it.lat, it.lon) }).color(AndroidColor.parseColor("#0E0D1A")).width(8f))
+            }
+            coloredSegments.filter { it.first.size >= 2 }.forEach { (pts, color) ->
+                map.addPolyline(PolylineOptions().addAll(pts.map { LatLng(it.lat, it.lon) }).color(color).width(5f))
+            }
+            if (!userInteracted && focusRoutes.isEmpty()) {
+                runCatching {
+                    val b = LatLngBounds.Builder()
+                    coloredSegments.forEach { (pts, _) -> pts.forEach { b.include(LatLng(it.lat, it.lon)) } }
+                    map.animateCamera(CameraUpdateFactory.newLatLngBounds(b.build(), 120))
+                }
+            }
+        }
+
         // 2c. Focused routes on top
         focusRoutes.filter { it.size >= 2 }.forEach { route ->
             val latLngs = route.map { LatLng(it.lat, it.lon) }
@@ -586,51 +694,76 @@ fun CarMapView(
             )
         }
 
-        // 5. Current vehicle marker: drawn by its own effect below
-        currentLocation?.let { (lat, lon) ->
-            vehicleMarker[0] = map.addMarker(
-                MarkerOptions()
-                    .position(LatLng(lat, lon))
-                    .icon(iconFactory.fromBitmap(ModernMarkerFactory.getGpsVehicleBitmap(context)))
-                    .title("Veículo")
-            )
-        }
-
-        // 6. Direction of travel (the frequency map mixes both ways, so only its focused group)
+        // 5. Direction of travel (the frequency map mixes both ways, so only its focused group)
         map.style?.let { style ->
             val directed = if (showDirectionArrows) focusRoutes + multiRoutes + listOf(points) else emptyList()
             runCatching { drawDirectionArrows(context, style, directed) }
+            // 6. The car stays above routes and arrows; its own effect below moves it
+            val loc = currentLocation
+            if (loc != null) {
+                val lat = if (shownVehicle[0].isNaN()) loc.first else shownVehicle[0]
+                val lon = if (shownVehicle[1].isNaN()) loc.second else shownVehicle[1]
+                runCatching { raiseVehicleLayer(context, style, lat, lon, shownVehicle[2].toFloat()) }
+            }
         }
     }
 
-    // Vehicle position and follow camera, without touching the routes drawn above
+    // Vehicle position and follow camera, without touching the routes drawn above. A new fix
+    // cancels the running glide, which then restarts from wherever the car is on screen.
     LaunchedEffect(currentLocation, vehicleBearing, followVehicle, userInteracted, isMapStyleLoaded) {
         val map = mapLibreMapInstance ?: return@LaunchedEffect
         if (!isMapStyleLoaded) return@LaunchedEffect
+        val style = map.style ?: return@LaunchedEffect
         val loc = currentLocation
         if (loc == null) {
-            vehicleMarker[0]?.let { runCatching { map.removeMarker(it) } }
-            vehicleMarker[0] = null
+            runCatching { removeVehicleLayer(style) }
+            shownVehicle[0] = Double.NaN
+            shownVehicle[1] = Double.NaN
             return@LaunchedEffect
         }
-        val gpsLatLng = LatLng(loc.first, loc.second)
-        val marker = vehicleMarker[0]
-        if (marker != null) {
-            marker.position = gpsLatLng
-        } else {
-            vehicleMarker[0] = map.addMarker(
-                MarkerOptions()
-                    .position(gpsLatLng)
-                    .icon(IconFactory.getInstance(context).fromBitmap(ModernMarkerFactory.getGpsVehicleBitmap(context)))
-                    .title("Veículo")
-            )
+        val toBearing = vehicleBearing ?: shownVehicle[2].toFloat()
+        fun show(lat: Double, lon: Double, bearing: Float) {
+            shownVehicle[0] = lat
+            shownVehicle[1] = lon
+            shownVehicle[2] = bearing.toDouble()
+            val source = style.getSourceAs<GeoJsonSource>(VEHICLE_SOURCE)
+            if (source == null || style.getLayer(VEHICLE_LAYER) == null) runCatching { raiseVehicleLayer(context, style, lat, lon, bearing) }
+            else source.setGeoJson(vehicleFeature(lat, lon, bearing))
         }
-        if (userInteracted) return@LaunchedEffect
-        if (followVehicle) {
-            map.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.Builder().target(gpsLatLng).zoom(16.5).tilt(35.0)
-                    .apply { vehicleBearing?.let { bearing(it.toDouble()) } }.build()), 800)
-        } else if (points.size < 2 && pinnedLocation == null) {
-            map.animateCamera(CameraUpdateFactory.newLatLngZoom(gpsLatLng, 16.5))
+        // camera first, so it travels together with the gliding car
+        if (!userInteracted) {
+            val gpsLatLng = LatLng(loc.first, loc.second)
+            if (followVehicle) {
+                map.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.Builder().target(gpsLatLng).zoom(16.5).tilt(35.0)
+                        .apply { vehicleBearing?.let { bearing(it.toDouble()) } }.build()), VEHICLE_GLIDE_MS.toInt())
+            } else if (points.size < 2 && pinnedLocation == null) {
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(gpsLatLng, 16.5))
+            }
+        }
+        val fromLat = shownVehicle[0]
+        val fromLon = shownVehicle[1]
+        val fromBearing = shownVehicle[2].toFloat()
+        if (!animateVehicle || fromLat.isNaN()) {
+            show(loc.first, loc.second, toBearing)
+            if (keepVehicleInView && !userInteracted) {
+                val screen = map.projection.toScreenLocation(LatLng(loc.first, loc.second))
+                val w = mapView.width.toFloat()
+                val h = mapView.height.toFloat()
+                val inside = screen.x in w * 0.15f..w * 0.85f && screen.y in h * 0.3f..h * 0.85f
+                if (w > 0 && h > 0 && !inside) map.animateCamera(CameraUpdateFactory.newLatLng(LatLng(loc.first, loc.second)), 500)
+            }
+        } else {
+            val start = withFrameNanos { it }
+            while (true) {
+                val now = withFrameNanos { it }
+                val f = ((now - start) / 1_000_000.0 / VEHICLE_GLIDE_MS).coerceAtMost(1.0)
+                show(
+                    fromLat + (loc.first - fromLat) * f,
+                    fromLon + (loc.second - fromLon) * f,
+                    de.dennisguse.opentracks.util.TripReplay.lerpAngle(fromBearing, toBearing, f.toFloat())
+                )
+                if (f >= 1.0) break
+            }
         }
     }
 

@@ -32,6 +32,10 @@ import de.dennisguse.opentracks.ui.model.TripPoint
 import de.dennisguse.opentracks.ui.theme.*
 import de.dennisguse.opentracks.util.FuelEfficiencyCalculator
 import de.dennisguse.opentracks.util.MapMatchingService
+import de.dennisguse.opentracks.util.PlaceNames
+import de.dennisguse.opentracks.util.RouteAnalysis
+import de.dennisguse.opentracks.util.TripReplay
+import de.dennisguse.opentracks.ui.model.CustomLocation
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
@@ -74,6 +78,32 @@ fun TripDetailScreen(
         else -> points
     }
     val tripKmL = trip.kmL
+
+    // Replay (FR24-style playback) over the recorded fixes, which carry time, speed and altitude
+    val replay = remember(points) { TripReplay(points) }
+    var replayVisible by remember(points) { mutableStateOf(false) }
+    var playing by remember(points) { mutableStateOf(false) }
+    var replayMs by remember(points) { mutableLongStateOf(0L) }
+    var replaySpeed by remember { mutableIntStateOf(30) }
+    val frame = if (replayVisible) replay.frameAt(replayMs) else null
+    LaunchedEffect(playing, replaySpeed) {
+        if (!playing) return@LaunchedEffect
+        if (replayMs >= replay.durationMs) replayMs = 0L
+        var last = withFrameNanos { it }
+        while (playing) {
+            val now = withFrameNanos { it }
+            replayMs = (replayMs + (now - last) / 1_000_000 * replaySpeed).coerceAtMost(replay.durationMs)
+            last = now
+            if (replayMs >= replay.durationMs) playing = false
+        }
+    }
+
+    // Trip "ficha": the recorded fix closest to where the route was tapped
+    var tappedIndex by remember(points) { mutableStateOf<Int?>(null) }
+    val onRouteTapped: (TripPoint) -> Unit = { p ->
+        tappedIndex = points.indices.minByOrNull { RouteAnalysis.distanceM(points[it].lat, points[it].lon, p.lat, p.lon) }
+    }
+    val mapCar = frame?.let { it.lat to it.lon }
 
     if (showEditDialog) {
         EditTripDialog(
@@ -170,7 +200,31 @@ fun TripDetailScreen(
 
         if (isMapMaximized) {
             Box(Modifier.fillMaxSize()) {
-                CarMapView(points = displayPoints, modifier = Modifier.fillMaxSize())
+                CarMapView(
+                    points = displayPoints,
+                    modifier = Modifier.fillMaxSize(),
+                    currentLocation = mapCar,
+                    vehicleBearing = frame?.bearing,
+                    animateVehicle = false,
+                    keepVehicleInView = playing,
+                    onRoutePointTapped = onRouteTapped,
+                    pinnedLocation = tappedIndex?.let { points[it].lat to points[it].lon },
+                    pinnedTitle = "Ponto da viagem",
+                    floatingControlsBottomPadding = 150.dp
+                )
+                Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(CyberInk.copy(alpha = 0.92f))) {
+                    tappedIndex?.let { i -> TripPointCard(trip, points, replay, i, onClose = { tappedIndex = null }, onReplayFromHere = {
+                        replayVisible = true
+                        replayMs = replay.offsetOf(i)
+                        playing = true
+                        tappedIndex = null
+                    }) }
+                    ReplayBar(replay, frame, replayVisible, playing, replayMs, replaySpeed, tripKmL,
+                        onToggle = { if (!replayVisible) replayVisible = true; playing = !playing },
+                        onSeek = { replayVisible = true; replayMs = it },
+                        onSpeed = { replaySpeed = it },
+                        onClose = { playing = false; replayVisible = false })
+                }
                 MapSizeToggle(
                     maximized = true,
                     onClick = { isMapMaximized = false },
@@ -192,13 +246,34 @@ fun TripDetailScreen(
                     .height(340.dp)
                     .background(CyberPanel)
             ) {
-                CarMapView(points = displayPoints, modifier = Modifier.fillMaxSize())
+                CarMapView(
+                    points = displayPoints,
+                    modifier = Modifier.fillMaxSize(),
+                    currentLocation = mapCar,
+                    vehicleBearing = frame?.bearing,
+                    animateVehicle = false,
+                    keepVehicleInView = playing,
+                    onRoutePointTapped = onRouteTapped,
+                    pinnedLocation = tappedIndex?.let { points[it].lat to points[it].lon },
+                    pinnedTitle = "Ponto da viagem"
+                )
                 MapSizeToggle(
                     maximized = false,
                     onClick = { isMapMaximized = true },
                     modifier = Modifier.align(Alignment.BottomStart).padding(12.dp)
                 )
             }
+            tappedIndex?.let { i -> TripPointCard(trip, points, replay, i, onClose = { tappedIndex = null }, onReplayFromHere = {
+                replayVisible = true
+                replayMs = replay.offsetOf(i)
+                playing = true
+                tappedIndex = null
+            }) }
+            ReplayBar(replay, frame, replayVisible, playing, replayMs, replaySpeed, tripKmL,
+                onToggle = { if (!replayVisible) replayVisible = true; playing = !playing },
+                onSeek = { replayVisible = true; replayMs = it },
+                onSpeed = { replaySpeed = it },
+                onClose = { playing = false; replayVisible = false })
 
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -401,53 +476,32 @@ fun TripTelemetryProfileChart(points: List<TripPoint>) {
         colors = CardDefaults.cardColors(containerColor = CyberPanelRaised)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // title on its own line and a full-width selector: nothing competes for the row width
+            Text("PERFIL DA VIAGEM", style = EyebrowStyle.copy(fontSize = 10.sp), color = CyberAcid)
+            Text(
+                text = if (selectedMetric == 0) "Velocidade" else "Altitude",
+                style = displayStyle(22),
+                color = TextPrimary,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CyberInk)
+                    .border(1.dp, CyberLine)
             ) {
-                Text(
-                    text = if (selectedMetric == 0) "Perfil de Velocidade" else "Perfil Altimétrico",
-                    color = TextPrimary,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row(
-                    modifier = Modifier
-                        .clip(RectangleShape)
-                        .background(CyberInk)
-                        .padding(3.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
+                listOf("VELOCIDADE" to CyberAcid, "ALTITUDE" to CyberGreen).forEachIndexed { i, (label, accent) ->
+                    val selected = selectedMetric == i
                     Box(
                         modifier = Modifier
-                            .clip(RectangleShape)
-                            .background(if (selectedMetric == 0) CyberAcid else Color.Transparent)
-                            .clickable { selectedMetric = 0 }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .weight(1f)
+                            .background(if (selected) accent else Color.Transparent)
+                            .clickable { selectedMetric = i }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "⚡ Velocidade",
-                            color = if (selectedMetric == 0) CyberOnAcid else TextSecondary,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RectangleShape)
-                            .background(if (selectedMetric == 1) CyberGreen else Color.Transparent)
-                            .clickable { selectedMetric = 1 }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            text = "⛰️ Altitude",
-                            color = if (selectedMetric == 1) Color.White else TextSecondary,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(label, style = EyebrowStyle.copy(fontSize = 11.sp), color = if (selected) CyberOnAcid else TextSecondary, maxLines = 1)
                     }
                 }
             }
@@ -510,14 +564,14 @@ fun TripTelemetryProfileChart(points: List<TripPoint>) {
                     color = primaryColor,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.TopStart).padding(start = 4.dp, top = 2.dp)
+                    modifier = Modifier.align(Alignment.TopStart).background(CyberPanelRaised.copy(alpha = 0.85f)).padding(horizontal = 4.dp, vertical = 1.dp)
                 )
 
                 Text(
                     text = if (selectedMetric == 0) "0 km/h" else "${minVal.toInt()} m",
                     color = TextSecondary,
                     fontSize = 10.sp,
-                    modifier = Modifier.align(Alignment.BottomStart).padding(start = 4.dp, bottom = 2.dp)
+                    modifier = Modifier.align(Alignment.BottomStart).background(CyberPanelRaised.copy(alpha = 0.85f)).padding(horizontal = 4.dp, vertical = 1.dp)
                 )
             }
 
@@ -528,16 +582,150 @@ fun TripTelemetryProfileChart(points: List<TripPoint>) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 if (selectedMetric == 0) {
-                    val avg = values.average()
-                    Text("Pico: ${maxVal.toInt()} km/h", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Média: ${avg.toInt()} km/h", color = TextSecondary, fontSize = 12.sp)
-                    Text("${points.size} pontos", color = TextSecondary, fontSize = 12.sp)
+                    ReplayStat("PICO", "${maxVal.toInt()} km/h", CyberAcid)
+                    ReplayStat("MÉDIA", "${values.average().toInt()} km/h", CyberText)
+                    ReplayStat("PONTOS", "${points.size}", CyberTextSecondary)
                 } else {
-                    val gain = (maxVal - minVal).toInt()
-                    Text("Ponto Mais Alto: ${maxVal.toInt()} m", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Desnível: ${gain} m", color = CyberGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    ReplayStat("MÁXIMA", "${maxVal.toInt()} m", CyberGreen)
+                    ReplayStat("MÍNIMA", "${minVal.toInt()} m", CyberText)
+                    ReplayStat("DESNÍVEL", "${(maxVal - minVal).toInt()} m", CyberCyan)
                 }
             }
         }
+    }
+}
+
+private val REPLAY_SPEEDS = listOf(10, 30, 60, 120)
+
+private fun clock(ms: Long): String =
+    java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(ms))
+
+/** Play/pause, timeline slider, speed and a live readout of the replayed instant. */
+@Composable
+private fun ReplayBar(
+    replay: TripReplay,
+    frame: de.dennisguse.opentracks.util.ReplayFrame?,
+    visible: Boolean,
+    playing: Boolean,
+    replayMs: Long,
+    speed: Int,
+    kmL: Double,
+    onToggle: () -> Unit,
+    onSeek: (Long) -> Unit,
+    onSpeed: (Int) -> Unit,
+    onClose: () -> Unit
+) {
+    if (replay.isEmpty) return
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(CyberPanel)
+            .border(1.dp, CyberLine)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(40.dp).background(CyberAcid).clickable(onClick = onToggle),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (playing) "Pausar replay" else "Reproduzir viagem",
+                    tint = CyberOnAcid
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text("REPLAY DA VIAGEM", style = EyebrowStyle.copy(fontSize = 10.sp), color = CyberAcid)
+                Text(
+                    if (frame != null) clock(frame.timeMs) + "  ·  " + (replayMs / 60_000) + " min de " + (replay.durationMs / 60_000) + " min"
+                    else "Toque ▶ ou no traçado",
+                    style = monoStyle(11, FontWeight.Normal), color = CyberTextSecondary
+                )
+            }
+            Box(
+                Modifier.border(1.dp, CyberCyan).clickable { onSpeed(REPLAY_SPEEDS[(REPLAY_SPEEDS.indexOf(speed) + 1) % REPLAY_SPEEDS.size]) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) { Text("${speed}×", style = monoStyle(12, FontWeight.Bold), color = CyberCyan) }
+            if (visible) {
+                IconButton(onClick = onClose) { Icon(Icons.Default.Close, contentDescription = "Fechar replay", tint = CyberTextSecondary) }
+            }
+        }
+        Slider(
+            value = replayMs.toFloat(),
+            onValueChange = { onSeek(it.toLong()) },
+            valueRange = 0f..replay.durationMs.toFloat().coerceAtLeast(1f),
+            colors = SliderDefaults.colors(thumbColor = CyberAcid, activeTrackColor = CyberAcid, inactiveTrackColor = CyberPanelRaised),
+            modifier = Modifier.fillMaxWidth().height(28.dp)
+        )
+        if (frame != null) {
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                ReplayStat("VEL.", String.format(java.util.Locale.US, "%.0f km/h", frame.speedKmh), CyberAcid)
+                ReplayStat("ALT.", String.format(java.util.Locale.US, "%.0f m", frame.altitudeM), CyberCyan)
+                ReplayStat("PERCORRIDO", String.format(java.util.Locale("pt", "BR"), "%.1f km", frame.distanceKm), CyberText)
+                if (kmL > 0) ReplayStat("CONSUMO", String.format(java.util.Locale("pt", "BR"), "%.2f L", frame.distanceKm / kmL), CyberOrange)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReplayStat(label: String, value: String, color: Color) {
+    Column {
+        Text(label, style = EyebrowStyle.copy(fontSize = 9.sp), color = CyberTextTertiary)
+        Text(value, style = monoStyle(13, FontWeight.Bold), color = color)
+    }
+}
+
+/** Flight-radar style card for one recorded fix: time, speed, altitude and where in the trip it is. */
+@Composable
+private fun TripPointCard(
+    trip: TripItem,
+    points: List<TripPoint>,
+    replay: TripReplay,
+    index: Int,
+    onClose: () -> Unit,
+    onReplayFromHere: () -> Unit
+) {
+    val context = LocalContext.current
+    val p = points[index]
+    val at = replay.frameAt(replay.offsetOf(index))
+    val unset = CustomLocation(0.0, 0.0, "", false)
+    val place by produceState<String?>(null, p) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { PlaceNames.label(context, p.lat, p.lon, unset, unset) }
+    }
+    val br = java.util.Locale("pt", "BR")
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(CyberPanelRaised)
+            .border(1.dp, CyberPink)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("PONTO DA VIAGEM", style = EyebrowStyle.copy(fontSize = 10.sp), color = CyberPink)
+                Text(place ?: "…", color = CyberText, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            IconButton(onClick = onClose) { Icon(Icons.Default.Close, contentDescription = "Fechar", tint = CyberTextSecondary) }
+        }
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            ReplayStat("HORA", if (p.timeMs > 0) clock(p.timeMs) else "--", CyberText)
+            ReplayStat("VEL.", String.format(java.util.Locale.US, "%.0f km/h", p.speedKmh), CyberAcid)
+            ReplayStat("ALT.", String.format(java.util.Locale.US, "%.0f m", p.altitudeM), CyberCyan)
+        }
+        if (at != null) {
+            Text(
+                String.format(br, "Trecho: km %.1f de %.1f · %d min após a partida", at.distanceKm, replay.totalKm, replay.offsetOf(index) / 60_000) +
+                    (if (trip.kmL > 0) String.format(br, " · ≈ %.2f L até aqui", at.distanceKm / trip.kmL) else ""),
+                style = monoStyle(11, FontWeight.Normal), color = CyberTextSecondary
+            )
+        }
+        Text(
+            "▶ REPLAY DAQUI",
+            style = EyebrowStyle, color = CyberAcid,
+            modifier = Modifier.clickable(onClick = onReplayFromHere).padding(vertical = 4.dp)
+        )
     }
 }

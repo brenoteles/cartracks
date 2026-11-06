@@ -3,15 +3,18 @@ package de.dennisguse.opentracks.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,6 +28,8 @@ import de.dennisguse.opentracks.ui.theme.*
 import de.dennisguse.opentracks.util.PlaceNames
 import de.dennisguse.opentracks.util.RouteAnalysis
 import de.dennisguse.opentracks.util.RouteGroup
+import de.dennisguse.opentracks.util.TrafficAnalysis
+import de.dennisguse.opentracks.util.TrafficTimeBand
 import de.dennisguse.opentracks.util.TripTrace
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -45,7 +50,8 @@ fun PeriodMapScreen(
     onBackClicked: () -> Unit
 ) {
     val context = LocalContext.current
-    var mode by remember { mutableStateOf(0) } // 0 frequency, 1 individual trips
+    var mode by remember { mutableStateOf(0) } // 0 frequency, 1 individual trips, 2 traffic
+    var selectedTimeBand by remember { mutableStateOf(TrafficTimeBand.MANHA) }
     var focused by remember { mutableStateOf<RouteGroup?>(null) }
     val pointsById = remember(trips, routes) { trips.map { it.id }.zip(routes).toMap() }
 
@@ -61,6 +67,17 @@ fun PeriodMapScreen(
             }
         }
     }
+
+    val trafficSegments by produceState<List<Pair<List<TripPoint>, Int>>>(emptyList(), routes, selectedTimeBand, mode) {
+        if (mode != 2) {
+            value = emptyList()
+            return@produceState
+        }
+        value = withContext(Dispatchers.Default) {
+            TrafficAnalysis.coloredSegments(routes, selectedTimeBand.hours)
+        }
+    }
+
     val focusRoutes = focused?.tripIds?.mapNotNull { pointsById[it] } ?: emptyList()
     val hotspots = remember(groups) { groups?.let { destinationHotspots(it) } ?: emptyList() }
 
@@ -78,7 +95,7 @@ fun PeriodMapScreen(
             }
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-            listOf("Frequência", "Viagens").forEachIndexed { i, label ->
+            listOf("Frequência", "Viagens", "Trânsito").forEachIndexed { i, label ->
                 val sel = i == mode
                 Box(
                     Modifier
@@ -89,6 +106,34 @@ fun PeriodMapScreen(
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) { Text(label.uppercase(), style = EyebrowStyle, color = if (sel) CyberOnAcid else CyberText) }
+            }
+        }
+        if (mode == 2) {
+            Spacer(Modifier.height(8.dp))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                TrafficTimeBand.values().forEach { band ->
+                    val sel = band == selectedTimeBand
+                    Box(
+                        Modifier
+                            .background(if (sel) CyberAcid else CyberPanel)
+                            .border(1.dp, if (sel) CyberAcid else CyberLine)
+                            .clickable { selectedTimeBand = band }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            band.label.uppercase(),
+                            style = EyebrowStyle.copy(fontSize = 10.sp),
+                            color = if (sel) CyberOnAcid else CyberText
+                        )
+                    }
+                }
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -103,10 +148,53 @@ fun PeriodMapScreen(
                 modifier = Modifier.fillMaxSize(),
                 heatRoutes = if (mode == 0) routes else emptyList(),
                 multiRoutes = if (mode == 1) routes else emptyList(),
+                coloredSegments = if (mode == 2) trafficSegments else emptyList(),
                 focusRoutes = focusRoutes,
-                hotspots = hotspots,
+                hotspots = if (mode == 0) hotspots else emptyList(),
                 floatingControlsBottomPadding = 12.dp
             )
+
+            if (mode == 2) {
+                // bottom-left: the layer switcher and its legends take the top of the map
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(12.dp)
+                        .background(CyberInk.copy(alpha = 0.92f), RectangleShape)
+                        .border(1.dp, CyberLine, RectangleShape)
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Text("TRÂNSITO HISTÓRICO", style = EyebrowStyle.copy(fontSize = 9.sp), color = TextSecondary)
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            CyberCyan to "LIVRE",
+                            CyberAcid to "MODERADO",
+                            CyberOrange to "LENTO",
+                            CyberRed to "PARADO"
+                        ).forEach { (color, label) ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Box(Modifier.size(width = 10.dp, height = 10.dp).background(color))
+                                Text(label, style = monoStyle(9, FontWeight.Medium), color = TextPrimary)
+                            }
+                        }
+                    }
+                    if (trafficSegments.isEmpty()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Poucas viagens nesse horário",
+                            style = monoStyle(10, FontWeight.Normal),
+                            color = CyberTextSecondary
+                        )
+                    }
+                }
+            }
         }
 
         // Insights list below the map (nothing overlays the map controls)

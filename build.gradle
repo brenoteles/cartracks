@@ -52,7 +52,7 @@ android {
 
     defaultConfig {
         applicationId 'de.dennisguse.cartracks'
-        versionCode 6771
+        versionCode 6772
         versionName getVersionName()
 
         buildConfigField "String", "VERSION_NAME_FULL", "\"${getVersionName()}\""
