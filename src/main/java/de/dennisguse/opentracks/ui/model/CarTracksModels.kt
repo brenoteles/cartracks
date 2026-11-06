@@ -48,6 +48,15 @@ data class MapMarkerItem(
     val snippet: String = ""
 )
 
+/** A place the user named besides Casa and Trabalho; trips starting or ending near it get its badge. */
+data class FavoritePlace(
+    val id: String,
+    val name: String,
+    val emoji: String,
+    val lat: Double,
+    val lon: Double
+)
+
 data class CustomLocation(
     val lat: Double,
     val lon: Double,

@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,6 +50,7 @@ import de.dennisguse.opentracks.ui.components.VehicleSetupDialog
 import de.dennisguse.opentracks.ui.model.*
 import de.dennisguse.opentracks.ui.screens.*
 import de.dennisguse.opentracks.ui.theme.*
+import de.dennisguse.opentracks.util.FavoritePlaces
 import de.dennisguse.opentracks.util.FuelConsumptionModel
 import de.dennisguse.opentracks.util.FuelFamily
 import de.dennisguse.opentracks.util.MaintenanceItem
@@ -72,6 +74,8 @@ class CarMainActivity : ComponentActivity() {
     private val liveCockpitState = mutableStateOf(LiveCockpitData())
     private val homeLocationState = mutableStateOf(CustomLocation(-23.6015, -46.6900, "Casa", false))
     private val workLocationState = mutableStateOf(CustomLocation(-23.5615, -46.6559, "Trabalho", false))
+    private val favoritesState = mutableStateOf<List<FavoritePlace>>(emptyList())
+    private val routeGroupsState = mutableStateOf<List<Pair<de.dennisguse.opentracks.util.RouteGroup, String>>>(emptyList())
     private val currentGpsState = mutableStateOf<Pair<Double, Double>?>(null)
     private val liveKalmanFilter = GpsKalmanFilter(processNoiseSigma = 2.5)
     private val parkingInfoState = mutableStateOf<ParkingInfo?>(null)
@@ -520,6 +524,22 @@ class CarMainActivity : ComponentActivity() {
             label = sp.getString("work_label", "Trabalho") ?: "Trabalho",
             isSet = sp.contains("work_lat")
         )
+        favoritesState.value = FavoritePlaces.load(this)
+    }
+
+    /** Adds or replaces (same id) a favorite place, then re-badges the trips. */
+    private fun saveFavorite(place: FavoritePlace) {
+        val list = favoritesState.value.filterNot { it.id == place.id } + place
+        FavoritePlaces.save(this, list)
+        loadCustomLocations()
+        loadTrips()
+        Toast.makeText(this, "Local '${place.name}' salvo!", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun deleteFavorite(id: String) {
+        FavoritePlaces.save(this, favoritesState.value.filterNot { it.id == id })
+        loadCustomLocations()
+        loadTrips()
     }
 
     private fun saveCustomLocation(key: String, lat: Double, lon: Double, label: String) {
@@ -598,6 +618,24 @@ class CarMainActivity : ComponentActivity() {
                 e.printStackTrace()
             }
             tripsState.value = list
+            refreshRouteGroups(list)
+        }
+    }
+
+    /** Recurring routes of the last 60 days for the dashboard's best departure time card. */
+    private fun refreshRouteGroups(trips: List<TripItem>) {
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val since = System.currentTimeMillis() - 60L * 24 * 3600 * 1000
+            val traces = trips.filter { it.startTimeMs >= since }.map { t ->
+                de.dennisguse.opentracks.util.TripTrace(t.id, t.startTimeMs, t.durationMin, t.distanceKm, getTripPoints(t.id))
+            }
+            val home = homeLocationState.value
+            val work = workLocationState.value
+            val named = de.dennisguse.opentracks.util.RouteAnalysis.groupRoutes(traces).filter { it.count >= 2 }.map { g ->
+                g to "${de.dennisguse.opentracks.util.PlaceNames.label(this@CarMainActivity, g.startLat, g.startLon, home, work)} → " +
+                    de.dennisguse.opentracks.util.PlaceNames.label(this@CarMainActivity, g.endLat, g.endLon, home, work)
+            }
+            routeGroupsState.value = named
         }
     }
 
@@ -610,7 +648,8 @@ class CarMainActivity : ComponentActivity() {
     private fun detectCommuteBadge(trackId: Long): String? {
         val home = homeLocationState.value
         val work = workLocationState.value
-        if (!home.isSet && !work.isSet) return null
+        val favorites = favoritesState.value
+        if (!home.isSet && !work.isSet && favorites.isEmpty()) return null
 
         try {
             providerUtils.getTrackPointIterator(Track.Id(trackId), null)?.use { it ->
@@ -630,20 +669,10 @@ class CarMainActivity : ComponentActivity() {
                     val endLat = lastPt.position().latitude()
                     val endLon = lastPt.position().longitude()
 
-                    val isStartHome = distKm(startLat, startLon, home.lat, home.lon) < 0.6
-                    val isEndHome = distKm(endLat, endLon, home.lat, home.lon) < 0.6
-                    val isStartWork = distKm(startLat, startLon, work.lat, work.lon) < 0.6
-                    val isEndWork = distKm(endLat, endLon, work.lat, work.lon) < 0.6
-
-                    return when {
-                        isStartHome && isEndWork -> "🏠 Casa ➔ 🏢 Trabalho"
-                        isStartWork && isEndHome -> "🏢 Trabalho ➔ 🏠 Casa"
-                        isStartHome -> "Partida: 🏠 Casa"
-                        isEndHome -> "Destino: 🏠 Casa"
-                        isStartWork -> "Partida: 🏢 Trabalho"
-                        isEndWork -> "Destino: 🏢 Trabalho"
-                        else -> null
-                    }
+                    return FavoritePlaces.badge(
+                        FavoritePlaces.placeAt(startLat, startLon, home, work, favorites),
+                        FavoritePlaces.placeAt(endLat, endLon, home, work, favorites)
+                    )
                 }
             }
         } catch (e: Exception) {
@@ -800,13 +829,15 @@ class CarMainActivity : ComponentActivity() {
         )
     }
 
-    /** Widget / Quick Settings tile: start a trip, or end the one being recorded. */
+    /** Widget / Quick Settings tile toggle; the car-Bluetooth notification only ever starts. */
     private fun handleQuickAction(intent: Intent?) {
-        if (intent?.action != QuickControls.ACTION_TOGGLE) return
+        val action = intent?.action
+        if (action != QuickControls.ACTION_TOGGLE && action != QuickControls.ACTION_START) return
         intent.action = null
+        de.dennisguse.opentracks.util.CarNotifications.clearCarConnected(this)
         TrackRecordingServiceConnection.execute(this) { service, _ ->
             if (service.isRecording) {
-                stopTrip(service)
+                if (action == QuickControls.ACTION_TOGGLE) stopTrip(service)
             } else {
                 checkPermissionsAndStartTrip()
             }
@@ -891,6 +922,8 @@ class CarMainActivity : ComponentActivity() {
         var selectedTab by remember { mutableStateOf(0) }
         var activeDetailTrip by remember { mutableStateOf<TripItem?>(null) }
         var isPeriodMapOpen by remember { mutableStateOf(false) }
+        var periodMapTrips by remember { mutableStateOf<List<TripItem>>(emptyList()) }
+        var periodMapTitle by remember { mutableStateOf("") }
         var isReportOpen by remember { mutableStateOf(false) }
         var isMaintenanceOpen by remember { mutableStateOf(false) }
         var isCockpitFullscreen by remember { mutableStateOf(false) }
@@ -1029,22 +1062,21 @@ class CarMainActivity : ComponentActivity() {
         }
 
         if (isPeriodMapOpen) {
-            val now = System.currentTimeMillis()
-            val filtered = remember(trips, selectedPeriod) {
-                when (selectedPeriod) {
-                    PeriodFilter.HOJE -> trips.filter { now - it.startTimeMs <= 24 * 3600 * 1000L }
-                    PeriodFilter.SETE_DIAS -> trips.filter { now - it.startTimeMs <= 7 * 24 * 3600 * 1000L }
-                    PeriodFilter.ESTE_MES -> trips.filter { now - it.startTimeMs <= 30 * 24 * 3600 * 1000L }
-                    PeriodFilter.TODAS -> trips
-                }
+            // reading every trace of a long period from the provider takes seconds: keep it off the UI thread
+            val multiRoutes by produceState<List<List<TripPoint>>?>(null, periodMapTrips) {
+                value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { periodMapTrips.map { getTripPoints(it.id) } }
             }
-            val multiRoutes = remember(filtered) {
-                filtered.map { getTripPoints(it.id) }
+            val routes = multiRoutes
+            if (routes == null) {
+                Box(Modifier.fillMaxSize().background(CyberInk), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = CyberAcid)
+                }
+                return
             }
             PeriodMapScreen(
-                trips = filtered,
-                routes = multiRoutes,
-                periodName = selectedPeriod.label,
+                trips = periodMapTrips,
+                routes = routes,
+                periodName = periodMapTitle,
                 home = homeLoc,
                 work = workLoc,
                 onBackClicked = { isPeriodMapOpen = false }
@@ -1086,6 +1118,7 @@ class CarMainActivity : ComponentActivity() {
                         estimatedKmL = consumptionState.value.let { it.baseKmL(it.currentFamily()) },
                         odometerKm = getCurrentOdometer(),
                         parkingInfo = parkingInfoState.value,
+                        routeGroups = routeGroupsState.value,
                         onNavigateToParking = { lat, lon ->
                             try {
                                 val uri = Uri.parse("google.navigation:q=$lat,$lon&mode=w")
@@ -1119,10 +1152,15 @@ class CarMainActivity : ComponentActivity() {
                     )
                     1 -> TripsScreen(
                         trips = trips,
+                        favorites = favoritesState.value,
                         selectedFilter = selectedPeriod,
                         onFilterSelected = { selectedPeriod = it },
                         onTripClicked = { activeDetailTrip = it },
-                        onPeriodMapClicked = { isPeriodMapOpen = true },
+                        onPeriodMapClicked = { list, title ->
+                            periodMapTrips = list
+                            periodMapTitle = title
+                            isPeriodMapOpen = true
+                        },
                         onDeleteTrip = { tripId -> deleteTrip(tripId) },
                         onUpdateTrip = { tripId, name, desc -> updateTrip(tripId, name, desc) },
                         onOpenReport = { isReportOpen = true }
@@ -1173,6 +1211,9 @@ class CarMainActivity : ComponentActivity() {
                         onSaveLocation = { key, lat, lon, label ->
                             saveCustomLocation(key, lat, lon, label)
                         },
+                        favorites = favoritesState.value,
+                        onSaveFavorite = { saveFavorite(it) },
+                        onDeleteFavorite = { deleteFavorite(it) },
                         onSaveVehicleConfig = { name, plate, cap, fType, odo, estKmL, kmSince ->
                             saveFullVehicleConfig(name, plate, cap, fType, odo, estKmL, kmSince)
                         },

@@ -50,6 +50,21 @@ fun LiveCockpitScreen(
         Pair(liveData.currentLat, liveData.currentLon)
     } else null
 
+    // Heading from the last two distinct trace points; kept while stopped at a light
+    val vehicleBearing = remember(liveData.breadcrumbPoints) {
+        val pts = liveData.breadcrumbPoints
+        val last = pts.lastOrNull()
+        val prev = last?.let { l -> pts.takeLast(10).dropLast(1).lastOrNull { it.lat != l.lat || it.lon != l.lon } }
+        if (last == null || prev == null) null else {
+            val lat1 = Math.toRadians(prev.lat)
+            val lat2 = Math.toRadians(last.lat)
+            val dLon = Math.toRadians(last.lon - prev.lon)
+            val y = Math.sin(dLon) * Math.cos(lat2)
+            val x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon)
+            ((Math.toDegrees(Math.atan2(y, x)) + 360.0) % 360.0).toFloat()
+        }
+    }
+
     if (showConfirmStop) {
         AlertDialog(
             onDismissRequest = { showConfirmStop = false },
@@ -156,6 +171,8 @@ fun LiveCockpitScreen(
             CarMapView(
                 points = liveData.breadcrumbPoints,
                 currentLocation = curLoc,
+                followVehicle = true,
+                vehicleBearing = vehicleBearing,
                 onCenterGpsClicked = {},
                 modifier = Modifier.fillMaxSize()
             )

@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.dennisguse.opentracks.ui.components.CarMapView
+import de.dennisguse.opentracks.ui.components.MapHotspot
 import de.dennisguse.opentracks.ui.model.CustomLocation
 import de.dennisguse.opentracks.ui.model.TripItem
 import de.dennisguse.opentracks.ui.model.TripPoint
@@ -61,6 +62,7 @@ fun PeriodMapScreen(
         }
     }
     val focusRoutes = focused?.tripIds?.mapNotNull { pointsById[it] } ?: emptyList()
+    val hotspots = remember(groups) { groups?.let { destinationHotspots(it) } ?: emptyList() }
 
     Column(
         Modifier
@@ -102,6 +104,7 @@ fun PeriodMapScreen(
                 heatRoutes = if (mode == 0) routes else emptyList(),
                 multiRoutes = if (mode == 1) routes else emptyList(),
                 focusRoutes = focusRoutes,
+                hotspots = hotspots,
                 floatingControlsBottomPadding = 12.dp
             )
         }
@@ -118,13 +121,20 @@ fun PeriodMapScreen(
             if (gs == null) {
                 LinearProgressIndicator(color = CyberAcid, trackColor = CyberPanelRaised, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp))
             } else {
+                val total = gs.sumOf { it.first.count }.coerceAtLeast(1)
+                val repeated = gs.filter { it.first.count > 1 }.sumOf { it.first.count }
+                Row(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SummaryTile("${gs.size}", "rotas distintas", CyberText, Modifier.weight(1f))
+                    SummaryTile("${repeated * 100 / total}%", "viagens repetidas", CyberAcid, Modifier.weight(1f))
+                    SummaryTile("${hotspots.firstOrNull()?.count ?: 0}×", "destino nº 1", CyberPink, Modifier.weight(1f))
+                }
                 LazyColumn(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.navigationBarsPadding()
                 ) {
                     itemsIndexed(gs) { _, (g, name) ->
-                        RouteGroupRow(g, name, selected = focused == g) { focused = if (focused == g) null else g }
+                        RouteGroupRow(g, name, share = g.count.toFloat() / total, selected = focused == g) { focused = if (focused == g) null else g }
                     }
                 }
             }
@@ -132,8 +142,27 @@ fun PeriodMapScreen(
     }
 }
 
+/** Arrivals per destination: route groups ending within the clustering radius are merged. */
+private fun destinationHotspots(groups: List<Pair<RouteGroup, String>>): List<MapHotspot> {
+    val spots = mutableListOf<MapHotspot>()
+    groups.forEach { (g, name) ->
+        val i = spots.indexOfFirst { RouteAnalysis.distanceM(it.lat, it.lon, g.endLat, g.endLon) < RouteAnalysis.ENDPOINT_RADIUS_M }
+        if (i >= 0) spots[i] = spots[i].copy(count = spots[i].count + g.count)
+        else spots += MapHotspot(g.endLat, g.endLon, g.count, name.substringAfterLast("→").trim())
+    }
+    return spots.filter { it.count >= 2 }.sortedByDescending { it.count }.take(8)
+}
+
 @Composable
-private fun RouteGroupRow(g: RouteGroup, name: String, selected: Boolean, onClick: () -> Unit) {
+private fun SummaryTile(value: String, label: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
+    Column(modifier.cyberPanel(border = CyberLine, shadow = false).padding(horizontal = 10.dp, vertical = 8.dp)) {
+        Text(value, style = displayStyle(20), color = color, maxLines = 1)
+        Text(label.uppercase(), style = EyebrowStyle.copy(fontSize = 9.sp, lineHeight = 11.sp), color = CyberTextSecondary, minLines = 2, maxLines = 2)
+    }
+}
+
+@Composable
+private fun RouteGroupRow(g: RouteGroup, name: String, share: Float, selected: Boolean, onClick: () -> Unit) {
     val br = Locale("pt", "BR")
     Column(
         Modifier
@@ -146,7 +175,12 @@ private fun RouteGroupRow(g: RouteGroup, name: String, selected: Boolean, onClic
             Text(name, color = CyberText, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 2)
             CyberChip("${g.count}×", if (g.count > 1) CyberAcid else CyberTextTertiary, filled = g.count > 1)
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(6.dp))
+        // share of the period's trips on this route
+        Box(Modifier.fillMaxWidth().height(4.dp).background(CyberPanelRaised)) {
+            Box(Modifier.fillMaxWidth(share.coerceIn(0.02f, 1f)).fillMaxHeight().background(if (selected) CyberPink else CyberAcid))
+        }
+        Spacer(Modifier.height(6.dp))
         Text(
             String.format(br, "%.1f km · mediana %.0f min · 90%% até %.0f min · %.0f km/h", g.avgDistanceKm, g.medianDurationMin, g.p90DurationMin, g.avgSpeedKmh),
             style = monoStyle(11, FontWeight.Normal), color = CyberTextSecondary

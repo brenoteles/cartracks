@@ -1,5 +1,6 @@
 package de.dennisguse.opentracks.ui.screens
 
+import de.dennisguse.opentracks.BuildConfig
 import de.dennisguse.opentracks.ui.components.ConsumptionSettingsSection
 import de.dennisguse.opentracks.util.FuelConsumptionModel
 import de.dennisguse.opentracks.util.FuelFamily
@@ -35,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.dennisguse.opentracks.ui.components.LocationPickerMapDialog
 import de.dennisguse.opentracks.ui.model.CustomLocation
+import de.dennisguse.opentracks.ui.model.FavoritePlace
+import de.dennisguse.opentracks.util.FavoritePlaces
 import de.dennisguse.opentracks.ui.theme.*
 
 @Composable
@@ -52,6 +55,9 @@ fun SettingsScreen(
     isBatteryOptimized: Boolean = false,
     onRequestIgnoreBattery: () -> Unit = {},
     onSaveLocation: (key: String, lat: Double, lon: Double, label: String) -> Unit,
+    favorites: List<FavoritePlace> = emptyList(),
+    onSaveFavorite: (FavoritePlace) -> Unit = {},
+    onDeleteFavorite: (String) -> Unit = {},
     onSaveVehicleConfig: (name: String, plate: String, tankCapacity: Double, primaryFuelType: String, odometer: Double, estimatedKmL: Double, kmSinceLastFull: Double) -> Unit,
     onPurgeDemoData: () -> Unit = {},
     consumption: FuelConsumptionModel? = null,
@@ -70,7 +76,11 @@ fun SettingsScreen(
     var kmSinceLastFullStr by remember(kmSinceLastFull) { mutableStateOf(if (kmSinceLastFull > 0) String.format(java.util.Locale.US, "%.0f", kmSinceLastFull) else "0") }
     var showPurgeConfirm by remember { mutableStateOf(false) }
 
-    var mapPickerTarget by remember { mutableStateOf<String?>(null) } // "home" or "work"
+    var mapPickerTarget by remember { mutableStateOf<String?>(null) } // "home", "work" or "fav"
+    // favorite being created or moved; its name/emoji are edited before picking the spot
+    var favDraft by remember { mutableStateOf<FavoritePlace?>(null) }
+    var showFavDialog by remember { mutableStateOf(false) }
+    var favToDelete by remember { mutableStateOf<FavoritePlace?>(null) }
 
     // Auto backup, Smart Pause & Map Matching
     var smartPauseEnabled by remember {
@@ -94,7 +104,24 @@ fun SettingsScreen(
     }
 
     // Map Location Picker Modal (Full address search & GPS picker)
-    if (mapPickerTarget != null) {
+    val draft = favDraft
+    if (mapPickerTarget == "fav" && draft != null) {
+        LocationPickerMapDialog(
+            title = "${draft.emoji} ${draft.name}",
+            initialLat = draft.lat,
+            initialLon = draft.lon,
+            currentGps = currentGps,
+            onConfirm = { lat, lon ->
+                onSaveFavorite(draft.copy(lat = lat, lon = lon))
+                mapPickerTarget = null
+                favDraft = null
+            },
+            onDismiss = {
+                mapPickerTarget = null
+                favDraft = null
+            }
+        )
+    } else if (mapPickerTarget != null) {
         val isHome = mapPickerTarget == "home"
         val curLat = if (isHome) homeLoc.lat else workLoc.lat
         val curLon = if (isHome) homeLoc.lon else workLoc.lon
@@ -111,6 +138,83 @@ fun SettingsScreen(
                 mapPickerTarget = null
             },
             onDismiss = { mapPickerTarget = null }
+        )
+    }
+
+    if (showFavDialog && draft != null) {
+        var name by remember(draft.id) { mutableStateOf(draft.name) }
+        var emoji by remember(draft.id) { mutableStateOf(draft.emoji) }
+        AlertDialog(
+            onDismissRequest = {
+                showFavDialog = false
+                favDraft = null
+            },
+            containerColor = CyberPanelRaised,
+            shape = RectangleShape,
+            title = { Text(if (favorites.any { it.id == draft.id }) "Editar local" else "Novo local favorito", color = TextPrimary) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it.take(24) },
+                        label = { Text("Nome (ex.: Academia, Escola)") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(FavoritePlaces.EMOJIS) { e ->
+                            Box(
+                                Modifier
+                                    .size(40.dp)
+                                    .background(if (e == emoji) CyberAcid else CyberPanel)
+                                    .border(1.dp, if (e == emoji) CyberAcid else CyberLine)
+                                    .clickable { emoji = e },
+                                contentAlignment = Alignment.Center
+                            ) { Text(e, fontSize = 20.sp) }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    shape = RectangleShape,
+                    enabled = name.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberAcid, contentColor = CyberOnAcid),
+                    onClick = {
+                        favDraft = draft.copy(name = name.trim(), emoji = emoji)
+                        showFavDialog = false
+                        mapPickerTarget = "fav"
+                    }
+                ) { Text("Escolher no mapa", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showFavDialog = false
+                    favDraft = null
+                }) { Text("Cancelar", color = TextSecondary) }
+            }
+        )
+    }
+
+    favToDelete?.let { place ->
+        AlertDialog(
+            onDismissRequest = { favToDelete = null },
+            containerColor = CyberPanelRaised,
+            shape = RectangleShape,
+            title = { Text("Remover ${place.emoji} ${place.name}?", color = TextPrimary) },
+            text = { Text("As viagens continuam salvas; só deixam de receber essa etiqueta.", color = TextSecondary) },
+            confirmButton = {
+                Button(
+                    shape = RectangleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = CyberRed),
+                    onClick = {
+                        onDeleteFavorite(place.id)
+                        favToDelete = null
+                    }
+                ) { Text("Remover", color = Color.White, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { favToDelete = null }) { Text("Cancelar", color = TextSecondary) } }
         )
     }
 
@@ -415,6 +519,44 @@ fun SettingsScreen(
             )
         }
 
+        // User-defined favorites (gym, school, family...)
+        items(favorites, key = { it.id }) { place ->
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                LocationCard(
+                    title = place.name,
+                    icon = place.emoji,
+                    isConfigured = true,
+                    lat = place.lat,
+                    lon = place.lon,
+                    onOpenMapPicker = {
+                        favDraft = place
+                        mapPickerTarget = "fav"
+                    }
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(start = 4.dp)) {
+                    Text("RENOMEAR", style = EyebrowStyle, color = CyberCyan, modifier = Modifier.clickable {
+                        favDraft = place
+                        showFavDialog = true
+                    })
+                    Text("REMOVER", style = EyebrowStyle, color = CyberRed, modifier = Modifier.clickable { favToDelete = place })
+                }
+            }
+        }
+
+        item {
+            CyberGhostButton(
+                text = "Adicionar local favorito",
+                icon = Icons.Default.AddLocationAlt,
+                accent = CyberAcid,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    val (lat, lon) = currentGps ?: (if (homeLoc.isSet) homeLoc.lat to homeLoc.lon else -23.5505 to -46.6333)
+                    favDraft = FavoritePlace(java.util.UUID.randomUUID().toString(), "", "⭐", lat, lon)
+                    showFavDialog = true
+                }
+            )
+        }
+
         // Section: Backup & Restore
         item {
             CyberSectionHeader(title = "Backup no Google Drive", eyebrow = "Nuvem")
@@ -674,6 +816,9 @@ fun SettingsScreen(
             }
         }
 
+        // Car Bluetooth: one-tap start on connect, auto end on disconnect
+        item { CarBluetoothCard() }
+
         // App Info
         item {
             Box(
@@ -692,7 +837,7 @@ fun SettingsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Versão 1.0.15 • Odômetro Real • Autonomia Estimada • Wanda System",
+                        text = "Versão ${BuildConfig.VERSION_NAME_FULL.removePrefix("v")} (build ${BuildConfig.VERSION_CODE}) • Odômetro Real • Autonomia Estimada • Wanda System",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
@@ -814,5 +959,90 @@ fun LocationCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun CarBluetoothCard() {
+    val context = LocalContext.current
+    var carName by remember { mutableStateOf(de.dennisguse.opentracks.util.CarBluetooth.address(context)?.let { de.dennisguse.opentracks.util.CarBluetooth.name(context) }) }
+    var devices by remember { mutableStateOf<List<Pair<String, String>>?>(null) }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) devices = de.dennisguse.opentracks.util.CarBluetooth.pairedDevices(context)
+        else Toast.makeText(context, "Sem a permissão de Bluetooth o app não reconhece o carro.", Toast.LENGTH_LONG).show()
+    }
+
+    Column(
+        Modifier.fillMaxWidth().cyberPanel(border = CyberLineSubtle, shadow = false).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Bluetooth do Carro", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "Ao conectar no som do carro aparece a notificação \"Iniciar viagem\" (um toque). Ao desligar o carro, a viagem é encerrada e o local de estacionamento salvo.",
+            color = TextSecondary, fontSize = 12.sp, lineHeight = 17.sp
+        )
+        Text(
+            if (carName != null) "CARRO: $carName" else "NENHUM DISPOSITIVO ESCOLHIDO",
+            style = EyebrowStyle, color = if (carName != null) CyberGreen else CyberOrange
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CyberGhostButton(
+                text = if (carName != null) "Trocar" else "Escolher dispositivo",
+                icon = Icons.Default.Bluetooth,
+                accent = CyberCyan,
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    if (de.dennisguse.opentracks.util.CarBluetooth.hasPermission(context)) devices = de.dennisguse.opentracks.util.CarBluetooth.pairedDevices(context)
+                    else permissionLauncher.launch(android.Manifest.permission.BLUETOOTH_CONNECT)
+                }
+            )
+            if (carName != null) {
+                CyberGhostButton(
+                    text = "Desativar",
+                    icon = Icons.Default.BluetoothDisabled,
+                    accent = CyberRed,
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        de.dennisguse.opentracks.util.CarBluetooth.save(context, null, null)
+                        carName = null
+                    }
+                )
+            }
+        }
+    }
+
+    devices?.let { list ->
+        AlertDialog(
+            onDismissRequest = { devices = null },
+            containerColor = CyberPanelRaised,
+            shape = RectangleShape,
+            title = { Text("Qual é o Bluetooth do carro?", color = TextPrimary) },
+            text = {
+                if (list.isEmpty()) {
+                    Text("Nenhum dispositivo pareado. Pareie o celular com o som do carro nas configurações de Bluetooth.", color = TextSecondary)
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.heightIn(max = 360.dp)) {
+                        items(list) { (address, name) ->
+                            Text(
+                                name,
+                                color = TextPrimary,
+                                fontSize = 15.sp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(CyberPanel)
+                                    .border(1.dp, CyberLine)
+                                    .clickable {
+                                        de.dennisguse.opentracks.util.CarBluetooth.save(context, address, name)
+                                        carName = name
+                                        devices = null
+                                    }
+                                    .padding(14.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { devices = null }) { Text("Fechar", color = TextSecondary) } }
+        )
     }
 }

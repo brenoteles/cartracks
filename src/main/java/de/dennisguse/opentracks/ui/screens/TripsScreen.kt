@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.dennisguse.opentracks.ui.model.DestinationFilter
+import de.dennisguse.opentracks.ui.model.FavoritePlace
 import de.dennisguse.opentracks.ui.model.PeriodFilter
 import de.dennisguse.opentracks.ui.model.TripItem
 import de.dennisguse.opentracks.ui.theme.*
@@ -35,26 +36,36 @@ import java.util.*
 @Composable
 fun TripsScreen(
     trips: List<TripItem>,
+    favorites: List<FavoritePlace> = emptyList(),
     selectedFilter: PeriodFilter,
     onFilterSelected: (PeriodFilter) -> Unit,
     onTripClicked: (TripItem) -> Unit,
-    onPeriodMapClicked: () -> Unit,
+    /** Receives the trips exactly as filtered on screen (period and destination) and a title for them. */
+    onPeriodMapClicked: (List<TripItem>, String) -> Unit,
     onDeleteTrip: ((Long) -> Unit)? = null,
     onUpdateTrip: ((Long, String, String) -> Unit)? = null,
     onOpenReport: (() -> Unit)? = null
 ) {
     val now = System.currentTimeMillis()
     var selectedDestination by remember { mutableStateOf(DestinationFilter.TODOS) }
+    // a favorite chip overrides the fixed destination filters while selected
+    var selectedFavorite by remember { mutableStateOf<FavoritePlace?>(null) }
     var showMonthlyReport by remember { mutableStateOf(false) }
 
-    val filteredTrips = remember(trips, selectedFilter, selectedDestination) {
+    val filteredTrips = remember(trips, selectedFilter, selectedDestination, selectedFavorite) {
         val byPeriod = when (selectedFilter) {
             PeriodFilter.HOJE -> trips.filter { now - it.startTimeMs <= 24 * 3600 * 1000L }
             PeriodFilter.SETE_DIAS -> trips.filter { now - it.startTimeMs <= 7 * 24 * 3600 * 1000L }
-            PeriodFilter.ESTE_MES -> trips.filter { now - it.startTimeMs <= 30 * 24 * 3600 * 1000L }
+            // calendar month, as in the report, so both screens show the same totals
+            PeriodFilter.ESTE_MES -> {
+                val monthStart = java.time.LocalDate.now().withDayOfMonth(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                trips.filter { it.startTimeMs >= monthStart }
+            }
             PeriodFilter.TODAS -> trips
         }
 
+        val fav = selectedFavorite
+        if (fav != null) return@remember byPeriod.filter { it.commuteBadge?.contains(fav.name) == true }
         when (selectedDestination) {
             DestinationFilter.TODOS -> byPeriod
             DestinationFilter.CASA -> byPeriod.filter {
@@ -180,11 +191,23 @@ fun TripsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(DestinationFilter.values()) { dest ->
-                        val isSelected = dest == selectedDestination
+                    items(DestinationFilter.values().filter { it != DestinationFilter.OUTROS }) { dest ->
+                        DestinationChip(dest.label, selectedFavorite == null && dest == selectedDestination) {
+                            selectedDestination = dest
+                            selectedFavorite = null
+                        }
+                    }
+                    items(favorites) { place ->
+                        DestinationChip("${place.emoji} ${place.name}", selectedFavorite?.id == place.id) { selectedFavorite = place }
+                    }
+                    items(listOf(DestinationFilter.OUTROS)) { dest ->
+                        val isSelected = selectedFavorite == null && dest == selectedDestination
                         FilterChip(
                             selected = isSelected,
-                            onClick = { selectedDestination = dest },
+                            onClick = {
+                                selectedDestination = dest
+                                selectedFavorite = null
+                            },
                             label = {
                                 Text(
                                     text = dest.label,
@@ -273,7 +296,12 @@ fun TripsScreen(
 
                     // Period Map Preview Action
                     Button(
-                        onClick = onPeriodMapClicked,
+                        onClick = {
+                            val dest = selectedFavorite?.let { "${it.emoji} ${it.name}" }
+                                ?: selectedDestination.takeIf { it != DestinationFilter.TODOS }?.label
+                            val title = if (dest == null) selectedFilter.label else "${selectedFilter.label} · $dest"
+                            onPeriodMapClicked(filteredTrips, title)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(44.dp),
@@ -478,5 +506,22 @@ fun MonthlyReportDialog(
             }
         },
         containerColor = CyberPanelRaised
+    )
+}
+
+@Composable
+private fun DestinationChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, fontSize = 13.sp) },
+        shape = RectangleShape,
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = CyberAcid,
+            selectedLabelColor = CyberOnAcid,
+            containerColor = CyberPanel,
+            labelColor = TextSecondary
+        ),
+        border = null
     )
 }

@@ -5,13 +5,15 @@ import android.location.Geocoder
 import de.dennisguse.opentracks.ui.model.CustomLocation
 import java.util.Locale
 
-/** Human name for a coordinate: Casa/Trabalho when close, else street + neighbourhood, else coordinates. */
+/** Human name for a coordinate: Casa/Trabalho/a favorite when close, else street + neighbourhood, else coordinates. */
 object PlaceNames {
     private val cache = HashMap<String, String>()
 
     fun label(context: Context, lat: Double, lon: Double, home: CustomLocation, work: CustomLocation): String {
         if (home.isSet && RouteAnalysis.distanceM(lat, lon, home.lat, home.lon) < 600) return "🏠 ${home.label}"
         if (work.isSet && RouteAnalysis.distanceM(lat, lon, work.lat, work.lon) < 600) return "🏢 ${work.label}"
+        FavoritePlaces.placeAt(lat, lon, CustomLocation(0.0, 0.0, "", false), CustomLocation(0.0, 0.0, "", false), FavoritePlaces.load(context))
+            ?.let { return it }
         val key = String.format(Locale.US, "%.3f,%.3f", lat, lon)
         cache[key]?.let { return it }
         val name = try {

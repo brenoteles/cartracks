@@ -51,6 +51,16 @@ class RouteAnalysisTest {
     }
 
     @Test
+    fun gpsDriftBetweenTripsStaysOneSharedLevel() {
+        // same road, second trip drifting 0..30 m to the side: must not stripe between 1 and 2
+        val a = line(3000)
+        val b = (0..3000 step 20).map { e -> TripPoint(lat0 + ((e / 20) % 7) * 5 / 111_320.0, lon0 + e / mLon, 40.0, 0.0, 0) }
+        val heat = RouteAnalysis.heatSegments(listOf(a, b))
+        assertEquals(setOf(2), heat.map { it.trips }.toSet())
+        assertEquals(2, heat.size) // one run per trip
+    }
+
+    @Test
     fun clusteringDoesNotDependOnOrder() {
         fun at(e: Int) = TripPoint(lat0, lon0 + e / mLon, 0.0, 0.0, 0)
         val dest = (0..10).map { TripPoint(lat0 + 0.05, lon0 + it * 0.0001, 0.0, 0.0, 0) }

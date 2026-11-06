@@ -46,6 +46,9 @@ object RouteAnalysis {
     const val CELL_METERS = 40.0
     const val ENDPOINT_RADIUS_M = 400.0
 
+    /** Runs shorter than this (in densified steps of CELL_METERS / 2) take the level of the run before them. */
+    const val MIN_RUN_STEPS = 6
+
     /**
      * Splits every trip into runs whose frequency is the number of distinct trips that crossed
      * the same ~40 m grid cells. Repeated commutes then render as one strong line instead of
@@ -56,29 +59,55 @@ object RouteAnalysis {
         val lat0 = trips.flatten().firstOrNull()?.lat ?: return emptyList()
         // fixes are up to ~60 m apart at highway speed; densify so every crossed cell is counted
         val dense = trips.map { densify(it, CELL_METERS / 2) }
-        val cellsPerTrip = dense.map { pts -> pts.mapTo(HashSet()) { cell(it, lat0) } }
+        // a trip also counts for the 8 surrounding cells: the same road drifts a few metres between
+        // trips (GPS, other lane) and would otherwise flicker between shared and unshared cells
         val counts = HashMap<Long, Int>()
-        cellsPerTrip.forEach { cells -> cells.forEach { counts[it] = (counts[it] ?: 0) + 1 } }
+        dense.forEach { pts ->
+            val cells = HashSet<Long>()
+            pts.forEach { p ->
+                val (y, x) = cellYX(p, lat0)
+                for (dy in -1..1) for (dx in -1..1) cells += key(y + dy, x + dx)
+            }
+            cells.forEach { counts[it] = (counts[it] ?: 0) + 1 }
+        }
 
         val out = mutableListOf<HeatSegment>()
         dense.forEach { pts ->
             if (pts.size < 2) return@forEach
-            var run = mutableListOf(pts[0])
-            var level = counts[cell(pts[0], lat0)] ?: 1
-            for (i in 1 until pts.size) {
-                // a segment takes the weaker of its two ends, so a shared road only lights up where both ends are shared
-                val segLevel = min(counts[cell(pts[i - 1], lat0)] ?: 1, counts[cell(pts[i], lat0)] ?: 1)
-                if (i == 1) level = segLevel
-                if (segLevel != level) {
-                    if (run.size >= 2) out += HeatSegment(run, level)
-                    run = mutableListOf(pts[i - 1])
-                    level = segLevel
+            // a segment takes the weaker of its two ends, so a shared road only lights up where both ends are shared
+            val levels = IntArray(pts.size - 1) { i -> min(counts[cell(pts[i], lat0)] ?: 1, counts[cell(pts[i + 1], lat0)] ?: 1) }
+            smoothRuns(levels)
+            var start = 0
+            for (i in 1..levels.size) {
+                if (i == levels.size || levels[i] != levels[start]) {
+                    out += HeatSegment(pts.subList(start, i + 1).toList(), levels[start])
+                    start = i
                 }
-                run += pts[i]
             }
-            if (run.size >= 2) out += HeatSegment(run, level)
         }
         return out
+    }
+
+    /** Short runs (crossings, GPS jitter) take the level of the run before them, or after for the first run. */
+    private fun smoothRuns(levels: IntArray) {
+        var changed = true
+        while (changed) {
+            changed = false
+            var start = 0
+            var prev = -1
+            while (start < levels.size) {
+                var end = start
+                while (end < levels.size && levels[end] == levels[start]) end++
+                val neighbour = if (prev >= 0) prev else levels.getOrNull(end)
+                if (end - start < MIN_RUN_STEPS && neighbour != null && neighbour != levels[start] && end - start < levels.size) {
+                    for (k in start until end) levels[k] = neighbour
+                    changed = true
+                    break
+                }
+                prev = levels[start]
+                start = end
+            }
+        }
     }
 
     /** Greedy clustering of starts and ends; trips with the same (start, end) cluster pair form a route. */
@@ -158,11 +187,12 @@ object RouteAnalysis {
         return out
     }
 
-    private fun cell(p: TripPoint, lat0: Double): Long {
-        val y = floor(p.lat * 111_320.0 / CELL_METERS).toLong()
-        val x = floor(p.lon * 111_320.0 * cos(Math.toRadians(lat0)) / CELL_METERS).toLong()
-        return (y shl 32) xor (x and 0xffffffffL)
-    }
+    private fun cellYX(p: TripPoint, lat0: Double): Pair<Long, Long> =
+        floor(p.lat * 111_320.0 / CELL_METERS).toLong() to floor(p.lon * 111_320.0 * cos(Math.toRadians(lat0)) / CELL_METERS).toLong()
+
+    private fun key(y: Long, x: Long): Long = (y shl 32) xor (x and 0xffffffffL)
+
+    private fun cell(p: TripPoint, lat0: Double): Long = cellYX(p, lat0).let { (y, x) -> key(y, x) }
 
     fun distanceM(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val r = 6_371_000.0

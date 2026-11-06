@@ -4,11 +4,16 @@ import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.util.Log;
-import androidx.preference.PreferenceManager;
-import de.dennisguse.opentracks.R;
 
+import de.dennisguse.opentracks.util.CarBluetooth;
+import de.dennisguse.opentracks.util.CarNotifications;
+
+/**
+ * Reacts only to the Bluetooth device the user picked as "the car" (Ajustes). Connecting offers a
+ * one-tap "Iniciar viagem" notification: Android 14+ only lets a location foreground service start
+ * while the app is visible. Disconnecting (engine off) ends the trip and saves the parking spot.
+ */
 public class AutoTrackingReceiver extends BroadcastReceiver {
     private static final String TAG = AutoTrackingReceiver.class.getSimpleName();
 
@@ -17,51 +22,25 @@ public class AutoTrackingReceiver extends BroadcastReceiver {
         if (intent == null || intent.getAction() == null) {
             return;
         }
+        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+        String carAddress = CarBluetooth.INSTANCE.address(context);
+        if (device == null || carAddress == null || !carAddress.equalsIgnoreCase(device.getAddress())) {
+            return;
+        }
 
         String action = intent.getAction();
-        Log.i(TAG, "Received action: " + action);
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean recording = QuickControls.INSTANCE.isRecording(context);
+        Log.i(TAG, "Car Bluetooth " + action + ", recording=" + recording);
 
-        boolean autoStartPower = prefs.getBoolean(context.getString(R.string.settings_auto_start_power_key), true);
-        boolean autoStopPower = prefs.getBoolean(context.getString(R.string.settings_auto_stop_power_key), true);
-        boolean autoStartBt = prefs.getBoolean(context.getString(R.string.settings_auto_start_bluetooth_key), false);
-
-        if (Intent.ACTION_POWER_CONNECTED.equals(action)) {
-            if (autoStartPower) {
-                Log.i(TAG, "Power connected: starting car tracking");
-                startRecording(context);
-            }
-        } else if (Intent.ACTION_POWER_DISCONNECTED.equals(action)) {
-            if (autoStopPower) {
-                Log.i(TAG, "Power disconnected: stopping car tracking");
-                stopRecording(context);
-            }
-        } else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-            if (autoStartBt) {
-                Log.i(TAG, "Bluetooth connected: starting car tracking");
-                startRecording(context);
-            }
+        if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action) && !recording) {
+            CarNotifications.carConnected(context, CarBluetooth.INSTANCE.name(context));
         } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-            if (autoStartBt) {
-                Log.i(TAG, "Bluetooth disconnected: stopping car tracking");
-                stopRecording(context);
+            CarNotifications.clearCarConnected(context);
+            if (recording) {
+                // receivers may not bind services themselves; the running recording service keeps the app alive
+                TrackRecordingServiceConnection.execute(context.getApplicationContext(), (service, connection) ->
+                        service.endTripAndPark("Bluetooth do carro desligado. Viagem e local de estacionamento salvos."));
             }
         }
-    }
-
-    private void startRecording(Context context) {
-        TrackRecordingServiceConnection.executeForeground(context, (service, connection) -> {
-            if (!service.isRecording()) {
-                service.startNewTrack();
-            }
-        });
-    }
-
-    private void stopRecording(Context context) {
-        TrackRecordingServiceConnection.execute(context, (service, connection) -> {
-            if (service.isRecording()) {
-                service.endCurrentTrack();
-            }
-        });
     }
 }

@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -31,8 +32,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import de.dennisguse.opentracks.ui.model.MapMarkerItem
 import de.dennisguse.opentracks.ui.model.TripPoint
 import de.dennisguse.opentracks.ui.theme.*
+import de.dennisguse.opentracks.util.HeatSegment
 import de.dennisguse.opentracks.util.RouteAnalysis
 import org.maplibre.android.annotations.IconFactory
+import org.maplibre.android.annotations.Marker
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.annotations.PolylineOptions
 import org.maplibre.android.camera.CameraPosition
@@ -42,6 +45,14 @@ import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.Property
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.SymbolLayer
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.LineString
+import org.maplibre.geojson.Point
 import android.graphics.Color as AndroidColor
 
 /**
@@ -84,6 +95,57 @@ object ModernMarkerFactory {
 
     fun getFuelMarkerBitmap(context: Context): Bitmap = square(context, "fuel", 22, "#E3881E")
 
+    /** Small chevron pointing along +x; line-placed symbols turn it to the direction of travel. */
+    fun getArrowBitmap(context: Context): Bitmap = cache.getOrPut("arrow") {
+        val density = context.resources.displayMetrics.density
+        val size = (13 * density).toInt().coerceAtLeast(20)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val inset = 1.6f * density
+        val path = android.graphics.Path().apply {
+            moveTo(inset, inset)
+            lineTo(size - inset, size / 2f)
+            lineTo(inset, size - inset)
+            lineTo(size * 0.32f, size / 2f)
+            close()
+        }
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL; color = AndroidColor.parseColor("#0E0D1A") }
+        canvas.drawPath(path, paint)
+        // light rim keeps the ink chevron visible on any route colour and on dark tiles
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.3f * density
+        paint.color = AndroidColor.parseColor("#F3F5E6")
+        canvas.drawPath(path, paint)
+        bitmap
+    }
+
+    /** Destination badge: ink frame, magenta square, number of arrivals in the middle. */
+    fun getHotspotBitmap(context: Context, count: Int): Bitmap = cache.getOrPut("hot$count") {
+        val density = context.resources.displayMetrics.density
+        val label = if (count > 99) "99+" else count.toString()
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = AndroidColor.parseColor("#FBEFF8")
+            textSize = 12 * density
+            typeface = android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD)
+            textAlign = Paint.Align.CENTER
+        }
+        val shadow = 3 * density
+        val h = 26 * density
+        val w = maxOf(h, text.measureText(label) + 12 * density)
+        val bitmap = Bitmap.createBitmap((w + shadow).toInt(), (h + shadow).toInt(), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = AndroidColor.parseColor("#990E0D1A")
+        canvas.drawRect(shadow, shadow, w + shadow, h + shadow, paint)
+        paint.color = AndroidColor.parseColor("#0E0D1A")
+        canvas.drawRect(0f, 0f, w, h, paint)
+        val b = 2.2f * density
+        paint.color = AndroidColor.parseColor("#C5259C")
+        canvas.drawRect(b, b, w - b, h - b, paint)
+        canvas.drawText(label, w / 2f, h / 2f - (text.descent() + text.ascent()) / 2f, text)
+        bitmap
+    }
+
     fun getPinnedMarkerBitmap(context: Context): Bitmap = cache.getOrPut("pin") {
         val density = context.resources.displayMetrics.density
         val width = (30 * density).toInt().coerceAtLeast(44)
@@ -108,12 +170,66 @@ object ModernMarkerFactory {
     }
 }
 
-/** Sequential encoding for the frequency map: (alpha, line width) by number of trips. */
-fun heatStyle(trips: Int): Pair<Float, Float> = when {
-    trips >= 7 -> 1f to 9f
-    trips >= 4 -> 0.85f to 7f
-    trips >= 2 -> 0.6f to 5f
-    else -> 0.32f to 3.2f
+/** A place many trips end at, drawn as a numbered badge on the frequency map. */
+data class MapHotspot(val lat: Double, val lon: Double, val count: Int, val title: String)
+
+/** One step of the frequency scale: stretches crossed by [min]..[max] trips. */
+data class HeatBin(val min: Int, val max: Int, val color: Color, val width: Float) {
+    val label get() = if (min == max) "$min×" else "$min–$max×"
+}
+
+private val HEAT_RAMP = listOf(CyberBlue, CyberCyan, CyberAcid, CyberPink)
+private val HEAT_WIDTHS = listOf(3.2f, 5f, 7f, 9.5f)
+
+/**
+ * Sequential scale relative to the busiest stretch of the period, so a month with three commutes
+ * still spans the whole ramp. Colour and width both grow with the trip count.
+ */
+fun heatBins(maxTrips: Int): List<HeatBin> {
+    val top = maxTrips.coerceAtLeast(1)
+    val bounds = if (top <= 4) (1..top).map { it to it } else {
+        val a = maxOf(2, Math.round(top * 0.25f))
+        val b = maxOf(a + 1, Math.round(top * 0.6f))
+        listOf(1 to 1, 2 to a, a + 1 to b, b + 1 to top)
+    }
+    val n = bounds.size
+    return bounds.mapIndexed { i, (lo, hi) ->
+        // the busiest bin is always the hottest colour; fewer bins skip the coldest steps
+        val step = if (n == 1) 2 else HEAT_RAMP.lastIndex - (n - 1 - i)
+        HeatBin(lo, hi, HEAT_RAMP[step], HEAT_WIDTHS[step])
+    }
+}
+
+private fun heatBinOf(bins: List<HeatBin>, trips: Int) = bins.lastOrNull { trips >= it.min } ?: bins.first()
+
+private const val ARROW_SOURCE = "cartracks-direction-source"
+private const val ARROW_LAYER = "cartracks-direction-arrows"
+private const val ARROW_IMAGE = "cartracks-direction-arrow"
+
+/**
+ * Chevrons along each route pointing the way it was driven. A style layer (not markers) so they
+ * follow the line and turn with the map; added on top after every redraw, above the annotation
+ * polylines, which MapLibre inserts just under its marker layer.
+ */
+private fun drawDirectionArrows(context: Context, style: Style, routes: List<List<TripPoint>>) {
+    style.getLayer(ARROW_LAYER)?.let { style.removeLayer(it) }
+    style.getSource(ARROW_SOURCE)?.let { style.removeSource(it) }
+    val lines = routes.filter { it.size >= 2 }
+    if (lines.isEmpty()) return
+    if (style.getImage(ARROW_IMAGE) == null) style.addImage(ARROW_IMAGE, ModernMarkerFactory.getArrowBitmap(context))
+    val features = lines.map { r -> Feature.fromGeometry(LineString.fromLngLats(r.map { Point.fromLngLat(it.lon, it.lat) })) }
+    style.addSource(GeoJsonSource(ARROW_SOURCE, FeatureCollection.fromFeatures(features)))
+    style.addLayer(
+        SymbolLayer(ARROW_LAYER, ARROW_SOURCE).withProperties(
+            PropertyFactory.symbolPlacement(Property.SYMBOL_PLACEMENT_LINE),
+            PropertyFactory.symbolSpacing(90f),
+            PropertyFactory.iconImage(ARROW_IMAGE),
+            PropertyFactory.iconAllowOverlap(true),
+            PropertyFactory.iconIgnorePlacement(true),
+            PropertyFactory.iconKeepUpright(false),
+            PropertyFactory.iconRotationAlignment(Property.ICON_ROTATION_ALIGNMENT_MAP)
+        )
+    )
 }
 
 /** Vector styles (Noite, Ruas) stay sharp at any zoom and screen density. */
@@ -160,8 +276,15 @@ fun CarMapView(
     heatRoutes: List<List<TripPoint>> = emptyList(),
     /** Trips highlighted on top (e.g. one route group picked in a list); the camera frames them. */
     focusRoutes: List<List<TripPoint>> = emptyList(),
+    /** Numbered badges for frequent destinations on the frequency map. */
+    hotspots: List<MapHotspot> = emptyList(),
+    /** Small chevrons showing the direction of travel on single, individual and focused routes. */
+    showDirectionArrows: Boolean = true,
     /** Receives a function that renders the current map to a bitmap (for exporting reports). */
-    onSnapshotProvider: ((suspend () -> Bitmap?) -> Unit)? = null
+    onSnapshotProvider: ((suspend () -> Bitmap?) -> Unit)? = null,
+    /** Live trip: camera stays on the car, tilted and turned to [vehicleBearing], until the user drags the map. */
+    followVehicle: Boolean = false,
+    vehicleBearing: Float? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -170,6 +293,8 @@ fun CarMapView(
     var mapLibreMapInstance by remember { mutableStateOf<MapLibreMap?>(null) }
     var isMapStyleLoaded by remember { mutableStateOf(false) }
     var userInteracted by remember { mutableStateOf(false) }
+    // moved in place on every GPS fix instead of clearing and redrawing the whole map
+    val vehicleMarker = remember { arrayOfNulls<Marker>(1) }
 
     val mapView = remember {
         MapView(context).apply {
@@ -235,7 +360,11 @@ fun CarMapView(
     }
 
     // Update markers, polylines, and camera when state changes or style loads
-    val heat = remember(heatRoutes) { RouteAnalysis.heatSegments(heatRoutes) }
+    // densifying a long period is heavy; compute it off the UI thread
+    val heat by produceState(emptyList<HeatSegment>(), heatRoutes) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { RouteAnalysis.heatSegments(heatRoutes) }
+    }
+    val bins = remember(heat) { heatBins(heat.maxOfOrNull { it.trips } ?: 1) }
 
     // Everything on the map, for the recenter button and the first framing
     fun contentBounds(): LatLngBounds? {
@@ -254,11 +383,12 @@ fun CarMapView(
         }
     }
 
-    LaunchedEffect(isMapStyleLoaded, points, multiRoutes, extraMarkers, pinnedLocation, currentLocation, heat, focusRoutes) {
+    LaunchedEffect(isMapStyleLoaded, points, multiRoutes, extraMarkers, pinnedLocation, heat, focusRoutes, hotspots) {
         val map = mapLibreMapInstance ?: return@LaunchedEffect
         if (!isMapStyleLoaded) return@LaunchedEffect
 
         map.clear()
+        vehicleMarker[0] = null
         val iconFactory = IconFactory.getInstance(context)
 
         // 1. Draw Single Route with Speed Gradient (OsmAnd style)
@@ -342,8 +472,8 @@ fun CarMapView(
                     .title("Chegada")
             )
 
-            // Auto-frame route camera
-            if (!userInteracted) {
+            // Auto-frame route camera (a followed car keeps the camera on itself)
+            if (!userInteracted && !followVehicle) {
                 try {
                     val boundsBuilder = LatLngBounds.Builder()
                     points.forEach { boundsBuilder.include(LatLng(it.lat, it.lon)) }
@@ -378,19 +508,42 @@ fun CarMapView(
             }
         }
 
-        // 2b. Frequency map: one hue, stronger and wider where more trips share the road
+        // 2b. Frequency map: colour and width climb with the number of trips sharing the road and
+        // the busiest bin glows. Faded while a route group is focused on top of it.
         if (heat.isNotEmpty()) {
+            val fade = if (focusRoutes.isNotEmpty()) 0.35f else 1f
             heatRoutes.filter { it.size >= 2 }.forEach { route ->
-                map.addPolyline(PolylineOptions().addAll(route.map { LatLng(it.lat, it.lon) }).color(AndroidColor.parseColor("#0E0D1A")).width(7f))
+                map.addPolyline(PolylineOptions().addAll(route.map { LatLng(it.lat, it.lon) }).color(AndroidColor.parseColor("#0E0D1A")).width(6f).alpha(fade))
+            }
+            val top = bins.last()
+            if (bins.size > 1) {
+                heat.filter { it.trips >= top.min }.forEach { seg ->
+                    map.addPolyline(
+                        PolylineOptions().addAll(seg.points.map { LatLng(it.lat, it.lon) })
+                            .color(top.color.toArgb()).width(top.width + 9f).alpha(0.22f * fade)
+                    )
+                }
             }
             heat.sortedBy { it.trips }.forEach { seg ->
-                val (alpha, width) = heatStyle(seg.trips)
+                val bin = heatBinOf(bins, seg.trips)
                 map.addPolyline(
                     PolylineOptions()
                         .addAll(seg.points.map { LatLng(it.lat, it.lon) })
-                        .color(AndroidColor.argb((alpha * 255).toInt(), 0xE8, 0xFF, 0x3A))
-                        .width(width)
+                        .color(bin.color.toArgb())
+                        .width(bin.width)
+                        .alpha((if (bin == bins.first() && bins.size > 1) 0.7f else 1f) * fade)
                 )
+            }
+            if (focusRoutes.isEmpty()) {
+                hotspots.forEach { h ->
+                    map.addMarker(
+                        MarkerOptions()
+                            .position(LatLng(h.lat, h.lon))
+                            .icon(iconFactory.fromBitmap(ModernMarkerFactory.getHotspotBitmap(context, h.count)))
+                            .title(h.title)
+                            .snippet("${h.count} chegadas no período")
+                    )
+                }
             }
         }
 
@@ -399,6 +552,10 @@ fun CarMapView(
             val latLngs = route.map { LatLng(it.lat, it.lon) }
             map.addPolyline(PolylineOptions().addAll(latLngs).color(AndroidColor.parseColor("#0E0D1A")).width(10f))
             map.addPolyline(PolylineOptions().addAll(latLngs).color(AndroidColor.parseColor("#F478D9")).width(5.5f))
+        }
+        focusRoutes.firstOrNull { it.size >= 2 }?.let { r ->
+            map.addMarker(MarkerOptions().position(LatLng(r.first().lat, r.first().lon)).icon(iconFactory.fromBitmap(ModernMarkerFactory.getStartMarkerBitmap(context))).title("Partida"))
+            map.addMarker(MarkerOptions().position(LatLng(r.last().lat, r.last().lon)).icon(iconFactory.fromBitmap(ModernMarkerFactory.getEndMarkerBitmap(context))).title("Chegada"))
         }
         if (focusRoutes.isNotEmpty() || (heat.isNotEmpty() && !userInteracted)) {
             contentBounds()?.let { runCatching { map.animateCamera(CameraUpdateFactory.newLatLngBounds(it, 120)) } }
@@ -429,18 +586,51 @@ fun CarMapView(
             )
         }
 
-        // 5. Current Vehicle Location Marker
-        if (currentLocation != null) {
-            val gpsLatLng = LatLng(currentLocation.first, currentLocation.second)
-            map.addMarker(
+        // 5. Current vehicle marker: drawn by its own effect below
+        currentLocation?.let { (lat, lon) ->
+            vehicleMarker[0] = map.addMarker(
                 MarkerOptions()
-                    .position(gpsLatLng)
+                    .position(LatLng(lat, lon))
                     .icon(iconFactory.fromBitmap(ModernMarkerFactory.getGpsVehicleBitmap(context)))
                     .title("Veículo")
             )
-            if (!userInteracted && points.size < 2 && pinnedLocation == null) {
-                map.animateCamera(CameraUpdateFactory.newLatLngZoom(gpsLatLng, 16.5))
-            }
+        }
+
+        // 6. Direction of travel (the frequency map mixes both ways, so only its focused group)
+        map.style?.let { style ->
+            val directed = if (showDirectionArrows) focusRoutes + multiRoutes + listOf(points) else emptyList()
+            runCatching { drawDirectionArrows(context, style, directed) }
+        }
+    }
+
+    // Vehicle position and follow camera, without touching the routes drawn above
+    LaunchedEffect(currentLocation, vehicleBearing, followVehicle, userInteracted, isMapStyleLoaded) {
+        val map = mapLibreMapInstance ?: return@LaunchedEffect
+        if (!isMapStyleLoaded) return@LaunchedEffect
+        val loc = currentLocation
+        if (loc == null) {
+            vehicleMarker[0]?.let { runCatching { map.removeMarker(it) } }
+            vehicleMarker[0] = null
+            return@LaunchedEffect
+        }
+        val gpsLatLng = LatLng(loc.first, loc.second)
+        val marker = vehicleMarker[0]
+        if (marker != null) {
+            marker.position = gpsLatLng
+        } else {
+            vehicleMarker[0] = map.addMarker(
+                MarkerOptions()
+                    .position(gpsLatLng)
+                    .icon(IconFactory.getInstance(context).fromBitmap(ModernMarkerFactory.getGpsVehicleBitmap(context)))
+                    .title("Veículo")
+            )
+        }
+        if (userInteracted) return@LaunchedEffect
+        if (followVehicle) {
+            map.animateCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.Builder().target(gpsLatLng).zoom(16.5).tilt(35.0)
+                    .apply { vehicleBearing?.let { bearing(it.toDouble()) } }.build()), 800)
+        } else if (points.size < 2 && pinnedLocation == null) {
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(gpsLatLng, 16.5))
         }
     }
 
@@ -494,12 +684,11 @@ fun CarMapView(
                         .padding(horizontal = 8.dp, vertical = 5.dp)
                 ) {
                     Text("VIAGENS NO TRECHO", style = EyebrowStyle.copy(fontSize = 9.sp), color = TextSecondary)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        listOf(1 to "1×", 2 to "2-3×", 4 to "4-6×", 7 to "7+×").forEach { (n, label) ->
-                            val (a, w) = heatStyle(n)
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        bins.forEach { bin ->
                             Column(Modifier.padding(end = 4.dp)) {
-                                Box(Modifier.size(width = 26.dp, height = (w / 2).dp).background(CyberAcid.copy(alpha = a)))
-                                Text(label, style = monoStyle(9, FontWeight.Normal), color = TextPrimary)
+                                Box(Modifier.size(width = 30.dp, height = (bin.width / 1.6f).dp).background(bin.color))
+                                Text(bin.label, style = monoStyle(9, FontWeight.Normal), color = TextPrimary)
                             }
                         }
                     }
@@ -578,11 +767,11 @@ fun CarMapView(
                         userInteracted = false
                         onCenterGpsClicked?.invoke()
                         if (currentLocation != null) {
+                            val gpsLatLng = LatLng(currentLocation.first, currentLocation.second)
                             mapLibreMapInstance?.animateCamera(
-                                CameraUpdateFactory.newLatLngZoom(
-                                    LatLng(currentLocation.first, currentLocation.second),
-                                    16.5
-                                )
+                                if (followVehicle) CameraUpdateFactory.newCameraPosition(CameraPosition.Builder().target(gpsLatLng).zoom(16.5).tilt(35.0)
+                    .apply { vehicleBearing?.let { bearing(it.toDouble()) } }.build())
+                                else CameraUpdateFactory.newLatLngZoom(gpsLatLng, 16.5)
                             )
                         } else {
                             contentBounds()?.let { b ->

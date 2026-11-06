@@ -511,6 +511,9 @@ fun FuelScreen(
                                 val tot = l * p
                                 onAddFuel(station, l, p, tot, o, notes, isFullTank, chosenFuelType, selectedLat, selectedLon)
                                 showAddDialog = false
+                            } else {
+                                val missing = if (station.isBlank()) "o posto" else "os litros abastecidos"
+                                android.widget.Toast.makeText(context, "Informe $missing para salvar", android.widget.Toast.LENGTH_SHORT).show()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)

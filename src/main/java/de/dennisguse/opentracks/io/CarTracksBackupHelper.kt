@@ -84,6 +84,9 @@ object CarTracksBackupHelper {
                 put("isSet", spLoc.contains("work_lat"))
             }
             put("work", workObj)
+            put("favorites", de.dennisguse.opentracks.util.FavoritePlaces.toJson(
+                de.dennisguse.opentracks.util.FavoritePlaces.fromJson(spLoc.getString(de.dennisguse.opentracks.util.FavoritePlaces.KEY, null))
+            ))
         }
         root.put("locations", locObj)
 
@@ -328,6 +331,7 @@ object CarTracksBackupHelper {
                 spLoc.putString("work_lon", w.optDouble("lon", -46.6559).toString())
                 spLoc.putString("work_label", w.optString("label", "Trabalho"))
             }
+            lObj.optJSONArray("favorites")?.let { spLoc.putString(de.dennisguse.opentracks.util.FavoritePlaces.KEY, it.toString()) }
             spLoc.apply()
         }
 

@@ -21,6 +21,7 @@ import de.dennisguse.opentracks.R
  */
 object QuickControls {
     const val ACTION_TOGGLE = "de.dennisguse.cartracks.action.TOGGLE_RECORDING"
+    const val ACTION_START = "de.dennisguse.cartracks.action.START_RECORDING"
     private const val PREFS = "CarTracksPrefs"
     private const val KEY = "quick_is_recording"
 
@@ -35,10 +36,14 @@ object QuickControls {
         TileService.requestListeningState(context, ComponentName(context, RecordTileService::class.java))
     }
 
-    fun toggleIntent(context: Context): PendingIntent = PendingIntent.getActivity(
-        context, 42,
+    fun toggleIntent(context: Context): PendingIntent = activityIntent(context, 42, ACTION_TOGGLE)
+
+    fun startIntent(context: Context): PendingIntent = activityIntent(context, 43, ACTION_START)
+
+    private fun activityIntent(context: Context, requestCode: Int, action: String): PendingIntent = PendingIntent.getActivity(
+        context, requestCode,
         Intent(context, CarMainActivity::class.java)
-            .setAction(ACTION_TOGGLE)
+            .setAction(action)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     )
