@@ -1,10 +1,6 @@
 package de.dennisguse.opentracks.settings;
 
-import java.util.ArrayList;
-import java.util.Collections;
-
 import de.dennisguse.opentracks.R;
-import de.dennisguse.opentracks.ui.customRecordingLayout.CsvLayoutUtils;
 
 class PreferencesOpenHelper {
 
@@ -39,29 +35,14 @@ class PreferencesOpenHelper {
     }
 
     private void upgradeFrom0to1() {
-        String preferenceValue = PreferencesUtils.getString(R.string.stats_custom_layouts_key, "");
-        if (preferenceValue.isEmpty()) {
-            PreferencesUtils.setString(R.string.stats_custom_layouts_key, PreferencesUtils.buildDefaultLayout());
-        }
+        // No-op: customizable recording layout was removed.
     }
 
     private void upgradeFrom1to2() {
-        String csvVersion1CustomLayout = PreferencesUtils.getString(R.string.stats_custom_layouts_key, PreferencesUtils.buildDefaultLayout());
-        ArrayList<String> parts = new ArrayList<>();
-        Collections.addAll(parts, csvVersion1CustomLayout.split(CsvLayoutUtils.ITEM_SEPARATOR));
-
-        if (parts.size() < 2) {
-            PreferencesUtils.setString(R.string.stats_custom_layouts_key, PreferencesUtils.buildDefaultLayout());
-            return;
-        }
-
-        if (!parts.get(1).matches("\\d+")) {
-            parts.add(1, String.valueOf(2));
-        }
-        PreferencesUtils.setString(R.string.stats_custom_layouts_key, String.join(CsvLayoutUtils.ITEM_SEPARATOR, parts));
+        // No-op: customizable recording layout was removed.
     }
 
     private void onDowngrade() {
-        PreferencesUtils.setString(R.string.stats_custom_layouts_key, PreferencesUtils.buildDefaultLayout());
+        // No-op: customizable recording layout was removed.
     }
 }

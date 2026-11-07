@@ -24,8 +24,6 @@ import android.content.res.Resources;
 import android.net.Uri;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.preference.PreferenceManager;
@@ -33,11 +31,9 @@ import androidx.preference.PreferenceManager;
 import com.google.android.material.color.DynamicColors;
 
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 import de.dennisguse.opentracks.R;
 import de.dennisguse.opentracks.data.models.ActivityType;
@@ -49,16 +45,12 @@ import de.dennisguse.opentracks.data.models.Track;
 import de.dennisguse.opentracks.io.file.TrackFileFormat;
 import de.dennisguse.opentracks.io.file.TrackFilenameGenerator;
 import de.dennisguse.opentracks.sensors.driver.SensorType;
-import de.dennisguse.opentracks.ui.customRecordingLayout.DataField;
-import de.dennisguse.opentracks.ui.customRecordingLayout.RecordingLayout;
-import de.dennisguse.opentracks.ui.customRecordingLayout.RecordingLayoutIO;
 
 /**
  * Utilities to access preferences stored in {@link SharedPreferences}.
  *
  * @author Jimmy Shih
  */
-//TODO Separate layout-related preferences into a class
 public class PreferencesUtils {
 
     private final static String TAG = PreferencesUtils.class.getSimpleName();
@@ -813,104 +805,6 @@ public class PreferencesUtils {
 
     public static boolean isDefaultExportDirectoryUri() {
         return getDefaultExportDirectoryUri() != null;
-    }
-
-    public static RecordingLayout getDefaultLayout() {
-        //TODO We could merge this with Mapping, right?
-        List<DataField> defaultFields = List.of(
-                new DataField(resources.getString(R.string.stats_custom_layout_distance_key), true, true, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_total_time_key), true, true, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_speed_key), true, true, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_moving_time_key), true, true, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_average_speed_key), true, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_max_speed_key), true, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_average_moving_speed_key), true, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_altitude_key), true, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_gain_key), true, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_loss_key), true, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_pace_key), false, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_average_moving_pace_key), false, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_average_pace_key), false, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_average_segment_pace_key), false, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_elapsed_segment_time_key), false, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_fastest_pace_key), false, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_coordinates_key), false, false, true),
-                new DataField(resources.getString(R.string.stats_custom_layout_heart_rate_key), false, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_cadence_key), false, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_power_key), false, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_clock_key), false, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_fuel_key), true, false, false),
-                new DataField(resources.getString(R.string.stats_custom_layout_temperature_key), false, false, false)
-        );
-
-        RecordingLayout defaultLayout = new RecordingLayout(resources.getString(R.string.stats_custom_layout_default_layout), 2);
-        defaultLayout.addFields(defaultFields);
-        return defaultLayout;
-    }
-
-    static String buildDefaultLayout() {
-        return RecordingLayoutIO.toCSV(List.of(getDefaultLayout()));
-    }
-
-    public static RecordingLayout getCustomLayout() {
-        String selectedLayout = getSelectedLayoutName();
-        String csvCustomLayouts = getString(R.string.stats_custom_layouts_key, buildDefaultLayout());
-
-        List<RecordingLayout> recordingLayouts = RecordingLayoutIO.fromCsv(csvCustomLayouts, resources);
-
-        RecordingLayout fallback = !recordingLayouts.isEmpty() ? recordingLayouts.get(0) : getDefaultLayout();
-
-        return recordingLayouts.stream()
-                .filter(it -> it.sameName(selectedLayout))
-                .findFirst()
-                .orElse(fallback);
-    }
-
-    public static void updateCustomLayouts(@NonNull List<RecordingLayout> recordingLayouts) {
-        setString(R.string.stats_custom_layouts_key, RecordingLayoutIO.toCSV(recordingLayouts));
-    }
-
-    public static void updateCustomLayout(@NonNull RecordingLayout recordingLayout) {
-        List<RecordingLayout> preferenceRecordingLayouts = PreferencesUtils.getAllCustomLayouts();
-        Optional<RecordingLayout> layoutToBeUpdated = preferenceRecordingLayouts.stream().filter(l -> l.sameName(recordingLayout)).findFirst();
-        if (layoutToBeUpdated.isPresent()) {
-            layoutToBeUpdated.get().replaceAllFields(recordingLayout.getFields());
-            layoutToBeUpdated.get().setColumnsPerRow(recordingLayout.getColumnsPerRow());
-            PreferencesUtils.updateCustomLayouts(preferenceRecordingLayouts);
-        }
-    }
-
-    public static void addCustomLayout(@NonNull String layoutName) {
-        ArrayList<RecordingLayout> currentLayouts = new ArrayList<>(PreferencesUtils.getAllCustomLayouts());
-
-        RecordingLayout newCustomLayout = RecordingLayout.fromDefault(layoutName);
-
-        currentLayouts.add(newCustomLayout);
-
-        setString(R.string.stats_custom_layouts_key, RecordingLayoutIO.toCSV(currentLayouts));
-    }
-
-    @Nullable
-    public static String getSelectedLayoutName() {
-        return getString(R.string.stats_custom_layout_selected_layout_key, null);
-    }
-
-    public static void setSelectedLayoutName(String layoutName) {
-        setString(R.string.stats_custom_layout_selected_layout_key, layoutName);
-    }
-
-    public static List<RecordingLayout> getAllCustomLayouts() {
-        String csvCustomLayouts = getString(R.string.stats_custom_layouts_key, buildDefaultLayout());
-
-        return RecordingLayoutIO.fromCsv(csvCustomLayouts, resources);
-    }
-
-    public static void resetCustomLayoutPreferences() {
-        if (sharedPreferences.contains(resources.getString(R.string.stats_custom_layouts_key))) {
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.remove(resources.getString(R.string.stats_custom_layouts_key));
-            editor.commit();
-        }
     }
 
     public static int getTotalRowsDeleted() {
