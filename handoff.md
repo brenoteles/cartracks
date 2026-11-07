@@ -86,6 +86,7 @@ Ferramentas usadas na limpeza: grafo de classes com `jdeps -verbose:class`; `./g
 - **Retrospectiva**: `ui/screens/YearRecapScreen.kt` (Gemini 4 Argon), cidades via Geocoder em `CarMainActivity.buildYearRecap`. O cartão de entrada só aparece em dezembro (ano corrente) e janeiro (ano anterior): `recapYear()` em `InsightsSection.kt`.
 - **Ajustes**: `SettingsScreen.kt` redesenhado pelo Gemini 3.8 Flash; mesmas chaves de prefs.
 - Widget `MonthCostWidget` agora mostra os últimos 7 dias (nome da classe mantido).
+- Depois da ultrareview: `loadTrips` roda em IO, então `tripsLoadedState` segura o `notifyDue` de manutenção e a publicação dos widgets até a primeira carga; o widget semanal se refaz a cada 3 h (`updatePeriodMillis`) e após atualizar o app; todo auto-stop (`endTripAndPark`) atualiza os widgets; selo de recorde só quando o recorde vem de dado mais novo (`atMs` maior); o primeiro mês (parcial) não conta para "mês mais barato"; insights ocultos voltam por um botão em Ajustes → Notificações.
 
 ## 7. Ideias pendentes (já discutidas com o usuário)
 

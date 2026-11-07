@@ -76,6 +76,8 @@ class CarMainActivity : ComponentActivity() {
 
     // Compose State Holders
     private val tripsState = mutableStateOf<List<TripItem>>(emptyList())
+    /** False until the first trip load finishes: the odometer and widgets need the recorded km. */
+    private val tripsLoadedState = mutableStateOf(false)
     private val fuelState = mutableStateOf<List<FuelItem>>(emptyList())
     private val liveCockpitState = mutableStateOf(LiveCockpitData())
     private val homeLocationState = mutableStateOf(CustomLocation(-23.6015, -46.6900, "Casa", false))
@@ -324,7 +326,8 @@ class CarMainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        MaintenanceStore.notifyDue(this, getCurrentOdometer())
+        // before the first load the odometer lacks the recorded km and would reset the "due" marks
+        if (tripsLoadedState.value) MaintenanceStore.notifyDue(this, getCurrentOdometer())
         startLocationUpdates()
         checkBatteryOptimization()
         loadParkingInfo()
@@ -552,7 +555,13 @@ class CarMainActivity : ComponentActivity() {
                 TripLoader.loadTrips(this@CarMainActivity, providerUtils, model, homeLocationState.value, workLocationState.value, favoritesState.value)
             }
             // a later reload (new place, edited consumption) may have finished first
-            if (generation == tripLoadGeneration) tripsState.value = list
+            if (generation != tripLoadGeneration) return@launch
+            tripsState.value = list
+            if (!tripsLoadedState.value) {
+                tripsLoadedState.value = true
+                // onResume ran before the trips were there; the odometer is only right now
+                MaintenanceStore.notifyDue(this@CarMainActivity, getCurrentOdometer())
+            }
         }
     }
 
@@ -851,6 +860,7 @@ class CarMainActivity : ComponentActivity() {
 
         var reminderEnabled by remember { mutableStateOf(de.dennisguse.opentracks.util.CarOffReminder.isEnabled(this@CarMainActivity)) }
         var reminderItems by remember { mutableStateOf(de.dennisguse.opentracks.util.CarOffReminder.items(this@CarMainActivity)) }
+        var hiddenInsights by remember(selectedTab) { mutableStateOf(de.dennisguse.opentracks.util.InsightStore.hidden(this@CarMainActivity).size) }
         var weeklyEnabled by remember { mutableStateOf(de.dennisguse.opentracks.services.WeeklySummary.isEnabled(this@CarMainActivity)) }
 
         val widgetNav by widgetNavState
@@ -869,6 +879,7 @@ class CarMainActivity : ComponentActivity() {
             }
             selectedTab = tab
             recapYear = null
+            reportOnLastWeek = false
             if (tripId >= 0) {
                 // wait for the trip list to load before opening the trip
                 activeDetailTrip = trips.firstOrNull { it.id == tripId } ?: return@LaunchedEffect
@@ -883,8 +894,9 @@ class CarMainActivity : ComponentActivity() {
             widgetNavState.value = null
         }
         val expenses by expensesState
-        LaunchedEffect(trips, fuelEntries, expenses, tankCapacity, consumptionState.value) {
-            publishWidgetSnapshot(trips, fuelEntries, expenses)
+        val tripsLoaded by tripsLoadedState
+        LaunchedEffect(trips, fuelEntries, expenses, tankCapacity, consumptionState.value, tripsLoaded) {
+            if (tripsLoaded) publishWidgetSnapshot(trips, fuelEntries, expenses)
         }
 
         // System Back Gesture Handlers - Never accidentally closes the app!
@@ -1152,7 +1164,7 @@ class CarMainActivity : ComponentActivity() {
                         },
                         onDeleteTrip = { tripId -> deleteTrip(tripId) },
                         onUpdateTrip = { tripId, name, desc -> updateTrip(tripId, name, desc) },
-                        onOpenReport = { isReportOpen = true }
+                        onOpenReport = { reportOnLastWeek = false; isReportOpen = true }
                     )
                     2 -> CostsScreen(
                         fills = fuelEntries,
@@ -1254,9 +1266,18 @@ class CarMainActivity : ComponentActivity() {
                             de.dennisguse.opentracks.services.WeeklySummary.setEnabled(this@CarMainActivity, it)
                             weeklyEnabled = it
                         },
+                        hiddenInsightsCount = hiddenInsights,
+                        onRestoreInsights = {
+                            de.dennisguse.opentracks.util.InsightStore.unhideAll(this@CarMainActivity)
+                            hiddenInsights = 0
+                            Toast.makeText(this@CarMainActivity, "Insights ocultos voltam a aparecer no Início.", Toast.LENGTH_SHORT).show()
+                        },
                         onTestWeeklySummary = {
                             val app = applicationContext
-                            Thread { de.dennisguse.opentracks.services.WeeklySummary.post(app) }.start()
+                            Thread {
+                                runCatching { de.dennisguse.opentracks.services.WeeklySummary.post(app) }
+                                    .onFailure { android.util.Log.w("CarMainActivity", "Weekly summary failed", it) }
+                            }.start()
                             Toast.makeText(this@CarMainActivity, "Resumo da semana enviado às notificações.", Toast.LENGTH_SHORT).show()
                         }
                     )

@@ -36,7 +36,11 @@ object InsightStore {
         val previous = load(p.getString(KEY_RECORDS, null))
         val edit = p.edit()
         if (previous.isNotEmpty()) {
-            DrivingInsights.brokenRecords(previous, current).forEach { edit.putLong(KEY_BROKEN_PREFIX + it.kind.name, nowMs) }
+            val before = previous.associateBy { it.kind }
+            DrivingInsights.brokenRecords(previous, current)
+                // re-priced or re-badged old trips can improve a value too; only newer data sets a record
+                .filter { it.atMs > (before[it.kind]?.atMs ?: Long.MAX_VALUE) }
+                .forEach { edit.putLong(KEY_BROKEN_PREFIX + it.kind.name, nowMs) }
         }
         edit.putString(KEY_RECORDS, save(current)).apply()
         return RecordKind.values().filter { k ->

@@ -191,6 +191,8 @@ class LastTripWidget : AppWidgetProvider() {
 class MonthCostWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         ids.forEach { manager.updateAppWidget(it, views(context)) }
+        // the 7-day window slides even when nothing new is recorded: rebuild it on every periodic update
+        CarWidgets.refreshFromDatabase(context)
     }
 
     companion object {

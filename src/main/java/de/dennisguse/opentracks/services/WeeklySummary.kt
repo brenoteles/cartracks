@@ -104,13 +104,20 @@ class WeeklySummaryReceiver : BroadcastReceiver() {
                 Thread {
                     try {
                         WeeklySummary.post(context)
+                    } catch (e: Exception) {
+                        android.util.Log.w("WeeklySummary", "Weekly summary failed", e)
                     } finally {
                         WeeklySummary.schedule(context)
                         pending.finish()
                     }
                 }.start()
             }
-            Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> WeeklySummary.schedule(context)
+            Intent.ACTION_BOOT_COMPLETED -> WeeklySummary.schedule(context)
+            Intent.ACTION_MY_PACKAGE_REPLACED -> {
+                WeeklySummary.schedule(context)
+                // the stored widget snapshot may still have an older app version's shape
+                CarWidgets.refreshFromDatabase(context)
+            }
         }
     }
 }

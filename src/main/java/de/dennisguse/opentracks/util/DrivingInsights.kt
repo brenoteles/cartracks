@@ -460,8 +460,9 @@ object DrivingInsights {
         val firstTripMonth = tripsByMonth.keys.minOrNull() ?: return null
         val expensesByMonth = expenses.groupBy { YearMonth.from(Instant.ofEpochMilli(it.dateTime).atZone(zone)) }
 
+        // the first month is partial (the app was installed during it), so its total is not comparable
         val candidateMonths = tripsByMonth.keys.filter { ym ->
-            ym >= firstTripMonth && ym < currentMonth && !tripsByMonth[ym].isNullOrEmpty()
+            ym > firstTripMonth && ym < currentMonth && !tripsByMonth[ym].isNullOrEmpty()
         }
         if (candidateMonths.isEmpty()) return null
 

@@ -23,6 +23,7 @@ object CarNotifications {
     private const val ID_CAR_CONNECTED = 2002
     private const val ID_MAINTENANCE_BASE = 3000
     private const val ID_WEEKLY = 2003
+    private const val ID_CAR_OFF = 2004
     private const val CHANNEL_SUMMARY = "cartracks_weekly"
 
     private fun ensureChannels(context: Context) {
@@ -97,16 +98,21 @@ object CarNotifications {
     }
 
     /**
-     * Car Bluetooth went off: "Viagem salva · confira celular, carteira e porta-malas". Uses the
-     * auto-stop id, so it replaces the plain "encerrada automaticamente" notice.
+     * Car Bluetooth went off: "Viagem salva · confira celular, carteira e porta-malas". When a trip
+     * was saved it uses the auto-stop id, replacing the plain "encerrada automaticamente" notice.
      */
     @JvmStatic
     fun carOffReminder(context: Context, tripSaved: Boolean) {
         if (!canPost(context) || !CarOffReminder.isEnabled(context)) return
         ensureChannels(context)
         val items = CarOffReminder.checklist(CarOffReminder.items(context))
+        // with no checklist and no trip ended there is nothing true to say
+        if (items.isEmpty() && !tripSaved) return
         val title = if (tripSaved) "Viagem salva" else "Carro desligado"
-        val text = if (items.isEmpty()) "Local de estacionamento salvo." else "Confira $items."
+        val text = when {
+            items.isNotEmpty() -> "Confira $items."
+            else -> "Viagem e local de estacionamento salvos."
+        }
         val n = NotificationCompat.Builder(context, CHANNEL_CAR)
             .setSmallIcon(R.drawable.ic_logo_color_24dp)
             .setContentTitle(title)
@@ -118,7 +124,8 @@ object CarNotifications {
             .setTimeoutAfter(30 * 60 * 1000L)
             .setAutoCancel(true)
             .build()
-        NotificationManagerCompat.from(context).notify(ID_AUTO_STOP, n)
+        // only a saved trip replaces the plain auto-stop notice; otherwise keep that notice visible
+        NotificationManagerCompat.from(context).notify(if (tripSaved) ID_AUTO_STOP else ID_CAR_OFF, n)
     }
 
     /** Sunday summary; tapping opens the report on the last 7 days. */

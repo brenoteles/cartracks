@@ -80,6 +80,8 @@ fun ReportScreen(
     val context = LocalContext.current
     val zone = ZoneId.systemDefault()
     var period by remember { mutableStateOf(if (startOnLastWeek) ReportPeriod.SEVEN else ReportPeriod.MONTH) }
+    // the weekly notification can arrive while the report is already open on another period
+    LaunchedEffect(startOnLastWeek) { if (startOnLastWeek) period = ReportPeriod.SEVEN }
     var customStart by remember { mutableStateOf<Long?>(null) }
     var customEnd by remember { mutableStateOf<Long?>(null) }
     var showPicker by remember { mutableStateOf(false) }

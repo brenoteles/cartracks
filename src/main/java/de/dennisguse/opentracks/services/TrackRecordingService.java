@@ -364,6 +364,8 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
         if (reason != null) {
             de.dennisguse.opentracks.util.CarNotifications.autoStopped(this, reason);
         }
+        // the app may be closed: rebuild what the home-screen widgets show
+        CarWidgets.INSTANCE.refreshFromDatabase(this);
         stopSelf();
     }
 

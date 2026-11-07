@@ -44,7 +44,6 @@ public class AutoTrackingReceiver extends BroadcastReceiver {
                 TrackRecordingServiceConnection.execute(app, (service, connection) -> {
                     service.endTripAndPark(remind ? null : "Bluetooth do carro desligado. Viagem e local de estacionamento salvos.");
                     if (remind) CarNotifications.carOffReminder(app, true);
-                    CarWidgets.INSTANCE.refreshFromDatabase(app);
                 });
             } else if (remind) {
                 CarNotifications.carOffReminder(context, false);

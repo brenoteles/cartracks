@@ -79,7 +79,9 @@ fun SettingsScreen(
     onSaveReminder: (enabled: Boolean, items: List<String>) -> Unit = { _, _ -> },
     weeklySummaryEnabled: Boolean = true,
     onWeeklySummaryChange: (Boolean) -> Unit = {},
-    onTestWeeklySummary: () -> Unit = {}
+    onTestWeeklySummary: () -> Unit = {},
+    hiddenInsightsCount: Int = 0,
+    onRestoreInsights: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -839,6 +841,17 @@ fun SettingsScreen(
                         modifier = Modifier.padding(start = 48.dp),
                         onClick = onTestWeeklySummary
                     )
+                    if (hiddenInsightsCount > 0) {
+                        Spacer(Modifier.height(8.dp))
+                        CyberGhostButton(
+                            text = if (hiddenInsightsCount == 1) "Mostrar 1 insight oculto" else "Mostrar $hiddenInsightsCount insights ocultos",
+                            icon = Icons.Default.Visibility,
+                            accent = CyberAcid,
+                            height = 32.dp,
+                            modifier = Modifier.padding(start = 48.dp),
+                            onClick = onRestoreInsights
+                        )
+                    }
                 }
             }
         }
