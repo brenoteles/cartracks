@@ -75,7 +75,6 @@ class CarMainActivity : ComponentActivity() {
     private val homeLocationState = mutableStateOf(CustomLocation(-23.6015, -46.6900, "Casa", false))
     private val workLocationState = mutableStateOf(CustomLocation(-23.5615, -46.6559, "Trabalho", false))
     private val favoritesState = mutableStateOf<List<FavoritePlace>>(emptyList())
-    private val routeGroupsState = mutableStateOf<List<Pair<de.dennisguse.opentracks.util.RouteGroup, String>>>(emptyList())
     private val currentGpsState = mutableStateOf<Pair<Double, Double>?>(null)
     private val liveKalmanFilter = GpsKalmanFilter(processNoiseSigma = 2.5)
     private val parkingInfoState = mutableStateOf<ParkingInfo?>(null)
@@ -618,24 +617,6 @@ class CarMainActivity : ComponentActivity() {
                 e.printStackTrace()
             }
             tripsState.value = list
-            refreshRouteGroups(list)
-        }
-    }
-
-    /** Recurring routes of the last 60 days for the dashboard's best departure time card. */
-    private fun refreshRouteGroups(trips: List<TripItem>) {
-        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val since = System.currentTimeMillis() - 60L * 24 * 3600 * 1000
-            val traces = trips.filter { it.startTimeMs >= since }.map { t ->
-                de.dennisguse.opentracks.util.TripTrace(t.id, t.startTimeMs, t.durationMin, t.distanceKm, getTripPoints(t.id))
-            }
-            val home = homeLocationState.value
-            val work = workLocationState.value
-            val named = de.dennisguse.opentracks.util.RouteAnalysis.groupRoutes(traces).filter { it.count >= 2 }.map { g ->
-                g to "${de.dennisguse.opentracks.util.PlaceNames.label(this@CarMainActivity, g.startLat, g.startLon, home, work)} → " +
-                    de.dennisguse.opentracks.util.PlaceNames.label(this@CarMainActivity, g.endLat, g.endLon, home, work)
-            }
-            routeGroupsState.value = named
         }
     }
 
@@ -1118,7 +1099,6 @@ class CarMainActivity : ComponentActivity() {
                         estimatedKmL = consumptionState.value.let { it.baseKmL(it.currentFamily()) },
                         odometerKm = getCurrentOdometer(),
                         parkingInfo = parkingInfoState.value,
-                        routeGroups = routeGroupsState.value,
                         onNavigateToParking = { lat, lon ->
                             try {
                                 val uri = Uri.parse("google.navigation:q=$lat,$lon&mode=w")

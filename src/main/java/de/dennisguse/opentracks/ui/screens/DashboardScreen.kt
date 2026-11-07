@@ -27,7 +27,6 @@ import de.dennisguse.opentracks.ui.model.LiveCockpitData
 import de.dennisguse.opentracks.ui.model.ParkingInfo
 import de.dennisguse.opentracks.ui.model.TripItem
 import de.dennisguse.opentracks.ui.theme.*
-import de.dennisguse.opentracks.util.RouteGroup
 import java.util.Locale
 
 @Composable
@@ -43,8 +42,6 @@ fun DashboardScreen(
     estimatedKmL: Double = 12.0,
     odometerKm: Double = 0.0,
     parkingInfo: ParkingInfo? = null,
-    /** Recurring routes with their "Origem → Destino" names, for the best departure time card. */
-    routeGroups: List<Pair<RouteGroup, String>> = emptyList(),
     onNavigateToParking: ((Double, Double) -> Unit)? = null,
     onClearParking: (() -> Unit)? = null,
     onEditOdometerClicked: (() -> Unit)? = null,
@@ -200,48 +197,6 @@ fun DashboardScreen(
                 }
             }
         }
-
-        // Best departure time of the most frequent route whose duration depends on the hour
-        routeGroups
-            .filter { (g, _) ->
-                val best = g.bestHourAvgMin
-                val worst = g.worstHourAvgMin
-                g.bestHour != null && g.worstHour != null && best != null && worst != null && worst - best >= 1.0
-            }
-            .maxByOrNull { (g, _) -> g.count }
-            ?.let { (g, routeName) ->
-                val bestMin = Math.round(g.bestHourAvgMin!!).toInt()
-                val worstMin = Math.round(g.worstHourAvgMin!!).toInt()
-                val saved = (worstMin - bestMin).coerceAtLeast(1)
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .cyberPanel(border = CyberAcid)
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(Modifier.size(44.dp).background(CyberAcid, RectangleShape), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.Schedule, contentDescription = null, tint = CyberOnAcid, modifier = Modifier.size(26.dp))
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("MELHOR HORÁRIO DE SAÍDA", style = EyebrowStyle, color = CyberAcid)
-                                CyberChip(text = "-$saved MIN", color = CyberGreen)
-                            }
-                            Spacer(Modifier.height(2.dp))
-                            Text(routeName, style = displayStyle(20), color = CyberText, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Saindo às ${g.bestHour}h: $bestMin min · às ${g.worstHour}h: $worstMin min · economia de $saved min",
-                                style = monoStyle(11, FontWeight.Normal),
-                                color = CyberTextSecondary
-                            )
-                        }
-                    }
-                }
-            }
 
         // Totals grid
         item {
