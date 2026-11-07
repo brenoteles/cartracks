@@ -1,6 +1,6 @@
 # CarTracks — handoff para a próxima sessão
 
-Leia isto primeiro. Estado em 2026-11-07: v1.0.25 publicada; v1.0.26 (correção dos widgets) e v1.0.27 (resumo semanal, recordes, insights, retrospectiva, Ajustes novos) instaladas no aparelho, ainda não publicadas.
+Leia isto primeiro. Estado em 2026-11-07, após a v1.0.27 (resumo semanal, recordes, insights, retrospectiva, Ajustes novos; inclui a correção dos widgets da v1.0.26), publicada.
 
 ## 1. O que é
 
@@ -38,8 +38,7 @@ $ADB install -r <apk>                                               # mantém os
 
 ## 4. Estado do git
 
-- v1.0.26 commitada em `main`; v1.0.27 no branch `v1.0.27` (para o /code-review ultra). Nenhuma das duas tem tag/release ainda.
-- Tudo publicado até **v1.0.25** (tags e releases no GitHub com o APK; v1.0.25 é a "Latest", 22,0 MB).
+- Tudo publicado até **v1.0.27** (tags e releases no GitHub com o APK; v1.0.27 é a "Latest", 22,5 MB). A v1.0.26 não tem tag própria: foi junto na v1.0.27.
 - `Instrucoes Claude.txt` na raiz é do usuário: nunca commitar.
 
 ## 5. Mapa do código (`src/main/java/de/dennisguse/opentracks/`)
