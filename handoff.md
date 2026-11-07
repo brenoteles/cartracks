@@ -1,6 +1,6 @@
 # CarTracks — handoff para a próxima sessão
 
-Leia isto primeiro. Estado em 2026-11-06, após a v1.0.23 (limpeza da base OpenTracks).
+Leia isto primeiro. Estado em 2026-11-07, após a v1.0.24 (fase 2 da limpeza + R8).
 
 ## 1. O que é
 
@@ -13,7 +13,7 @@ App Android (Kotlin/Java, Jetpack Compose, MapLibre 11.13) que grava viagens de 
 ## 2. Regras que não podem ser quebradas (dados instalados)
 
 - `applicationId` `de.dennisguse.cartracks` (+ `.debug` no build usado) e assinatura com `~/.android/debug.keystore` (SHA-256 começa `d4289667…bcc3d`). Conferir com `apksigner verify --print-certs` antes de instalar.
-- `versionCode` só sobe (está em **6773** na v1.0.23, em `build.gradle` → `defaultConfig`).
+- `versionCode` só sobe (está em **6774** na v1.0.24, em `build.gradle` → `defaultConfig`).
 - Não mudar esquema do banco (`CustomSQLiteOpenHelper`, versão 42), colunas de `data/tables/*`, nem chaves de SharedPreferences sem migração. Arquivos de prefs: `CarTracksPrefs`, `CarTracksParking`, `CarTracksLocations` (Casa/Trabalho/`favorites_json`) e o padrão `<pacote>_preferences`.
 - Os modelos `HeartRate`, `Cadence`, `Power`, `Temperature` mapeiam colunas que existem no banco: **não apagar** mesmo que os sensores saiam.
 
@@ -29,6 +29,8 @@ $ADB install -r <apk>                                               # mantém os
 ```
 
 - APK só `arm64-v8a` (`ndk.abiFilters`); adicionar `x86_64` para emulador.
+- **R8 ligado no build `debug`** (desde a v1.0.24): `minifyEnabled` + `shrinkResources`, regras em `proguard-rules.pro` com `-dontobfuscate` (nomes de enums gravados no banco/prefs/backup, como `ExpenseCategory`, `MaintenanceStatus` e `FuelFamily`, precisam continuar iguais) e MapLibre mantido inteiro por causa do JNI. Não adicionar `-keep androidx.compose.**`, porque traria de volta os ícones (~50 MB de dex). Classe nova acessada só por reflexão ou JNI precisa de regra.
+- **Para medir o tamanho, rodar `./gradlew clean` antes**: o empacotamento incremental do debug deixa espaço vazio no APK (o arquivo chegou a 39 MB com 21 MB de conteúdo).
 - Copiar o APK para `C:\Users\death\Desktop\CarTracks_v1.0.x.apk`.
 - Testar no aparelho: `adb shell input tap` + `adb exec-out screencap -p` (tela 1440×3120; abas no rodapé em y≈2930: Início x≈199, Viagens 544, Custos 870, Ajustes 1246). `uiautomator dump /dev/tty` (com `MSYS_NO_PATHCONV=1`) acha coordenadas por texto.
 - **Publicar só quando o usuário pedir** ("publique"). Fluxo: commit → `git tag -a vX` → `git push origin main` + tag → `gh release create vX <apk> --notes-file <md UTF-8>` (o `gh` está logado; atalho em `~/bin/gh`). Notas sempre em arquivo UTF-8 (acentos já quebraram na v1.0.17).
@@ -36,7 +38,8 @@ $ADB install -r <apk>                                               # mantém os
 
 ## 4. Estado do git
 
-- Tudo publicado até **v1.0.23** (tags e releases no GitHub com o APK; v1.0.23 é a "Latest").
+- Publicado até **v1.0.23** (tags e releases no GitHub com o APK; v1.0.23 é a "Latest").
+- **v1.0.24 só local**: 4 commits (itens 1 a 4 da fase 2) mais o do R8 (item 5), ainda sem push, sem tag e sem release. APK em `Desktop\CarTracks_v1.0.24.apk` (21,9 MB), já instalado e testado no aparelho. Publicar quando o usuário pedir.
 - `Instrucoes Claude.txt` na raiz é do usuário: nunca commitar.
 
 ## 5. Mapa do código (`src/main/java/de/dennisguse/opentracks/`)
@@ -54,18 +57,15 @@ $ADB install -r <apk>                                               # mantém os
 
 Testes JVM em `src/test/java` (RouteAnalysis, HeatBins, FavoritePlaces, TripReplay, TrafficAnalysis, consumo…).
 
-## 6. Fase 2 da limpeza — ponto de partida da próxima grande atualização
+## 6. Fase 2 da limpeza — concluída na v1.0.24
 
-O que sobrou do OpenTracks está preso ao núcleo de gravação; tirar exige editar o serviço. Fazer com cuidado, um item por commit, testando uma gravação real curta no aparelho depois de cada um.
+Feito, um item por commit, com gravação de teste no aparelho: anúncios de voz, sensores Bluetooth de esporte (a gravação usa só GPS + barômetro interno; colunas de sensor gravam `null`), layout de gravação customizável (Gemini), `PreferencesUtils` de 823 para 370 linhas sem `androidx.preference` (mesmo arquivo `<pacote>_preferences`), 157 recursos sem uso, e R8. APK de 38,7 para 21,9 MB.
 
-1. **Anúncios de voz** — `services/announcement/*`, `ui/intervals/IntervalStatisticsUpdater`, dependência `androidx.mediarouter`, `<queries>` de `TTS_SERVICE`, `res/raw/tts_fallback.mp3`. Estão desligados por padrão e não há tela para ligar. Remover o campo e as chamadas em `TrackRecordingService` (onCreate/onDestroy).
-2. **Sensores Bluetooth de esporte** — handlers de frequência cardíaca, cadência, potência, corrida e temperatura em `sensors/`, drivers BLE em `sensors/driver/` (manter `GpsInternal`, `BarometerInternal`, `Driver`, `DriverObserver`), agregadores em `sensors/sensorData/` (manter `AggregatorGPS`, `AggregatorBarometer`). Ajustar `SensorManager`, `SensorDataSet` e `TrackPointCreator` para não criar/ler esses handlers; gravar `null` nas colunas de sensor. Depois tirar `BLUETOOTH_SCAN` e a feature `bluetooth_le` (manter `BLUETOOTH_CONNECT`, usado pelo Bluetooth do carro). `HeartRateZones` sai junto.
-3. **Layout de gravação customizável** — `ui/customRecordingLayout/*` e as preferências correspondentes em `PreferencesUtils`.
-4. **`PreferencesUtils` (≈800 linhas)** — muitos getters de recursos removidos (gráficos, importação, Health Connect, API pública). Apagar os que ficarem sem uso depois dos itens acima; recriar `res/values/settings.xml` só com o necessário. O `androidx.preference` pode sair trocando `PreferenceManager.getDefaultSharedPreferences` por `getSharedPreferences("<pacote>_preferences")` (mesmo arquivo, dados preservados).
-5. **Tamanho do código (~21 MB de dex)** — principalmente `material-icons-extended`. Opções: ligar R8 (`minifyEnabled`) no build usado, com regras para MapLibre/ContentProvider, testando bem; ou trocar por ícones próprios.
-6. Depois de tudo, renomear o pacote `de.dennisguse.opentracks` só se o usuário quiser — **sem** mudar o `applicationId`/authority do ContentProvider.
+O que ainda dá para fazer, se o usuário quiser:
+- Renomear o pacote `de.dennisguse.opentracks` **sem** mudar o `applicationId` nem a authority do ContentProvider.
+- `ShareContentProvider`, `TrackFileFormat` com KMZ/CSV e restos de `publicapi/` ainda existem; conferir o uso com `jdeps` antes de tirar.
 
-Ferramenta usada na limpeza (reutilizável): grafo de classes com `jdeps -verbose:class` sobre `build/intermediates/built_in_kotlinc/.../classes` e `build/intermediates/javac/.../classes`, partindo só do manifesto (não das XMLs de res), + `./gradlew lintIrreproducibleDebug` (`UnusedResources`). Cuidado ao remover entradas de `values/*.xml` por regex: comentário na mesma linha fez o regex engolir a entrada vizinha uma vez — validar que só saiu o que o lint listou.
+Ferramentas usadas na limpeza: grafo de classes com `jdeps -verbose:class`; `./gradlew lintIrreproducibleDebug` (`UnusedResources`; o lint grava estilos com `_` no lugar de `.`); remoção de recurso validada comparando os nomes antes/depois com a lista do lint.
 
 ## 7. Ideias pendentes (já discutidas com o usuário)
 
