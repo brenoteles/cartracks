@@ -199,20 +199,27 @@ fun TripDetailScreen(
         Box(Modifier.fillMaxWidth().height(2.dp).background(CyberAcid))
 
         if (isMapMaximized) {
-            Box(Modifier.fillMaxSize()) {
-                CarMapView(
-                    points = displayPoints,
-                    modifier = Modifier.fillMaxSize(),
-                    currentLocation = mapCar,
-                    vehicleBearing = frame?.bearing,
-                    animateVehicle = false,
-                    keepVehicleInView = playing,
-                    onRoutePointTapped = onRouteTapped,
-                    pinnedLocation = tappedIndex?.let { points[it].lat to points[it].lon },
-                    pinnedTitle = "Ponto da viagem",
-                    floatingControlsBottomPadding = 150.dp
-                )
-                Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(CyberInk.copy(alpha = 0.92f))) {
+            // The map ends above the replay panel, so its buttons never cover the panel's readouts.
+            Column(Modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxWidth().weight(1f)) {
+                    CarMapView(
+                        points = displayPoints,
+                        modifier = Modifier.fillMaxSize(),
+                        currentLocation = mapCar,
+                        vehicleBearing = frame?.bearing,
+                        animateVehicle = false,
+                        keepVehicleInView = playing,
+                        onRoutePointTapped = onRouteTapped,
+                        pinnedLocation = tappedIndex?.let { points[it].lat to points[it].lon },
+                        pinnedTitle = "Ponto da viagem"
+                    )
+                    MapSizeToggle(
+                        maximized = true,
+                        onClick = { isMapMaximized = false },
+                        modifier = Modifier.align(Alignment.BottomStart).padding(12.dp)
+                    )
+                }
+                Column(Modifier.fillMaxWidth().background(CyberInk)) {
                     tappedIndex?.let { i -> TripPointCard(trip, points, replay, i, onClose = { tappedIndex = null }, onReplayFromHere = {
                         replayVisible = true
                         replayMs = replay.offsetOf(i)
@@ -225,11 +232,6 @@ fun TripDetailScreen(
                         onSpeed = { replaySpeed = it },
                         onClose = { playing = false; replayVisible = false })
                 }
-                MapSizeToggle(
-                    maximized = true,
-                    onClick = { isMapMaximized = false },
-                    modifier = Modifier.align(Alignment.BottomStart).padding(12.dp)
-                )
             }
             return@Column
         }

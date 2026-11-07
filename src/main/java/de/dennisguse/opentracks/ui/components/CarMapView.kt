@@ -405,6 +405,10 @@ fun CarMapView(
             map.uiSettings.isAttributionEnabled = false
             map.uiSettings.isLogoEnabled = false
             map.uiSettings.isCompassEnabled = true
+            // Top-start: the top-end corner holds the layer switcher and legends.
+            map.uiSettings.compassGravity = android.view.Gravity.TOP or android.view.Gravity.START
+            val compassMargin = (12 * context.resources.displayMetrics.density).toInt()
+            map.uiSettings.setCompassMargins(compassMargin, compassMargin, 0, 0)
 
             map.setStyle(Style.Builder().fromUri(getStyleUri(selectedLayer))) { _ ->
                 isMapStyleLoaded = true
