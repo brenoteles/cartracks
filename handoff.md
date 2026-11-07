@@ -1,6 +1,6 @@
 # CarTracks — handoff para a próxima sessão
 
-Leia isto primeiro. Estado em 2026-11-07, após a v1.0.24 (fase 2 da limpeza + R8).
+Leia isto primeiro. Estado em 2026-11-07, após a v1.0.24 (fase 2 da limpeza + R8), publicada.
 
 ## 1. O que é
 
@@ -38,8 +38,7 @@ $ADB install -r <apk>                                               # mantém os
 
 ## 4. Estado do git
 
-- Publicado até **v1.0.23** (tags e releases no GitHub com o APK; v1.0.23 é a "Latest").
-- **v1.0.24 só local**: 4 commits (itens 1 a 4 da fase 2) mais o do R8 (item 5), ainda sem push, sem tag e sem release. APK em `Desktop\CarTracks_v1.0.24.apk` (21,9 MB), já instalado e testado no aparelho. Publicar quando o usuário pedir.
+- Tudo publicado até **v1.0.24** (tags e releases no GitHub com o APK; v1.0.24 é a "Latest", 21,9 MB).
 - `Instrucoes Claude.txt` na raiz é do usuário: nunca commitar.
 
 ## 5. Mapa do código (`src/main/java/de/dennisguse/opentracks/`)
