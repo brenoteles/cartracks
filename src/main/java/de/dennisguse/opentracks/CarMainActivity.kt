@@ -978,7 +978,14 @@ class CarMainActivity : ComponentActivity() {
             if (tripId >= 0) {
                 // wait for the trip list to load before opening the trip
                 activeDetailTrip = trips.firstOrNull { it.id == tripId } ?: return@LaunchedEffect
+            } else {
+                // the app may still show a trip, map or report from before; the tapped tab must be visible
+                activeDetailTrip = null
             }
+            isPeriodMapOpen = false
+            isReportOpen = false
+            isMaintenanceOpen = false
+            isCockpitFullscreen = false
             widgetNavState.value = null
         }
         val expenses by expensesState

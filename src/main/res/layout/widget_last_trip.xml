@@ -14,7 +14,7 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <View
+        <FrameLayout
             android:layout_width="14dp"
             android:layout_height="3dp"
             android:layout_marginEnd="6dp"
@@ -24,7 +24,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:fontFamily="@font/ibm_plex_mono_semibold"
+            android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.12"
             android:text="ÚLTIMA VIAGEM"
             android:textColor="#00B9B0"
@@ -34,7 +34,7 @@
             android:id="@+id/wt_date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/ibm_plex_mono_regular"
+            android:fontFamily="sans-serif"
             android:textColor="#BDC1A3"
             android:textSize="10sp" />
     </LinearLayout>
@@ -45,7 +45,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:ellipsize="end"
-        android:fontFamily="@font/bebas_neue_regular"
+        android:fontFamily="sans-serif-condensed"
+        android:textStyle="bold"
         android:maxLines="1"
         android:text="Nenhuma viagem ainda"
         android:textColor="#F3F5E6"
@@ -56,13 +57,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:ellipsize="end"
-        android:fontFamily="@font/ibm_plex_mono_semibold"
+        android:fontFamily="sans-serif-medium"
         android:maxLines="1"
         android:textColor="#00B9B0"
         android:textSize="10sp"
         android:visibility="gone" />
 
-    <View
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
@@ -83,7 +84,8 @@
                 android:id="@+id/wt_km"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/bebas_neue_regular"
+                android:fontFamily="sans-serif-condensed"
+                android:textStyle="bold"
                 android:maxLines="1"
                 android:text="—"
                 android:textColor="#E8FF3A"
@@ -92,7 +94,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/ibm_plex_mono_semibold"
+                android:fontFamily="sans-serif-medium"
                 android:letterSpacing="0.1"
                 android:text="KM"
                 android:textColor="#8E9270"
@@ -109,7 +111,8 @@
                 android:id="@+id/wt_min"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/bebas_neue_regular"
+                android:fontFamily="sans-serif-condensed"
+                android:textStyle="bold"
                 android:maxLines="1"
                 android:text="—"
                 android:textColor="#F3F5E6"
@@ -118,7 +121,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/ibm_plex_mono_semibold"
+                android:fontFamily="sans-serif-medium"
                 android:letterSpacing="0.1"
                 android:text="MIN"
                 android:textColor="#8E9270"
@@ -135,7 +138,8 @@
                 android:id="@+id/wt_speed"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/bebas_neue_regular"
+                android:fontFamily="sans-serif-condensed"
+                android:textStyle="bold"
                 android:maxLines="1"
                 android:text="—"
                 android:textColor="#F3F5E6"
@@ -144,7 +148,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/ibm_plex_mono_semibold"
+                android:fontFamily="sans-serif-medium"
                 android:letterSpacing="0.1"
                 android:text="KM/H MÉD."
                 android:textColor="#8E9270"
@@ -161,7 +165,8 @@
                 android:id="@+id/wt_cost"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/bebas_neue_regular"
+                android:fontFamily="sans-serif-condensed"
+                android:textStyle="bold"
                 android:maxLines="1"
                 android:text="—"
                 android:textColor="#239C51"
@@ -170,7 +175,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/ibm_plex_mono_semibold"
+                android:fontFamily="sans-serif-medium"
                 android:letterSpacing="0.1"
                 android:text="R$"
                 android:textColor="#8E9270"

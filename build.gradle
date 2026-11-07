@@ -55,7 +55,7 @@ android {
         // the MapLibre native libs added ~35 MB. Add "x86_64" here to run on an emulator.
         ndk { abiFilters 'arm64-v8a' }
         applicationId 'de.dennisguse.cartracks'
-        versionCode 6775
+        versionCode 6776
         versionName getVersionName()
 
         buildConfigField "String", "VERSION_NAME_FULL", "\"${getVersionName()}\""

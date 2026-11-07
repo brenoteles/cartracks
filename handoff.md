@@ -1,6 +1,6 @@
 # CarTracks — handoff para a próxima sessão
 
-Leia isto primeiro. Estado em 2026-11-07, após a v1.0.25 (abastecimento novo e widgets), publicada.
+Leia isto primeiro. Estado em 2026-11-07: v1.0.25 publicada; v1.0.26 (correção dos widgets) instalada no aparelho, ainda não publicada.
 
 ## 1. O que é
 
@@ -13,7 +13,7 @@ App Android (Kotlin/Java, Jetpack Compose, MapLibre 11.13) que grava viagens de 
 ## 2. Regras que não podem ser quebradas (dados instalados)
 
 - `applicationId` `de.dennisguse.cartracks` (+ `.debug` no build usado) e assinatura com `~/.android/debug.keystore` (SHA-256 começa `d4289667…bcc3d`). Conferir com `apksigner verify --print-certs` antes de instalar.
-- `versionCode` só sobe (está em **6775** na v1.0.25, em `build.gradle` → `defaultConfig`).
+- `versionCode` só sobe (está em **6776** na v1.0.26, em `build.gradle` → `defaultConfig`).
 - Não mudar esquema do banco (`CustomSQLiteOpenHelper`, versão 42), colunas de `data/tables/*`, nem chaves de SharedPreferences sem migração. Arquivos de prefs: `CarTracksPrefs`, `CarTracksParking`, `CarTracksLocations` (Casa/Trabalho/`favorites_json`) e o padrão `<pacote>_preferences`.
 - Os modelos `HeartRate`, `Cadence`, `Power`, `Temperature` mapeiam colunas que existem no banco: **não apagar** mesmo que os sensores saiam.
 
@@ -38,6 +38,7 @@ $ADB install -r <apk>                                               # mantém os
 
 ## 4. Estado do git
 
+- v1.0.26 commitada, sem tag/release (publicar quando o usuário pedir).
 - Tudo publicado até **v1.0.25** (tags e releases no GitHub com o APK; v1.0.25 é a "Latest", 22,0 MB).
 - `Instrucoes Claude.txt` na raiz é do usuário: nunca commitar.
 
@@ -66,13 +67,14 @@ O que ainda dá para fazer, se o usuário quiser:
 
 Ferramentas usadas na limpeza: grafo de classes com `jdeps -verbose:class`; `./gradlew lintIrreproducibleDebug` (`UnusedResources`; o lint grava estilos com `_` no lugar de `.`); remoção de recurso validada comparando os nomes antes/depois com a lista do lint.
 
-## 6b. v1.0.25: o que entrou e como funciona
+## 6b. v1.0.25/26: o que entrou e como funciona
 
 - **Abastecimento**: `ui/components/FuelEntrySheet.kt` (tela cheia) + `util/FuelAmounts.kt` (dois campos digitados dão o terceiro; testado em `FuelAmountsTest`). O botão do Início abre o formulário direto (`openAddForm` em `FuelScreen`).
 - **Widgets** (`services/CarWidgets.kt` + `QuickControls.kt`): `RecordWidget` (Painel; manteve o nome da classe para não sumir da tela inicial), `LastTripWidget`, `MonthCostWidget`. Eles só leem um `WidgetSnapshot` em JSON no prefs `CarTracksWidgets`, publicado por `CarMainActivity.publishWidgetSnapshot` quando viagens, abastecimentos, despesas ou o tanque mudam. Limitação: viagem encerrada com o app fechado (Bluetooth/estacionar) só atualiza "Última viagem" na próxima abertura do app. Toques: `CarWidgets.ACTION_OPEN_TRIP`/`ACTION_OPEN_COSTS` tratados em `handleQuickAction` → `widgetNavState`.
 - Removido o cartão "Melhor horário de saída" (o usuário usa o Waze). A bússola do mapa fica no canto superior esquerdo.
-- **Pendente de resposta do usuário**: início 100% automático pelo Bluetooth do carro exige `ACCESS_BACKGROUND_LOCATION` ("Permitir o tempo todo"); o app já tem isenção de bateria. Os widgets ainda não foram vistos colocados na tela inicial.
-- Estudo de Waze e Samsung Health (REA + aapt2 + Gemini) com 12 sugestões priorizadas: seção 2 do relatório no Desktop. No REA, os decodificadores Android (apktool/JADX) não estão configurados e o adb precisa de `REA_ADB_PATH`, então os APKs foram puxados com o adb do SDK.
+- **Pendente de resposta do usuário**: início 100% automático pelo Bluetooth do carro exige `ACCESS_BACKGROUND_LOCATION` ("Permitir o tempo todo"); o app já tem isenção de bateria.
+- **v1.0.26 (regras de layout de widget, aprendidas no S24)**: nada de `<View>` puro (o launcher recusa: "Class not allowed to be inflated android.view.View"; usar `FrameLayout`), e `@font/...` não é aplicado na tela inicial, então os widgets usam `sans-serif-condensed`/`sans-serif-medium`. Erros de widget aparecem no logcat com a tag `AppWidgetHostView`. Toque de widget fecha viagem/mapa/relatório abertos antes de trocar de aba.
+- Estudo de Waze e Samsung Health (REA + aapt2 + Gemini) com 12 sugestões priorizadas: seção 3 do relatório no Desktop. No REA, os decodificadores Android (apktool/JADX) não estão configurados e o adb precisa de `REA_ADB_PATH`, então os APKs foram puxados com o adb do SDK.
 
 ## 7. Ideias pendentes (já discutidas com o usuário)
 

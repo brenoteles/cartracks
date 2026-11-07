@@ -18,20 +18,23 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:fontFamily="@font/bebas_neue_regular"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="bold"
+            android:maxLines="1"
             android:text="CARTRACKS"
             android:textColor="#E8FF3A"
-            android:textSize="20sp" />
+            android:textSize="17sp" />
 
         <TextView
             android:id="@+id/widget_state"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/ibm_plex_mono_semibold"
+            android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.1"
+            android:maxLines="1"
             android:text="ESTACIONADO"
             android:textColor="#BDC1A3"
-            android:textSize="11sp" />
+            android:textSize="10sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -52,8 +55,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:ellipsize="end"
-                android:fontFamily="@font/ibm_plex_mono_semibold"
-                android:letterSpacing="0.1"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.04"
                 android:maxLines="1"
                 android:text="TANQUE"
                 android:textColor="#8E9270"
@@ -63,7 +66,8 @@
                 android:id="@+id/widget_tank_value"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/ibm_plex_mono_bold"
+                android:fontFamily="sans-serif-condensed"
+                android:textStyle="bold"
                 android:text="—"
                 android:textColor="#F3F5E6"
                 android:textSize="12sp" />
@@ -93,7 +97,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:fontFamily="@font/ibm_plex_mono_semibold"
+            android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.1"
             android:text="TEMPO"
             android:textColor="#8E9270"
@@ -103,7 +107,8 @@
             android:id="@+id/widget_timer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/ibm_plex_mono_bold"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="bold"
             android:textColor="#F3F5E6"
             android:textSize="20sp" />
     </LinearLayout>
@@ -115,7 +120,8 @@
         android:layout_marginTop="8dp"
         android:layout_weight="1"
         android:background="#E8FF3A"
-        android:fontFamily="@font/bebas_neue_regular"
+        android:fontFamily="sans-serif-condensed"
+        android:textStyle="bold"
         android:gravity="center"
         android:minHeight="40dp"
         android:text="▶  INICIAR VIAGEM"

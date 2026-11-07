@@ -14,7 +14,7 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <View
+        <FrameLayout
             android:layout_width="14dp"
             android:layout_height="3dp"
             android:layout_marginEnd="6dp"
@@ -26,7 +26,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:ellipsize="end"
-            android:fontFamily="@font/ibm_plex_mono_semibold"
+            android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.12"
             android:maxLines="1"
             android:text="GASTOS DO MÊS"
@@ -38,13 +38,14 @@
         android:id="@+id/wm_total"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="@font/bebas_neue_regular"
+        android:fontFamily="sans-serif-condensed"
+        android:textStyle="bold"
         android:maxLines="1"
         android:text="R$ 0,00"
         android:textColor="#E8FF3A"
         android:textSize="34sp" />
 
-    <View
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
@@ -58,7 +59,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:fontFamily="@font/ibm_plex_mono_semibold"
+            android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.1"
             android:text="COMBUSTÍVEL"
             android:textColor="#E3881E"
@@ -68,7 +69,8 @@
             android:id="@+id/wm_fuel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/ibm_plex_mono_bold"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="bold"
             android:textColor="#F3F5E6"
             android:textSize="12sp" />
     </LinearLayout>
@@ -83,7 +85,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:fontFamily="@font/ibm_plex_mono_semibold"
+            android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.1"
             android:text="OUTROS"
             android:textColor="#F478D9"
@@ -93,7 +95,8 @@
             android:id="@+id/wm_other"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/ibm_plex_mono_bold"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="bold"
             android:textColor="#F3F5E6"
             android:textSize="12sp" />
     </LinearLayout>
@@ -104,7 +107,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:ellipsize="end"
-        android:fontFamily="@font/ibm_plex_mono_regular"
+        android:fontFamily="sans-serif"
         android:maxLines="1"
         android:textColor="#BDC1A3"
         android:textSize="10sp" />
