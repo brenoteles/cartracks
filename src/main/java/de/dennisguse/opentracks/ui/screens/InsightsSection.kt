@@ -38,7 +38,7 @@ fun InsightsSection(
     loadPoints: (Long) -> List<TripPoint>,
     onOpenTrip: (Long) -> Unit,
     onShowTripsOnMap: (List<Long>, String) -> Unit,
-    onOpenRecap: () -> Unit
+    onOpenRecap: (year: Int) -> Unit
 ) {
     if (trips.isEmpty()) return
     val context = LocalContext.current
@@ -63,8 +63,11 @@ fun InsightsSection(
     val variants by produceState<List<RouteComparison>>(emptyList(), trips) {
         value = withContext(Dispatchers.IO) { routeComparisons(context, trips, loadPoints) }
     }
-    val year = remember { java.time.LocalDate.now(zone).year }
-    val yearKm = remember(trips) { trips.filter { Instant.ofEpochMilli(it.startTimeMs).atZone(zone).year == year }.sumOf { it.distanceKm } }
+    // the recap is an end-of-year thing: December shows this year, January the year that just ended
+    val year = remember { recapYear(java.time.LocalDate.now(zone)) }
+    val yearKm = remember(trips, year) {
+        if (year == null) 0.0 else trips.filter { Instant.ofEpochMilli(it.startTimeMs).atZone(zone).year == year }.sumOf { it.distanceKm }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (insights.isNotEmpty()) {
@@ -86,8 +89,15 @@ fun InsightsSection(
             CyberSectionHeader(title = "Seus caminhos", eyebrow = "Rota habitual")
             variants.forEach { RouteVariantsCard(it, onShowTripsOnMap) }
         }
-        if (yearKm > 0) YearRecapBanner(year, yearKm, onOpenRecap)
+        if (year != null && yearKm > 0) YearRecapBanner(year, yearKm) { onOpenRecap(year) }
     }
+}
+
+/** Year whose recap is offered on [today]: December → this year, January → last year, otherwise none. */
+fun recapYear(today: java.time.LocalDate): Int? = when (today.monthValue) {
+    12 -> today.year
+    1 -> today.year - 1
+    else -> null
 }
 
 /** Casa→Trabalho and Trabalho→Casa variants, named after the road of each one's distinctive stretch. */

@@ -83,7 +83,7 @@ Ferramentas usadas na limpeza: grafo de classes com `jdeps -verbose:class`; `./g
 - **Início**: `ui/screens/InsightsSection.kt` + `ui/components/InsightCards.kt`. 👍/👎 e recordes anteriores em `util/InsightStore.kt` (prefs `CarTracksInsights`); selo por 7 dias.
 - **Resumo semanal**: `services/WeeklySummary.kt` (alarme inexato domingo 20h, receiver também em BOOT/MY_PACKAGE_REPLACED; pref `weekly_summary_enabled`). Toque/widget → `ACTION_OPEN_WEEK` → Relatório com `startOnLastWeek`.
 - **Lembrete ao desligar**: `util/CarOffReminder.kt` (prefs `car_off_reminder_enabled`/`car_off_reminder_items`), postado por `AutoTrackingReceiver` no ACL_DISCONNECTED do carro; `endTripAndPark(null)` não posta o aviso antigo. Não testado de ponta a ponta: o usuário ainda não escolheu o Bluetooth do carro.
-- **Retrospectiva**: `ui/screens/YearRecapScreen.kt` (Gemini 4 Argon), cidades via Geocoder em `CarMainActivity.buildYearRecap`.
+- **Retrospectiva**: `ui/screens/YearRecapScreen.kt` (Gemini 4 Argon), cidades via Geocoder em `CarMainActivity.buildYearRecap`. O cartão de entrada só aparece em dezembro (ano corrente) e janeiro (ano anterior): `recapYear()` em `InsightsSection.kt`.
 - **Ajustes**: `SettingsScreen.kt` redesenhado pelo Gemini 3.8 Flash; mesmas chaves de prefs.
 - Widget `MonthCostWidget` agora mostra os últimos 7 dias (nome da classe mantido).
 

@@ -231,7 +231,7 @@ fun YearRecapBanner(year: Int, km: Double, onClick: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text("RETROSPECTIVA $year", style = displayStyle(24), color = CyberOnMagenta)
             Text(
-                String.format(Locale("pt", "BR"), "%,.0f km até agora · animada e compartilhável", km),
+                String.format(Locale("pt", "BR"), "%,.0f km no ano · animada e compartilhável", km),
                 style = monoStyle(11, FontWeight.Normal),
                 color = CyberOnMagenta.copy(alpha = 0.85f)
             )

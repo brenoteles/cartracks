@@ -1135,7 +1135,7 @@ class CarMainActivity : ComponentActivity() {
                                     periodMapTitle = title
                                     isPeriodMapOpen = true
                                 },
-                                onOpenRecap = { recapYear = java.time.LocalDate.now().year }
+                                onOpenRecap = { recapYear = it }
                             )
                         }
                     )
