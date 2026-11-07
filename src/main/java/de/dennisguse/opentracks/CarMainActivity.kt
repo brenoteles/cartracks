@@ -1184,7 +1184,7 @@ class CarMainActivity : ComponentActivity() {
                             }
                         },
                         onOpenCockpitClicked = { isCockpitFullscreen = true },
-                        onAddFuelClicked = { selectedTab = 2 },
+                        onAddFuelClicked = { selectedTab = 2; openFuelForm = true },
                         onTripClicked = { activeDetailTrip = it },
                         onViewAllTripsClicked = { selectedTab = 1 },
                         maintenanceCard = {
@@ -1223,6 +1223,10 @@ class CarMainActivity : ComponentActivity() {
                         tankCapacityLiters = tankCapacity,
                         currentGps = currentGps,
                         currentVehicleOdometer = getCurrentOdometer(),
+                        defaultFuelType = primaryFuelTypeState.value,
+                        litersToFill = (tankCapacity - getCurrentFuelLiters()).takeIf { it > 0 },
+                        openAddForm = openFuelForm,
+                        onAddFormOpened = { openFuelForm = false },
                         onAddFuel = { station, liters, price, total, odo, notes, isFull, fuelType, lat, lon ->
                             fuelDb.addEntry(station, liters, price, total, odo, notes, isFull, fuelType, lat, lon)
                             loadFuelEntries()

@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import de.dennisguse.opentracks.ui.components.CarMapView
+import de.dennisguse.opentracks.ui.components.FuelEntrySheet
 import de.dennisguse.opentracks.ui.components.LocationPickerMapDialog
 import de.dennisguse.opentracks.ui.model.FuelItem
 import de.dennisguse.opentracks.ui.model.MapMarkerItem
@@ -68,10 +69,22 @@ fun FuelScreen(
     ) -> Unit,
     onUpdateFuelLocation: (entryId: Long, latitude: Double, longitude: Double) -> Unit = { _, _, _ -> },
     onUpdateFuel: ((id: Long, station: String, liters: Double, price: Double, total: Double, odo: Double, notes: String, isFull: Boolean, fuelType: String) -> Unit)? = null,
-    onDeleteFuel: ((id: Long) -> Unit)? = null
+    onDeleteFuel: ((id: Long) -> Unit)? = null,
+    defaultFuelType: String = "Gasolina Comum",
+    /** Liters that would fill the tank now, for the form's "Completar" shortcut. */
+    litersToFill: Double? = null,
+    /** Opens the form right away (the dashboard's "Registrar abastecimento" button). */
+    openAddForm: Boolean = false,
+    onAddFormOpened: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var showAddDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(openAddForm) {
+        if (openAddForm) {
+            showAddDialog = true
+            onAddFormOpened()
+        }
+    }
     var showAllStationsMap by remember { mutableStateOf(false) }
 
     // State for picking/editing location of an EXISTING fuel entry ("depois do abastecimento")
@@ -188,347 +201,24 @@ fun FuelScreen(
         }
     }
 
-    // 3. Dialog to add a new fuel entry (With Location Autofill & Smart Suggestions)
+    // 3. Fuel-up form: any two of total / price per liter / liters
     if (showAddDialog) {
         val defaultOdo = remember(currentVehicleOdometer, fuelEntries) {
-            if (currentVehicleOdometer > 0) {
-                currentVehicleOdometer.toInt().toString()
-            } else {
-                val lastOdo = fuelEntries.map { it.odometerKm }.filter { it > 0 }.maxOrNull()
-                if (lastOdo != null) (lastOdo + 320.0).toInt().toString() else ""
-            }
+            if (currentVehicleOdometer > 0) currentVehicleOdometer.toInt().toString()
+            else fuelEntries.map { it.odometerKm }.filter { it > 0 }.maxOrNull()?.toInt()?.toString() ?: ""
         }
-
-        var station by remember { mutableStateOf("") }
-        var litersStr by remember { mutableStateOf("") }
-        var priceStr by remember { mutableStateOf("5.89") }
-        var odoStr by remember { mutableStateOf(defaultOdo) }
-        var notes by remember { mutableStateOf("") }
-        var isFullTank by remember { mutableStateOf(true) }
-        var chosenFuelType by remember { mutableStateOf("Gasolina Comum") }
-        var selectedLat by remember { mutableStateOf<Double?>(currentGps?.first) }
-        var selectedLon by remember { mutableStateOf<Double?>(currentGps?.second) }
-        var showNewEntryMapPicker by remember { mutableStateOf(false) }
-
-        // Smart Geocoding / Location Autofill
-        val activeCoord = if (selectedLat != null && selectedLon != null) Pair(selectedLat!!, selectedLon!!) else currentGps
-        LaunchedEffect(activeCoord) {
-            if (activeCoord != null && station.isBlank()) {
-                withContext(Dispatchers.IO) {
-                    try {
-                        val geocoder = Geocoder(context, Locale.getDefault())
-                        val addresses = geocoder.getFromLocation(activeCoord.first, activeCoord.second, 1)
-                        if (!addresses.isNullOrEmpty()) {
-                            val addr = addresses[0]
-                            val street = addr.thoroughfare ?: addr.featureName
-                            val sub = addr.subLocality ?: addr.locality
-                            val autoName = when {
-                                !street.isNullOrBlank() && !sub.isNullOrBlank() -> "Posto $street ($sub)"
-                                !street.isNullOrBlank() -> "Posto $street"
-                                !sub.isNullOrBlank() -> "Posto $sub"
-                                else -> ""
-                            }
-                            if (autoName.isNotBlank()) {
-                                withContext(Dispatchers.Main) {
-                                    if (station.isBlank()) {
-                                        station = autoName
-                                    }
-                                }
-                            }
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-            }
-        }
-
-        if (showNewEntryMapPicker) {
-            LocationPickerMapDialog(
-                title = station.ifBlank { "Posto de Abastecimento" },
-                initialLat = selectedLat ?: currentGps?.first ?: -23.5672,
-                initialLon = selectedLon ?: currentGps?.second ?: -46.6685,
-                currentGps = currentGps,
-                onConfirm = { lat, lon ->
-                    selectedLat = lat
-                    selectedLon = lon
-                    showNewEntryMapPicker = false
-                },
-                onDismiss = { showNewEntryMapPicker = false }
-            )
-        } else {
-            AlertDialog(
-                onDismissRequest = { showAddDialog = false },
-                title = {
-                    Text(
-                        text = "Registrar Abastecimento",
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                },
-                text = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Full Tank vs Partial Switch
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RectangleShape)
-                                .background(CyberPanel)
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = if (isFullTank) "🟢 Tanque Cheio (100%)" else "🟡 Abastecimento Parcial",
-                                color = if (isFullTank) CyberGreen else CyberOrange,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            )
-                            Switch(
-                                checked = isFullTank,
-                                onCheckedChange = { isFullTank = it },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = CyberGreen,
-                                    uncheckedThumbColor = Color.White,
-                                    uncheckedTrackColor = CyberOrange
-                                )
-                            )
-                        }
-
-                        // Station Name with Quick Suggestions
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            OutlinedTextField(
-                                value = station,
-                                onValueChange = { station = it },
-                                label = { Text("Nome do Posto") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            // Quick Station Suggestions
-                            val commonStations = listOf("Posto Shell", "Posto Ipiranga", "Posto BR Petrobras", "Posto Ipiranga Rebouças")
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                items(commonStations) { sName ->
-                                    AssistChip(
-                                        onClick = { station = sName },
-                                        label = { Text(sName, fontSize = 11.sp) },
-                                        shape = RectangleShape,
-                                        colors = AssistChipDefaults.assistChipColors(
-                                            containerColor = CyberPanel,
-                                            labelColor = CyberCyan
-                                        ),
-                                        border = null
-                                    )
-                                }
-                            }
-                        }
-
-                        // Fuel Type Chips
-                        Text("Tipo de Combustível:", fontSize = 12.sp, color = TextSecondary)
-                        val fuelOptions = listOf("Gasolina Comum", "Gasolina Aditivada", "Etanol", "Diesel")
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            items(fuelOptions) { ft ->
-                                val sel = ft == chosenFuelType
-                                FilterChip(
-                                    selected = sel,
-                                    onClick = { chosenFuelType = ft },
-                                    label = { Text(ft, fontSize = 11.sp) },
-                                    shape = RectangleShape,
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = CyberAcid,
-                                        selectedLabelColor = CyberOnAcid,
-                                selectedLeadingIconColor = CyberOnAcid,
-                                        containerColor = CyberPanel,
-                                        labelColor = TextSecondary
-                                    ),
-                                    border = null
-                                )
-                            }
-                        }
-
-                        // Liters & Price Inputs
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = litersStr,
-                                onValueChange = { litersStr = it },
-                                label = { Text("Litros") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                singleLine = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                            OutlinedTextField(
-                                value = priceStr,
-                                onValueChange = { priceStr = it },
-                                label = { Text("Preço / L") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                singleLine = true,
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-
-                        // Quick Liters Shortcuts
-                        val literPresets = listOf("20", "30", "40", "${tankCapacityLiters.toInt()}")
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            items(literPresets) { l ->
-                                AssistChip(
-                                    onClick = { litersStr = l },
-                                    label = { Text("${l}L", fontSize = 11.sp) },
-                                    shape = RectangleShape,
-                                    colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = CyberPanel,
-                                        labelColor = CyberGreen
-                                    ),
-                                    border = null
-                                )
-                            }
-                        }
-
-                        // Odometer Input (Pre-filled with estimated km!)
-                        OutlinedTextField(
-                            value = odoStr,
-                            onValueChange = { odoStr = it },
-                            label = { Text("Km no Odômetro (Automático)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        // Location Section ("Escolher no Mapa na hora ou depois")
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RectangleShape)
-                                .background(CyberPanel)
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "📍 Localização no Mapa (Opcional)",
-                                    color = TextPrimary,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                if (selectedLat != null && selectedLon != null) {
-                                    TextButton(
-                                        shape = RectangleShape,
-                                        onClick = {
-                                            selectedLat = null
-                                            selectedLon = null
-                                        },
-                                        contentPadding = PaddingValues(0.dp),
-                                        modifier = Modifier.height(24.dp)
-                                    ) {
-                                        Text("Deixar p/ depois", fontSize = 11.sp, color = CyberOrange)
-                                    }
-                                }
-                            }
-
-                            if (selectedLat != null && selectedLon != null) {
-                                Text(
-                                    text = String.format(Locale.US, "Definido: %.5f, %.5f", selectedLat, selectedLon),
-                                    color = CyberCyan,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            } else {
-                                Text(
-                                    text = "Você pode escolher o local no mapa agora ou adicionar depois na lista.",
-                                    color = TextSecondary,
-                                    fontSize = 11.sp
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Button(
-                                    onClick = { showNewEntryMapPicker = true },
-                                    modifier = Modifier.weight(1f).height(38.dp),
-                                    shape = RectangleShape,
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
-                                ) {
-                                    Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(15.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = if (selectedLat != null) "Alterar no Mapa" else "Definir no Mapa",
-                                        maxLines = 1,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                if (currentGps != null) {
-                                    OutlinedButton(
-                                        onClick = {
-                                            selectedLat = currentGps.first
-                                            selectedLon = currentGps.second
-                                        },
-                                        modifier = Modifier.height(38.dp),
-                                        shape = RectangleShape,
-                                        contentPadding = PaddingValues(horizontal = 10.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.MyLocation,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(14.dp),
-                                            tint = CyberCyan
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text("GPS", fontSize = 11.sp, color = TextPrimary)
-                                    }
-                                }
-                            }
-                        }
-
-                        OutlinedTextField(
-                            value = notes,
-                            onValueChange = { notes = it },
-                            label = { Text("Observações (opcional)") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        shape = RectangleShape,
-                        onClick = {
-                            val l = litersStr.replace(',', '.').toDoubleOrNull() ?: 0.0
-                            val p = priceStr.replace(',', '.').toDoubleOrNull() ?: 0.0
-                            val o = odoStr.replace(',', '.').toDoubleOrNull() ?: 0.0
-                            if (station.isNotBlank() && l > 0) {
-                                val tot = l * p
-                                onAddFuel(station, l, p, tot, o, notes, isFullTank, chosenFuelType, selectedLat, selectedLon)
-                                showAddDialog = false
-                            } else {
-                                val missing = if (station.isBlank()) "o posto" else "os litros abastecidos"
-                                android.widget.Toast.makeText(context, "Informe $missing para salvar", android.widget.Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = CyberMagenta)
-                    ) {
-                        Text("Salvar", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                },
-                dismissButton = {
-                    TextButton(shape = RectangleShape, onClick = { showAddDialog = false }) {
-                        Text("Cancelar", color = TextSecondary)
-                    }
-                },
-                containerColor = CyberPanelRaised
-            )
-        }
+        FuelEntrySheet(
+            history = fuelEntries,
+            defaultFuelType = defaultFuelType,
+            defaultOdometer = defaultOdo,
+            litersToFill = litersToFill,
+            currentGps = currentGps,
+            onSave = { station, liters, price, total, odo, notes, isFull, fuelType, lat, lon ->
+                onAddFuel(station, liters, price, total, odo, notes, isFull, fuelType, lat, lon)
+                showAddDialog = false
+            },
+            onDismiss = { showAddDialog = false }
+        )
     }
 
     if (editingFuelEntry != null) {
