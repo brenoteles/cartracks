@@ -36,9 +36,7 @@ $ADB install -r <apk>                                               # mantém os
 
 ## 4. Estado do git
 
-- Publicadas no GitHub: até **v1.0.21**.
-- **v1.0.22** (replay, trânsito histórico, ficha do ponto, carro que gira): commit local `c0c14f3`, **não publicado** (sem tag/push) — o usuário pediu só implementar.
-- **v1.0.23** (esta limpeza): commit local, não publicado. Para publicar as duas: criar tags `v1.0.22` em `c0c14f3` e `v1.0.23` no HEAD, `git push origin main --tags`, e um `gh release` por versão (APKs no Desktop; notas da v1.0.22 estavam em um arquivo temporário — reescrever a partir do relatório HTML).
+- Tudo publicado até **v1.0.23** (tags e releases no GitHub com o APK; v1.0.23 é a "Latest").
 - `Instrucoes Claude.txt` na raiz é do usuário: nunca commitar.
 
 ## 5. Mapa do código (`src/main/java/de/dennisguse/opentracks/`)
