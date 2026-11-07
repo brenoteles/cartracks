@@ -72,7 +72,7 @@ public class PermissionRequester {
 
     static {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            BLUETOOTH_PERMISSIONS = List.of(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT);
+            BLUETOOTH_PERMISSIONS = List.of(Manifest.permission.BLUETOOTH_CONNECT);
         } else {
             BLUETOOTH_PERMISSIONS = Collections.emptyList();
         }

@@ -5,9 +5,7 @@ import androidx.annotation.NonNull;
 import de.dennisguse.opentracks.R;
 import de.dennisguse.opentracks.data.models.AltitudeGainLoss;
 import de.dennisguse.opentracks.data.models.AtmosphericPressure;
-import de.dennisguse.opentracks.sensors.driver.BarometerBluetooth;
 import de.dennisguse.opentracks.sensors.driver.BarometerInternal;
-import de.dennisguse.opentracks.sensors.driver.BluetoothDriver;
 import de.dennisguse.opentracks.sensors.driver.Driver;
 import de.dennisguse.opentracks.sensors.sensorData.AggregatorBarometer;
 
@@ -30,11 +28,8 @@ public class AltitudeChangeHandler extends SensorHandler<AtmosphericPressure, Al
     @NonNull
     @Override
     protected Driver createDriverBluetooth(String address) {
-        return new BluetoothDriver<>(
-                BluetoothUtils.getAdapter(getContext()),
-                this,
-                new BarometerBluetooth()
-        );
+        // Bluetooth barometers are no longer supported: fall back to the phone's sensor.
+        return new BarometerInternal(this);
     }
 
     @NonNull

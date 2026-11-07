@@ -111,11 +111,11 @@ public class TrackPointCreator implements SharedPreferences.OnSharedPreferenceCh
                 null,
                 TrackPoint.Type.TRACKPOINT,
                 position,
-                sensorDataSet.distance() != null ? sensorDataSet.distance().data() : null,
-                sensorDataSet.heartRate() != null ? sensorDataSet.heartRate().data() : null,
-                sensorDataSet.temperature() != null ? sensorDataSet.temperature().data() : null,
-                sensorDataSet.cadence() != null ? sensorDataSet.cadence().data() : null,
-                sensorDataSet.power() != null ? sensorDataSet.power().data() : null,
+                null, // sensor distance
+                null, // heart rate
+                null, // temperature
+                null, // cadence
+                null, // power
                 sensorDataSet.altitudeGainLoss() != null ? sensorDataSet.altitudeGainLoss().data() : null
         );
 
@@ -128,20 +128,17 @@ public class TrackPointCreator implements SharedPreferences.OnSharedPreferenceCh
         SensorDataSet sensorDataSet = sensorManager.getSensorDataSet(now);
 
         Position position = sensorDataSet.position().data();
-        if (sensorDataSet.speed() != null) {
-            position = position.with(sensorDataSet.speed().data());
-        }
 
         return
                 new TrackPoint(
                         null,
                         type,
                         position,
-                        sensorDataSet.distance() != null ? sensorDataSet.distance().data() : null,
-                        sensorDataSet.heartRate() != null ? sensorDataSet.heartRate().data() : null,
-                        sensorDataSet.temperature() != null ? sensorDataSet.temperature().data() : null,
-                        sensorDataSet.cadence() != null ? sensorDataSet.cadence().data() : null,
-                        sensorDataSet.power() != null ? sensorDataSet.power().data() : null,
+                        null, // sensor distance
+                        null, // heart rate
+                        null, // temperature
+                        null, // cadence
+                        null, // power
                         sensorDataSet.altitudeGainLoss() != null ? sensorDataSet.altitudeGainLoss().data() : null
                 );
     }
