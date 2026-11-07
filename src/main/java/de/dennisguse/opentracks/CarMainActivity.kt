@@ -37,6 +37,7 @@ import de.dennisguse.opentracks.data.ExpenseDatabaseHelper
 import de.dennisguse.opentracks.data.MockDataGenerator
 import de.dennisguse.opentracks.data.TrackListIterator
 import de.dennisguse.opentracks.data.TrackPointIterator
+import de.dennisguse.opentracks.data.TripLoader
 import de.dennisguse.opentracks.data.models.Track
 import de.dennisguse.opentracks.data.models.TrackPoint
 import de.dennisguse.opentracks.io.CarTracksBackupHelper
@@ -63,6 +64,11 @@ import java.util.Locale
 import kotlin.math.*
 
 class CarMainActivity : ComponentActivity() {
+
+    private companion object {
+        /** widgetNavState "tab" that opens the report on the last 7 days. */
+        const val WIDGET_NAV_WEEK_REPORT = -2
+    }
 
     private lateinit var providerUtils: ContentProviderUtils
     private lateinit var fuelDb: FuelDatabaseHelper
@@ -293,6 +299,7 @@ class CarMainActivity : ComponentActivity() {
         // Only on a fresh start: after rotation the system re-delivers the original intent,
         // which would toggle (and end) the trip that the widget just started.
         if (savedInstanceState == null) handleQuickAction(intent)
+        de.dennisguse.opentracks.services.WeeklySummary.schedule(this)
 
         setContent {
             CarTracksTheme {
@@ -378,25 +385,8 @@ class CarMainActivity : ComponentActivity() {
         return if (base > 0) base + totalRecordedKm else totalRecordedKm
     }
 
-    /**
-     * Liters in the tank: start from the last full fill (or from the setup answer "km since
-     * the tank was full"), add partial fills after it and subtract the fuel of later trips.
-     */
-    private fun getCurrentFuelLiters(): Double {
-        val cap = tankCapacityState.value
-        val model = consumptionState.value
-        val fills = fuelState.value
-        val setupRefMs = getSharedPreferences("CarTracksPrefs", MODE_PRIVATE).getLong("tank_ref_time_ms", 0L)
-        val lastFull = fills.filter { it.isFullTank }.maxByOrNull { it.dateTime }
-        val (refMs, startLiters) = if (lastFull != null && lastFull.dateTime >= setupRefMs) {
-            lastFull.dateTime to cap
-        } else {
-            setupRefMs to cap - kmSinceLastFullState.value / model.baseKmL(model.familyAt(setupRefMs))
-        }
-        val added = fills.filter { !it.isFullTank && it.dateTime > refMs }.sumOf { it.liters }
-        val burned = tripsState.value.filter { it.startTimeMs > refMs }.sumOf { it.fuelLiters }
-        return (startLiters + added - burned).coerceIn(0.0, cap)
-    }
+    private fun getCurrentFuelLiters(): Double =
+        TripLoader.tankLiters(this, tripsState.value, fuelState.value, consumptionState.value)
 
     private fun saveOdometer(newOdometer: Double) {
         val totalRecordedKm = tripsState.value.sumOf { it.distanceKm }
@@ -552,114 +542,18 @@ class CarMainActivity : ComponentActivity() {
         Toast.makeText(this, "Local '$label' salvo!", Toast.LENGTH_SHORT).show()
     }
 
+    private var tripLoadGeneration = 0
+
     private fun loadTrips() {
+        val generation = ++tripLoadGeneration
         lifecycleScope.launch {
-            val list = mutableListOf<TripItem>()
-            val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
             val model = consumptionState.value
-            try {
-                providerUtils.searchTracks(null)?.use { it ->
-                    while (it.hasNext()) {
-                        val item = it.next()
-                        val km = item.totalDistance().toKM()
-                        val minutes = item.totalTime().toMinutes()
-                        val track = providerUtils.getTrack(item.id())
-
-                        var maxSpd = 0.0
-                        var avgSpd = 0.0
-                        if (track != null && track.statistics() != null) {
-                            if (track.statistics().maxSpeed() != null) {
-                                maxSpd = track.statistics().maxSpeed().toKMH()
-                            }
-                            if (track.statistics().getAverageSpeed() != null) {
-                                avgSpd = track.statistics().getAverageSpeed().toKMH()
-                            }
-                        }
-                        if (avgSpd <= 0.0) {
-                            val hours = item.totalTime().seconds / 3600.0
-                            avgSpd = if (hours > 0) (km / hours) else 42.0
-                        }
-                        if (maxSpd <= 0.0) {
-                            maxSpd = avgSpd * 1.35
-                        }
-
-                        val startMs = item.startTime().toEpochMilli()
-                        val family = model.familyAt(startMs)
-                        val tripKmL = model.tripKmL(avgSpd, startMs)
-                        val fuel = if (tripKmL > 0) km / tripKmL else 0.0
-                        val cost = fuel * model.pricePerLiter(family, startMs)
-
-                        // Compute Commute Badge if start/end matches Home or Work
-                        val badge = detectCommuteBadge(item.id().id())
-
-                        list.add(
-                            TripItem(
-                                id = item.id().id(),
-                                name = friendlyTripName(item.name(), item.startTime().atOffset(item.zoneOffset())),
-                                description = item.description(),
-                                distanceKm = km,
-                                durationMin = minutes,
-                                startTimeMs = item.startTime().toEpochMilli(),
-                                dateFormatted = item.startTime().atOffset(item.zoneOffset()).format(formatter),
-                                avgSpeedKmh = avgSpd,
-                                maxSpeedKmh = maxSpd,
-                                fuelLiters = fuel,
-                                fuelCost = cost,
-                                commuteBadge = badge,
-                                kmL = tripKmL,
-                                fuelLabel = family.label,
-                                trafficLabel = FuelConsumptionModel.trafficLabel(avgSpd)
-                            )
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            val list = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                TripLoader.loadTrips(this@CarMainActivity, providerUtils, model, homeLocationState.value, workLocationState.value, favoritesState.value)
             }
-            tripsState.value = list
+            // a later reload (new place, edited consumption) may have finished first
+            if (generation == tripLoadGeneration) tripsState.value = list
         }
-    }
-
-    /** Default track names are ISO timestamps ("2026-11-04T18:06-03"); show a readable one. */
-    private fun friendlyTripName(name: String?, start: java.time.OffsetDateTime): String {
-        if (name != null && name.isNotBlank() && !Regex("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}.*""").matches(name)) return name
-        return "Viagem · " + start.format(DateTimeFormatter.ofPattern("EEE dd/MM HH:mm", Locale("pt", "BR")))
-    }
-
-    private fun detectCommuteBadge(trackId: Long): String? {
-        val home = homeLocationState.value
-        val work = workLocationState.value
-        val favorites = favoritesState.value
-        if (!home.isSet && !work.isSet && favorites.isEmpty()) return null
-
-        try {
-            providerUtils.getTrackPointIterator(Track.Id(trackId), null)?.use { it ->
-                var firstPt: TrackPoint? = null
-                var lastPt: TrackPoint? = null
-                while (it.hasNext()) {
-                    val tp = it.next()
-                    if (tp != null && tp.position().hasLocation()) {
-                        if (firstPt == null) firstPt = tp
-                        lastPt = tp
-                    }
-                }
-
-                if (firstPt != null && lastPt != null) {
-                    val startLat = firstPt.position().latitude()
-                    val startLon = firstPt.position().longitude()
-                    val endLat = lastPt.position().latitude()
-                    val endLon = lastPt.position().longitude()
-
-                    return FavoritePlaces.badge(
-                        FavoritePlaces.placeAt(startLat, startLon, home, work, favorites),
-                        FavoritePlaces.placeAt(endLat, endLon, home, work, favorites)
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return null
     }
 
     private fun distKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
@@ -671,22 +565,7 @@ class CarMainActivity : ComponentActivity() {
     }
 
     private fun loadFuelEntries() {
-        val entries = fuelDb.allEntries.map { e ->
-            FuelItem(
-                id = e.id,
-                dateTime = e.dateTime,
-                stationName = e.stationName,
-                liters = e.liters,
-                pricePerLiter = e.pricePerLiter,
-                totalCost = e.totalCost,
-                odometerKm = e.odometerKm,
-                notes = e.notes ?: "",
-                isFullTank = e.isFullTank,
-                fuelType = e.fuelType,
-                latitude = e.latitude,
-                longitude = e.longitude
-            )
-        }
+        val entries = TripLoader.loadFills(this)
         fuelState.value = entries
         reloadConsumption()
     }
@@ -822,8 +701,8 @@ class CarMainActivity : ComponentActivity() {
                 intent.action = null
                 return
             }
-            de.dennisguse.opentracks.services.CarWidgets.ACTION_OPEN_COSTS -> {
-                widgetNavState.value = 2 to -1L
+            de.dennisguse.opentracks.services.WeeklySummary.ACTION_OPEN_WEEK -> {
+                widgetNavState.value = WIDGET_NAV_WEEK_REPORT to -1L
                 intent.action = null
                 return
             }
@@ -913,38 +792,35 @@ class CarMainActivity : ComponentActivity() {
         }
     }
 
-    /** Hands the widgets what they show: last trip, this month's spending, tank and range. */
-    private fun publishWidgetSnapshot(trips: List<TripItem>, fills: List<FuelItem>, expenses: List<Expense>) {
+    /** Recap of [year] with the cities where trips started or ended (Geocoder; call off the main thread). */
+    private fun buildYearRecap(year: Int): de.dennisguse.opentracks.util.YearRecap {
         val zone = java.time.ZoneId.systemDefault()
-        val monthStart = java.time.LocalDate.now(zone).withDayOfMonth(1).atStartOfDay(zone).toInstant().toEpochMilli()
-        val last = trips.maxByOrNull { it.startTimeMs }
-        val monthTrips = trips.filter { it.startTimeMs >= monthStart }
-        val model = consumptionState.value
-        val liters = getCurrentFuelLiters()
-        de.dennisguse.opentracks.services.WidgetSnapshot.publish(
-            this,
-            de.dennisguse.opentracks.services.WidgetSnapshot(
-                lastTripId = last?.id ?: -1,
-                // unnamed trips are "Viagem · <date>": the date is already on the widget, so the
-                // place badge ("Destino: Casa") makes the better title
-                lastTripTitle = last?.let { t -> if (t.name.startsWith("Viagem ·")) t.commuteBadge ?: "Viagem" else t.name } ?: "",
-                lastTripBadge = last?.let { t -> if (t.name.startsWith("Viagem ·")) "" else t.commuteBadge } ?: "",
-                lastTripDate = last?.dateFormatted ?: "",
-                lastTripKm = last?.distanceKm ?: 0.0,
-                lastTripMin = last?.durationMin ?: 0,
-                lastTripAvgKmh = last?.avgSpeedKmh ?: 0.0,
-                lastTripCost = last?.fuelCost ?: 0.0,
-                monthLabel = java.time.LocalDate.now(zone).month.getDisplayName(java.time.format.TextStyle.FULL, Locale("pt", "BR")),
-                monthFuel = fills.filter { it.dateTime >= monthStart }.sumOf { it.totalCost },
-                monthOther = expenses.filter { it.dateTime >= monthStart }.sumOf { it.amount },
-                monthKm = monthTrips.sumOf { it.distanceKm },
-                monthTrips = monthTrips.size,
-                tankLiters = liters,
-                tankCapacity = tankCapacityState.value,
-                rangeKm = liters * model.baseKmL(model.currentFamily()),
-                fuelType = primaryFuelTypeState.value
-            )
-        )
+        val trips = tripsState.value
+        val records = de.dennisguse.opentracks.util.DrivingInsights.records(trips, fuelState.value, expensesState.value, System.currentTimeMillis(), zone)
+        val recap = de.dennisguse.opentracks.util.DrivingInsights.yearRecap(trips, fuelState.value, expensesState.value, year, zone, records)
+        val yearTrips = trips.filter { java.time.Instant.ofEpochMilli(it.startTimeMs).atZone(zone).year == year }
+        // one lookup per ~5 km cell; the same city shows up from many trips
+        val cells = yearTrips.flatMap { listOfNotNull(it.startLat?.let { la -> la to it.startLon!! }, it.endLat?.let { la -> la to it.endLon!! }) }
+            .groupingBy { (la, lo) -> Math.round(la * 20) to Math.round(lo * 20) }.eachCount()
+            .entries.sortedByDescending { it.value }.take(40)
+        val cityCount = mutableMapOf<String, Int>()
+        for ((cell, n) in cells) {
+            val city = try {
+                @Suppress("DEPRECATION")
+                android.location.Geocoder(this, Locale("pt", "BR")).getFromLocation(cell.first / 20.0, cell.second / 20.0, 1)
+                    ?.firstOrNull()?.let { it.locality ?: it.subAdminArea }
+            } catch (e: Exception) {
+                null
+            } ?: continue
+            cityCount[city] = (cityCount[city] ?: 0) + n
+        }
+        return recap.copy(cities = cityCount.entries.sortedByDescending { it.value }.map { it.key })
+    }
+
+    /** Hands the widgets what they show: last trip, the week, tank and range. */
+    private fun publishWidgetSnapshot(trips: List<TripItem>, fills: List<FuelItem>, expenses: List<Expense>) {
+        val ws = de.dennisguse.opentracks.services.WidgetSnapshot
+        ws.publish(this, ws.build(this, trips, fills, expenses, consumptionState.value))
     }
 
     @Composable
@@ -958,6 +834,8 @@ class CarMainActivity : ComponentActivity() {
         var isReportOpen by remember { mutableStateOf(false) }
         var isMaintenanceOpen by remember { mutableStateOf(false) }
         var isCockpitFullscreen by remember { mutableStateOf(false) }
+        var reportOnLastWeek by remember { mutableStateOf(false) }
+        var recapYear by remember { mutableStateOf<Int?>(null) }
         var selectedPeriod by remember { mutableStateOf(PeriodFilter.TODAS) }
 
         val trips by tripsState
@@ -971,10 +849,26 @@ class CarMainActivity : ComponentActivity() {
         val tankCapacity by tankCapacityState
         val primaryFuelType by primaryFuelTypeState
 
+        var reminderEnabled by remember { mutableStateOf(de.dennisguse.opentracks.util.CarOffReminder.isEnabled(this@CarMainActivity)) }
+        var reminderItems by remember { mutableStateOf(de.dennisguse.opentracks.util.CarOffReminder.items(this@CarMainActivity)) }
+        var weeklyEnabled by remember { mutableStateOf(de.dennisguse.opentracks.services.WeeklySummary.isEnabled(this@CarMainActivity)) }
+
         val widgetNav by widgetNavState
         LaunchedEffect(widgetNav, trips) {
             val (tab, tripId) = widgetNav ?: return@LaunchedEffect
+            if (tab == WIDGET_NAV_WEEK_REPORT) {
+                activeDetailTrip = null
+                isPeriodMapOpen = false
+                isMaintenanceOpen = false
+                isCockpitFullscreen = false
+                recapYear = null
+                reportOnLastWeek = true
+                isReportOpen = true
+                widgetNavState.value = null
+                return@LaunchedEffect
+            }
             selectedTab = tab
+            recapYear = null
             if (tripId >= 0) {
                 // wait for the trip list to load before opening the trip
                 activeDetailTrip = trips.firstOrNull { it.id == tripId } ?: return@LaunchedEffect
@@ -1008,13 +902,18 @@ class CarMainActivity : ComponentActivity() {
 
         BackHandler(enabled = isReportOpen && activeDetailTrip == null) {
             isReportOpen = false
+            reportOnLastWeek = false
         }
 
         BackHandler(enabled = isMaintenanceOpen) {
             isMaintenanceOpen = false
         }
 
-        BackHandler(enabled = !isCockpitFullscreen && activeDetailTrip == null && !isPeriodMapOpen && !isReportOpen && !isMaintenanceOpen && selectedTab != 0) {
+        BackHandler(enabled = recapYear != null && activeDetailTrip == null) {
+            recapYear = null
+        }
+
+        BackHandler(enabled = !isCockpitFullscreen && activeDetailTrip == null && !isPeriodMapOpen && !isReportOpen && !isMaintenanceOpen && recapYear == null && selectedTab != 0) {
             selectedTab = 0
         }
 
@@ -1101,6 +1000,28 @@ class CarMainActivity : ComponentActivity() {
             return
         }
 
+        if (recapYear != null) {
+            val year = recapYear!!
+            val recap by produceState<de.dennisguse.opentracks.util.YearRecap?>(null, year, trips) {
+                value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { buildYearRecap(year) }
+            }
+            val shown = recap
+            if (shown == null) {
+                Box(Modifier.fillMaxSize().background(CyberInk), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = CyberAcid)
+                }
+                return
+            }
+            val zone = java.time.ZoneId.systemDefault()
+            YearRecapScreen(
+                recap = shown,
+                availableYears = trips.map { java.time.Instant.ofEpochMilli(it.startTimeMs).atZone(zone).year }.distinct().sortedDescending(),
+                onYearSelected = { recapYear = it },
+                onBack = { recapYear = null }
+            )
+            return
+        }
+
         if (isReportOpen) {
             ReportScreen(
                 trips = trips,
@@ -1108,8 +1029,9 @@ class CarMainActivity : ComponentActivity() {
                 home = homeLoc,
                 work = workLoc,
                 loadPoints = { getTripPoints(it) },
-                onBack = { isReportOpen = false },
-                expenses = expensesState.value
+                onBack = { isReportOpen = false; reportOnLastWeek = false },
+                expenses = expensesState.value,
+                startOnLastWeek = reportOnLastWeek
             )
             return
         }
@@ -1199,6 +1121,21 @@ class CarMainActivity : ComponentActivity() {
                                 items = maintenanceState.value,
                                 odometerKm = getCurrentOdometer(),
                                 onClick = { isMaintenanceOpen = true }
+                            )
+                        },
+                        insightsSection = {
+                            InsightsSection(
+                                trips = trips,
+                                fills = fuelEntries,
+                                expenses = expenses,
+                                loadPoints = { getTripPoints(it) },
+                                onOpenTrip = { id -> activeDetailTrip = trips.firstOrNull { it.id == id } },
+                                onShowTripsOnMap = { ids, title ->
+                                    periodMapTrips = trips.filter { it.id in ids }
+                                    periodMapTitle = title
+                                    isPeriodMapOpen = true
+                                },
+                                onOpenRecap = { recapYear = java.time.LocalDate.now().year }
                             )
                         }
                     )
@@ -1305,6 +1242,23 @@ class CarMainActivity : ComponentActivity() {
                                 Toast.makeText(this@CarMainActivity, "Erro ao importar backup: ${e.message}", Toast.LENGTH_LONG).show()
                             }
                         },
+                        reminderEnabled = reminderEnabled,
+                        reminderItems = reminderItems,
+                        onSaveReminder = { enabled, items ->
+                            de.dennisguse.opentracks.util.CarOffReminder.save(this@CarMainActivity, enabled, items)
+                            reminderEnabled = enabled
+                            reminderItems = de.dennisguse.opentracks.util.CarOffReminder.items(this@CarMainActivity)
+                        },
+                        weeklySummaryEnabled = weeklyEnabled,
+                        onWeeklySummaryChange = {
+                            de.dennisguse.opentracks.services.WeeklySummary.setEnabled(this@CarMainActivity, it)
+                            weeklyEnabled = it
+                        },
+                        onTestWeeklySummary = {
+                            val app = applicationContext
+                            Thread { de.dennisguse.opentracks.services.WeeklySummary.post(app) }.start()
+                            Toast.makeText(this@CarMainActivity, "Resumo da semana enviado às notificações.", Toast.LENGTH_SHORT).show()
+                        }
                     )
                 }
             }

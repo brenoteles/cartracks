@@ -5,6 +5,6 @@
     <string name="widget_record_label">Painel CarTracks</string>
     <string name="widget_last_trip_label">Última viagem</string>
     <string name="widget_last_trip_description">Distância, tempo, velocidade média e custo da última viagem</string>
-    <string name="widget_month_label">Gastos do mês</string>
-    <string name="widget_month_description">Combustível, outros custos e custo por km do mês atual</string>
+    <string name="widget_month_label">Semana ao volante</string>
+    <string name="widget_month_description">Km, consumo médio, tempo ao volante e gasto dos últimos 7 dias</string>
 </resources>

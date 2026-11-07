@@ -69,7 +69,9 @@ fun ReportScreen(
     work: CustomLocation,
     loadPoints: (Long) -> List<TripPoint>,
     onBack: () -> Unit,
-    expenses: List<Expense> = emptyList()
+    expenses: List<Expense> = emptyList(),
+    /** Opened from the weekly summary: start on the last 7 days instead of this month. */
+    startOnLastWeek: Boolean = false
 ) {
     val scope = rememberCoroutineScope()
     val bodyLayer = rememberGraphicsLayer()
@@ -77,7 +79,7 @@ fun ReportScreen(
     var exporting by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val zone = ZoneId.systemDefault()
-    var period by remember { mutableStateOf(ReportPeriod.MONTH) }
+    var period by remember { mutableStateOf(if (startOnLastWeek) ReportPeriod.SEVEN else ReportPeriod.MONTH) }
     var customStart by remember { mutableStateOf<Long?>(null) }
     var customEnd by remember { mutableStateOf<Long?>(null) }
     var showPicker by remember { mutableStateOf(false) }

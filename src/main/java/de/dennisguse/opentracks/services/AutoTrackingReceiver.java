@@ -8,6 +8,7 @@ import android.util.Log;
 
 import de.dennisguse.opentracks.util.CarBluetooth;
 import de.dennisguse.opentracks.util.CarNotifications;
+import de.dennisguse.opentracks.util.CarOffReminder;
 
 /**
  * Reacts only to the Bluetooth device the user picked as "the car" (Ajustes). Connecting offers a
@@ -36,10 +37,17 @@ public class AutoTrackingReceiver extends BroadcastReceiver {
             CarNotifications.carConnected(context, CarBluetooth.INSTANCE.name(context));
         } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
             CarNotifications.clearCarConnected(context);
+            boolean remind = CarOffReminder.INSTANCE.isEnabled(context);
             if (recording) {
                 // receivers may not bind services themselves; the running recording service keeps the app alive
-                TrackRecordingServiceConnection.execute(context.getApplicationContext(), (service, connection) ->
-                        service.endTripAndPark("Bluetooth do carro desligado. Viagem e local de estacionamento salvos."));
+                Context app = context.getApplicationContext();
+                TrackRecordingServiceConnection.execute(app, (service, connection) -> {
+                    service.endTripAndPark(remind ? null : "Bluetooth do carro desligado. Viagem e local de estacionamento salvos.");
+                    if (remind) CarNotifications.carOffReminder(app, true);
+                    CarWidgets.INSTANCE.refreshFromDatabase(app);
+                });
+            } else if (remind) {
+                CarNotifications.carOffReminder(context, false);
             }
         }
     }

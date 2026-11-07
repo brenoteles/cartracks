@@ -10,13 +10,20 @@ import android.view.View
 import android.widget.RemoteViews
 import de.dennisguse.opentracks.CarMainActivity
 import de.dennisguse.opentracks.R
+import de.dennisguse.opentracks.data.Expense
+import de.dennisguse.opentracks.data.TripLoader
+import de.dennisguse.opentracks.ui.model.FuelItem
+import de.dennisguse.opentracks.ui.model.TripItem
+import de.dennisguse.opentracks.util.DrivingInsights
+import de.dennisguse.opentracks.util.FuelConsumptionModel
 import org.json.JSONObject
 import java.text.NumberFormat
 import java.util.Locale
 
 /**
  * What the home-screen widgets show. The app publishes it whenever trips, fuel-ups or expenses
- * change ([publish]); widgets only read it, so they never touch the databases themselves.
+ * change ([publish]), and [CarWidgets.refreshFromDatabase] after a trip ends with the app closed;
+ * widgets only read it.
  */
 data class WidgetSnapshot(
     val lastTripId: Long = -1,
@@ -27,17 +34,18 @@ data class WidgetSnapshot(
     val lastTripMin: Long = 0,
     val lastTripAvgKmh: Double = 0.0,
     val lastTripCost: Double = 0.0,
-    val monthLabel: String = "",
-    val monthFuel: Double = 0.0,
-    val monthOther: Double = 0.0,
-    val monthKm: Double = 0.0,
-    val monthTrips: Int = 0,
+    val weekKm: Double = 0.0,
+    val prevWeekKm: Double = 0.0,
+    val weekTrips: Int = 0,
+    val weekMin: Long = 0,
+    val weekKmL: Double = 0.0,
+    val weekSpent: Double = 0.0,
+    val prevWeekSpent: Double = 0.0,
     val tankLiters: Double = 0.0,
     val tankCapacity: Double = 0.0,
     val rangeKm: Double = 0.0,
     val fuelType: String = ""
 ) {
-    val monthTotal get() = monthFuel + monthOther
     val tankPercent get() = if (tankCapacity > 0) (100 * tankLiters / tankCapacity).toInt().coerceIn(0, 100) else 0
 
     companion object {
@@ -50,10 +58,11 @@ data class WidgetSnapshot(
                 val o = JSONObject(raw)
                 WidgetSnapshot(
                     o.optLong("lastTripId", -1), o.optString("lastTripTitle"), o.optString("lastTripBadge"),
-                    o.optString("lastTripDate"), o.optDouble("lastTripKm"), o.optLong("lastTripMin"),
-                    o.optDouble("lastTripAvgKmh"), o.optDouble("lastTripCost"), o.optString("monthLabel"),
-                    o.optDouble("monthFuel"), o.optDouble("monthOther"), o.optDouble("monthKm"), o.optInt("monthTrips"),
-                    o.optDouble("tankLiters"), o.optDouble("tankCapacity"), o.optDouble("rangeKm"), o.optString("fuelType")
+                    o.optString("lastTripDate"), o.optDouble("lastTripKm", 0.0), o.optLong("lastTripMin"),
+                    o.optDouble("lastTripAvgKmh", 0.0), o.optDouble("lastTripCost", 0.0),
+                    o.optDouble("weekKm", 0.0), o.optDouble("prevWeekKm", 0.0), o.optInt("weekTrips"), o.optLong("weekMin"),
+                    o.optDouble("weekKmL", 0.0), o.optDouble("weekSpent", 0.0), o.optDouble("prevWeekSpent", 0.0),
+                    o.optDouble("tankLiters", 0.0), o.optDouble("tankCapacity", 0.0), o.optDouble("rangeKm", 0.0), o.optString("fuelType")
                 )
             }.getOrDefault(WidgetSnapshot())
         }
@@ -63,23 +72,66 @@ data class WidgetSnapshot(
             val o = JSONObject()
                 .put("lastTripId", s.lastTripId).put("lastTripTitle", s.lastTripTitle).put("lastTripBadge", s.lastTripBadge)
                 .put("lastTripDate", s.lastTripDate).put("lastTripKm", s.lastTripKm).put("lastTripMin", s.lastTripMin)
-                .put("lastTripAvgKmh", s.lastTripAvgKmh).put("lastTripCost", s.lastTripCost).put("monthLabel", s.monthLabel)
-                .put("monthFuel", s.monthFuel).put("monthOther", s.monthOther).put("monthKm", s.monthKm).put("monthTrips", s.monthTrips)
+                .put("lastTripAvgKmh", s.lastTripAvgKmh).put("lastTripCost", s.lastTripCost)
+                .put("weekKm", s.weekKm).put("prevWeekKm", s.prevWeekKm).put("weekTrips", s.weekTrips).put("weekMin", s.weekMin)
+                .put("weekKmL", s.weekKmL).put("weekSpent", s.weekSpent).put("prevWeekSpent", s.prevWeekSpent)
                 .put("tankLiters", s.tankLiters).put("tankCapacity", s.tankCapacity).put("rangeKm", s.rangeKm).put("fuelType", s.fuelType)
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, o.toString()).apply()
             CarWidgets.refreshAll(context)
+        }
+
+        /** What the widgets show for these trips, fuel-ups and expenses. */
+        fun build(context: Context, trips: List<TripItem>, fills: List<FuelItem>, expenses: List<Expense>, model: FuelConsumptionModel): WidgetSnapshot {
+            val last = trips.maxByOrNull { it.startTimeMs }
+            val week = DrivingInsights.weekSummary(trips, fills, expenses, System.currentTimeMillis())
+            val prefs = context.getSharedPreferences("CarTracksPrefs", Context.MODE_PRIVATE)
+            val capacity = prefs.getFloat("tank_capacity_liters", 50f).toDouble()
+            val liters = TripLoader.tankLiters(context, trips, fills, model)
+            return WidgetSnapshot(
+                lastTripId = last?.id ?: -1,
+                // unnamed trips are "Viagem · <date>": the date is already on the widget, so the
+                // place badge ("Destino: Casa") makes the better title
+                lastTripTitle = last?.let { t -> if (t.name.startsWith("Viagem ·")) t.commuteBadge ?: "Viagem" else t.name } ?: "",
+                lastTripBadge = last?.let { t -> if (t.name.startsWith("Viagem ·")) "" else t.commuteBadge } ?: "",
+                lastTripDate = last?.dateFormatted ?: "",
+                lastTripKm = last?.distanceKm ?: 0.0,
+                lastTripMin = last?.durationMin ?: 0,
+                lastTripAvgKmh = last?.avgSpeedKmh ?: 0.0,
+                lastTripCost = last?.fuelCost ?: 0.0,
+                weekKm = week.current.km,
+                prevWeekKm = week.previous.km,
+                weekTrips = week.current.trips,
+                weekMin = week.current.drivingMin,
+                weekKmL = week.current.avgKmL,
+                weekSpent = week.current.totalSpent,
+                prevWeekSpent = week.previous.totalSpent,
+                tankLiters = liters,
+                tankCapacity = capacity,
+                rangeKm = liters * model.baseKmL(model.currentFamily()),
+                fuelType = prefs.getString("primary_fuel_type", "Gasolina Comum") ?: "Gasolina Comum"
+            )
         }
     }
 }
 
 object CarWidgets {
     const val ACTION_OPEN_TRIP = "de.dennisguse.cartracks.action.OPEN_TRIP"
-    const val ACTION_OPEN_COSTS = "de.dennisguse.cartracks.action.OPEN_COSTS"
     const val EXTRA_TRIP_ID = "trip_id"
 
     private val BR = Locale("pt", "BR")
     fun money(v: Double): String = NumberFormat.getCurrencyInstance(BR).format(v).replace(' ', ' ')
     fun km(v: Double): String = if (v >= 100) String.format(BR, "%.0f", v) else String.format(BR, "%.1f", v)
+
+    /** Rebuilds the snapshot from the databases, off the main thread (a trip ended with the app closed). */
+    fun refreshFromDatabase(context: Context) {
+        val app = context.applicationContext
+        Thread {
+            runCatching {
+                val all = TripLoader.loadAll(app)
+                WidgetSnapshot.publish(app, WidgetSnapshot.build(app, all.trips, all.fills, all.expenses, all.model))
+            }
+        }.start()
+    }
 
     fun refreshAll(context: Context) {
         RecordWidget.refresh(context)
@@ -135,7 +187,7 @@ class LastTripWidget : AppWidgetProvider() {
     }
 }
 
-/** Spending of the current month: fuel, other costs, total and cost per km. Tap opens Custos. */
+/** Last 7 days: km against the week before, km/L, time at the wheel, trips and spending. Tap opens the week report. */
 class MonthCostWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         ids.forEach { manager.updateAppWidget(it, views(context)) }
@@ -144,14 +196,19 @@ class MonthCostWidget : AppWidgetProvider() {
     companion object {
         fun views(context: Context): RemoteViews {
             val s = WidgetSnapshot.read(context)
+            val br = Locale("pt", "BR")
             return RemoteViews(context.packageName, R.layout.widget_month).apply {
-                setTextViewText(R.id.wm_month, ("GASTOS · " + s.monthLabel).uppercase(Locale("pt", "BR")))
-                setTextViewText(R.id.wm_total, CarWidgets.money(s.monthTotal))
-                setTextViewText(R.id.wm_fuel, CarWidgets.money(s.monthFuel))
-                setTextViewText(R.id.wm_other, CarWidgets.money(s.monthOther))
-                val perKm = if (s.monthKm > 0) CarWidgets.money(s.monthTotal / s.monthKm) + "/km" else "—"
-                setTextViewText(R.id.wm_km, "${CarWidgets.km(s.monthKm)} km · ${s.monthTrips} viagens · $perKm")
-                setOnClickPendingIntent(R.id.wm_root, CarWidgets.openApp(context, 45, CarWidgets.ACTION_OPEN_COSTS))
+                setTextViewText(R.id.wm_km, CarWidgets.km(s.weekKm))
+                setTextViewText(R.id.wm_delta, if (s.prevWeekKm <= 0) "" else {
+                    val pct = Math.round((s.weekKm - s.prevWeekKm) / s.prevWeekKm * 100)
+                    (if (pct > 0) "+$pct%" else "$pct%") + " vs semana anterior"
+                })
+                setTextViewText(R.id.wm_kml, if (s.weekKmL > 0) String.format(br, "%.1f", s.weekKmL) else "—")
+                setTextViewText(R.id.wm_time, if (s.weekMin >= 60) "${s.weekMin / 60}h${String.format("%02d", s.weekMin % 60)}" else "${s.weekMin}min")
+                setTextViewText(R.id.wm_trips, s.weekTrips.toString())
+                setTextViewText(R.id.wm_spent, "Gasto: " + CarWidgets.money(s.weekSpent) +
+                    if (s.prevWeekSpent > 0) " · antes " + CarWidgets.money(s.prevWeekSpent) else "")
+                setOnClickPendingIntent(R.id.wm_root, CarWidgets.openApp(context, 45, WeeklySummary.ACTION_OPEN_WEEK))
             }
         }
     }

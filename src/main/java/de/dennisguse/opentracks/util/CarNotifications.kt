@@ -22,12 +22,15 @@ object CarNotifications {
     private const val ID_AUTO_STOP = 2001
     private const val ID_CAR_CONNECTED = 2002
     private const val ID_MAINTENANCE_BASE = 3000
+    private const val ID_WEEKLY = 2003
+    private const val CHANNEL_SUMMARY = "cartracks_weekly"
 
     private fun ensureChannels(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CHANNEL_TRIPS, "Viagens", NotificationManager.IMPORTANCE_DEFAULT))
         nm.createNotificationChannel(NotificationChannel(CHANNEL_MAINTENANCE, "Lembretes de manutenção", NotificationManager.IMPORTANCE_DEFAULT))
         nm.createNotificationChannel(NotificationChannel(CHANNEL_CAR, "Carro conectado", NotificationManager.IMPORTANCE_HIGH))
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_SUMMARY, "Resumo semanal", NotificationManager.IMPORTANCE_DEFAULT))
     }
 
     private fun canPost(context: Context): Boolean =
@@ -91,5 +94,53 @@ object CarNotifications {
             .setAutoCancel(true)
             .build()
         NotificationManagerCompat.from(context).notify(ID_MAINTENANCE_BASE + id, n)
+    }
+
+    /**
+     * Car Bluetooth went off: "Viagem salva · confira celular, carteira e porta-malas". Uses the
+     * auto-stop id, so it replaces the plain "encerrada automaticamente" notice.
+     */
+    @JvmStatic
+    fun carOffReminder(context: Context, tripSaved: Boolean) {
+        if (!canPost(context) || !CarOffReminder.isEnabled(context)) return
+        ensureChannels(context)
+        val items = CarOffReminder.checklist(CarOffReminder.items(context))
+        val title = if (tripSaved) "Viagem salva" else "Carro desligado"
+        val text = if (items.isEmpty()) "Local de estacionamento salvo." else "Confira $items."
+        val n = NotificationCompat.Builder(context, CHANNEL_CAR)
+            .setSmallIcon(R.drawable.ic_logo_color_24dp)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(openApp(context))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setTimeoutAfter(30 * 60 * 1000L)
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(context).notify(ID_AUTO_STOP, n)
+    }
+
+    /** Sunday summary; tapping opens the report on the last 7 days. */
+    fun weeklySummary(context: Context, title: String, text: String) {
+        if (!canPost(context)) return
+        ensureChannels(context)
+        val open = PendingIntent.getActivity(
+            context, 48,
+            Intent(context, CarMainActivity::class.java)
+                .setAction(de.dennisguse.opentracks.services.WeeklySummary.ACTION_OPEN_WEEK)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val n = NotificationCompat.Builder(context, CHANNEL_SUMMARY)
+            .setSmallIcon(R.drawable.ic_logo_color_24dp)
+            .setContentTitle(title)
+            // the title already has the km: the collapsed line shows time and spending
+            .setContentText(text.lines().drop(1).take(2).joinToString(" · ").ifBlank { text })
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
+        NotificationManagerCompat.from(context).notify(ID_WEEKLY, n)
     }
 }

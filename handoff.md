@@ -1,6 +1,6 @@
 # CarTracks — handoff para a próxima sessão
 
-Leia isto primeiro. Estado em 2026-11-07: v1.0.25 publicada; v1.0.26 (correção dos widgets) instalada no aparelho, ainda não publicada.
+Leia isto primeiro. Estado em 2026-11-07: v1.0.25 publicada; v1.0.26 (correção dos widgets) e v1.0.27 (resumo semanal, recordes, insights, retrospectiva, Ajustes novos) instaladas no aparelho, ainda não publicadas.
 
 ## 1. O que é
 
@@ -13,7 +13,7 @@ App Android (Kotlin/Java, Jetpack Compose, MapLibre 11.13) que grava viagens de 
 ## 2. Regras que não podem ser quebradas (dados instalados)
 
 - `applicationId` `de.dennisguse.cartracks` (+ `.debug` no build usado) e assinatura com `~/.android/debug.keystore` (SHA-256 começa `d4289667…bcc3d`). Conferir com `apksigner verify --print-certs` antes de instalar.
-- `versionCode` só sobe (está em **6776** na v1.0.26, em `build.gradle` → `defaultConfig`).
+- `versionCode` só sobe (está em **6777** na v1.0.27, em `build.gradle` → `defaultConfig`).
 - Não mudar esquema do banco (`CustomSQLiteOpenHelper`, versão 42), colunas de `data/tables/*`, nem chaves de SharedPreferences sem migração. Arquivos de prefs: `CarTracksPrefs`, `CarTracksParking`, `CarTracksLocations` (Casa/Trabalho/`favorites_json`) e o padrão `<pacote>_preferences`.
 - Os modelos `HeartRate`, `Cadence`, `Power`, `Temperature` mapeiam colunas que existem no banco: **não apagar** mesmo que os sensores saiam.
 
@@ -38,7 +38,7 @@ $ADB install -r <apk>                                               # mantém os
 
 ## 4. Estado do git
 
-- v1.0.26 commitada, sem tag/release (publicar quando o usuário pedir).
+- v1.0.26 commitada em `main`; v1.0.27 no branch `v1.0.27` (para o /code-review ultra). Nenhuma das duas tem tag/release ainda.
 - Tudo publicado até **v1.0.25** (tags e releases no GitHub com o APK; v1.0.25 é a "Latest", 22,0 MB).
 - `Instrucoes Claude.txt` na raiz é do usuário: nunca commitar.
 
@@ -75,6 +75,17 @@ Ferramentas usadas na limpeza: grafo de classes com `jdeps -verbose:class`; `./g
 - **Pendente de resposta do usuário**: início 100% automático pelo Bluetooth do carro exige `ACCESS_BACKGROUND_LOCATION` ("Permitir o tempo todo"); o app já tem isenção de bateria.
 - **v1.0.26 (regras de layout de widget, aprendidas no S24)**: nada de `<View>` puro (o launcher recusa: "Class not allowed to be inflated android.view.View"; usar `FrameLayout`), e `@font/...` não é aplicado na tela inicial, então os widgets usam `sans-serif-condensed`/`sans-serif-medium`. Erros de widget aparecem no logcat com a tag `AppWidgetHostView`. Toque de widget fecha viagem/mapa/relatório abertos antes de trocar de aba.
 - Estudo de Waze e Samsung Health (REA + aapt2 + Gemini) com 12 sugestões priorizadas: seção 3 do relatório no Desktop. No REA, os decodificadores Android (apktool/JADX) não estão configurados e o adb precisa de `REA_ADB_PATH`, então os APKs foram puxados com o adb do SDK.
+
+## 6c. v1.0.27: análises da semana e do ano
+
+- **Dados fora da Activity**: `data/TripLoader.kt` carrega viagens (com ponto de partida/chegada novos em `TripItem`), abastecimentos, despesas e o modelo de consumo só com um Context; também `tankLiters`. A Activity, o widget e o resumo semanal usam ele.
+- **Análises puras e testadas**: `util/InsightModels.kt` (contratos), `util/DrivingInsights.kt` (semana móvel de 7 dias, recordes, insights, janela de saída, retrospectiva; escrito pelo Gemini 4 Argon), `util/RouteVariants.kt` (caminhos por células de 200 m e Jaccard ≥ 0,55; nome da via pelo Geocoder no ponto exclusivo de cada caminho).
+- **Início**: `ui/screens/InsightsSection.kt` + `ui/components/InsightCards.kt`. 👍/👎 e recordes anteriores em `util/InsightStore.kt` (prefs `CarTracksInsights`); selo por 7 dias.
+- **Resumo semanal**: `services/WeeklySummary.kt` (alarme inexato domingo 20h, receiver também em BOOT/MY_PACKAGE_REPLACED; pref `weekly_summary_enabled`). Toque/widget → `ACTION_OPEN_WEEK` → Relatório com `startOnLastWeek`.
+- **Lembrete ao desligar**: `util/CarOffReminder.kt` (prefs `car_off_reminder_enabled`/`car_off_reminder_items`), postado por `AutoTrackingReceiver` no ACL_DISCONNECTED do carro; `endTripAndPark(null)` não posta o aviso antigo. Não testado de ponta a ponta: o usuário ainda não escolheu o Bluetooth do carro.
+- **Retrospectiva**: `ui/screens/YearRecapScreen.kt` (Gemini 4 Argon), cidades via Geocoder em `CarMainActivity.buildYearRecap`.
+- **Ajustes**: `SettingsScreen.kt` redesenhado pelo Gemini 3.8 Flash; mesmas chaves de prefs.
+- Widget `MonthCostWidget` agora mostra os últimos 7 dias (nome da classe mantido).
 
 ## 7. Ideias pendentes (já discutidas com o usuário)
 

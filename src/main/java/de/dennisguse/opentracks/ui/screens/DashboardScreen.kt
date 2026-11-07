@@ -51,7 +51,9 @@ fun DashboardScreen(
     onAddFuelClicked: () -> Unit,
     onTripClicked: (TripItem) -> Unit,
     onViewAllTripsClicked: () -> Unit,
-    maintenanceCard: (@Composable () -> Unit)? = null
+    maintenanceCard: (@Composable () -> Unit)? = null,
+    /** Week insights, records, regularity, route variants and the year recap entry. */
+    insightsSection: (@Composable () -> Unit)? = null
 ) {
     val totalKm = trips.sumOf { it.distanceKm }
     val totalFuel = trips.sumOf { it.fuelLiters }
@@ -196,6 +198,10 @@ fun DashboardScreen(
                     }
                 }
             }
+        }
+
+        if (insightsSection != null) {
+            item { insightsSection() }
         }
 
         // Totals grid

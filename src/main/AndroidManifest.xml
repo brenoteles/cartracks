@@ -45,6 +45,7 @@ limitations under the License.
 <!--    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />-->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <uses-permission
         android:name="android.permission.BLUETOOTH"
@@ -168,6 +169,16 @@ limitations under the License.
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_month_info" />
+        </receiver>
+
+        <!-- Sunday-evening summary; rescheduled after a reboot or an app update -->
+        <receiver
+            android:name=".services.WeeklySummaryReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
         </receiver>
 
         <service

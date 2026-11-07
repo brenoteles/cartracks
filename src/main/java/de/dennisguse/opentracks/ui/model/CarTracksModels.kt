@@ -15,7 +15,12 @@ data class TripItem(
     val commuteBadge: String? = null,
     val kmL: Double = 0.0,
     val fuelLabel: String = "",
-    val trafficLabel: String = ""
+    val trafficLabel: String = "",
+    /** First and last GPS fix; null for a trip without points. */
+    val startLat: Double? = null,
+    val startLon: Double? = null,
+    val endLat: Double? = null,
+    val endLon: Double? = null
 )
 
 data class TripPoint(

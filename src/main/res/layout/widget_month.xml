@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Gastos do mês: total in display type, fuel vs other costs, km and cost per km. -->
+<!-- Semana ao volante: km of the last 7 days vs the week before, km/L, time, trips and spending.
+     Kept the file and class names of the old monthly widget so placed widgets survive. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/wm_root"
     android:layout_width="match_parent"
@@ -21,7 +22,6 @@
             android:background="#F478D9" />
 
         <TextView
-            android:id="@+id/wm_month"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -29,21 +29,53 @@
             android:fontFamily="sans-serif-medium"
             android:letterSpacing="0.12"
             android:maxLines="1"
-            android:text="GASTOS DO MÊS"
+            android:text="ÚLTIMOS 7 DIAS"
             android:textColor="#F478D9"
             android:textSize="10sp" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/wm_total"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fontFamily="sans-serif-condensed"
-        android:textStyle="bold"
-        android:maxLines="1"
-        android:text="R$ 0,00"
-        android:textColor="#E8FF3A"
-        android:textSize="34sp" />
+        android:gravity="bottom"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/wm_km"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:text="0"
+            android:textColor="#E8FF3A"
+            android:textSize="38sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginBottom="7dp"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="bold"
+            android:text="KM"
+            android:textColor="#E8FF3A"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/wm_delta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="8dp"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="end"
+            android:maxLines="1"
+            android:textColor="#BDC1A3"
+            android:textSize="11sp" />
+    </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -55,60 +87,96 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:letterSpacing="0.1"
-            android:text="COMBUSTÍVEL"
-            android:textColor="#E3881E"
-            android:textSize="10sp" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/wm_fuel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-condensed"
-            android:textStyle="bold"
-            android:textColor="#F3F5E6"
-            android:textSize="12sp" />
-    </LinearLayout>
+            <TextView
+                android:id="@+id/wm_kml"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:text="—"
+                android:textColor="#00B9B0"
+                android:textSize="20sp" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.08"
+                android:text="KM/L"
+                android:textColor="#8E9270"
+                android:textSize="9sp" />
+        </LinearLayout>
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:fontFamily="sans-serif-medium"
-            android:letterSpacing="0.1"
-            android:text="OUTROS"
-            android:textColor="#F478D9"
-            android:textSize="10sp" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/wm_other"
-            android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/wm_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:text="—"
+                android:textColor="#F3F5E6"
+                android:textSize="20sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.08"
+                android:text="AO VOLANTE"
+                android:textColor="#8E9270"
+                android:textSize="9sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-condensed"
-            android:textStyle="bold"
-            android:textColor="#F3F5E6"
-            android:textSize="12sp" />
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/wm_trips"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-condensed"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:text="0"
+                android:textColor="#F3F5E6"
+                android:textSize="20sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.08"
+                android:text="VIAGENS"
+                android:textColor="#8E9270"
+                android:textSize="9sp" />
+        </LinearLayout>
     </LinearLayout>
 
     <TextView
-        android:id="@+id/wm_km"
+        android:id="@+id/wm_spent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="6dp"
         android:ellipsize="end"
         android:fontFamily="sans-serif"
         android:maxLines="1"
         android:textColor="#BDC1A3"
-        android:textSize="10sp" />
+        android:textSize="11sp" />
 </LinearLayout>

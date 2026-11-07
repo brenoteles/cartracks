@@ -336,8 +336,11 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
         endTripAndPark("O carro ficou parado por 10 minutos. Viagem e local de estacionamento salvos.");
     }
 
-    /** Ends the trip without the UI (parked timeout, car Bluetooth off), keeping the parking spot and a backup. */
-    public void endTripAndPark(String reason) {
+    /**
+     * Ends the trip without the UI (parked timeout, car Bluetooth off), keeping the parking spot and a backup.
+     * A null reason skips the "encerrada automaticamente" notification (the caller posts its own).
+     */
+    public void endTripAndPark(@Nullable String reason) {
         if (!isRecording()) {
             return;
         }
@@ -358,7 +361,9 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
             Log.w(TAG, "Auto backup after auto-stop failed", e);
         }
         new android.app.backup.BackupManager(this).dataChanged();
-        de.dennisguse.opentracks.util.CarNotifications.autoStopped(this, reason);
+        if (reason != null) {
+            de.dennisguse.opentracks.util.CarNotifications.autoStopped(this, reason);
+        }
         stopSelf();
     }
 
