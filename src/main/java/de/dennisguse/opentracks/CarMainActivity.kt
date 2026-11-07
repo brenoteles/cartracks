@@ -810,9 +810,24 @@ class CarMainActivity : ComponentActivity() {
         )
     }
 
+    /** Widget taps that open a screen: (tab, trip id). Consumed by MainAppNavigation. */
+    private val widgetNavState = mutableStateOf<Pair<Int, Long>?>(null)
+
     /** Widget / Quick Settings tile toggle; the car-Bluetooth notification only ever starts. */
     private fun handleQuickAction(intent: Intent?) {
         val action = intent?.action
+        when (action) {
+            de.dennisguse.opentracks.services.CarWidgets.ACTION_OPEN_TRIP -> {
+                widgetNavState.value = 1 to intent.getLongExtra(de.dennisguse.opentracks.services.CarWidgets.EXTRA_TRIP_ID, -1)
+                intent.action = null
+                return
+            }
+            de.dennisguse.opentracks.services.CarWidgets.ACTION_OPEN_COSTS -> {
+                widgetNavState.value = 2 to -1L
+                intent.action = null
+                return
+            }
+        }
         if (action != QuickControls.ACTION_TOGGLE && action != QuickControls.ACTION_START) return
         intent.action = null
         de.dennisguse.opentracks.util.CarNotifications.clearCarConnected(this)
@@ -898,9 +913,44 @@ class CarMainActivity : ComponentActivity() {
         }
     }
 
+    /** Hands the widgets what they show: last trip, this month's spending, tank and range. */
+    private fun publishWidgetSnapshot(trips: List<TripItem>, fills: List<FuelItem>, expenses: List<Expense>) {
+        val zone = java.time.ZoneId.systemDefault()
+        val monthStart = java.time.LocalDate.now(zone).withDayOfMonth(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val last = trips.maxByOrNull { it.startTimeMs }
+        val monthTrips = trips.filter { it.startTimeMs >= monthStart }
+        val model = consumptionState.value
+        val liters = getCurrentFuelLiters()
+        de.dennisguse.opentracks.services.WidgetSnapshot.publish(
+            this,
+            de.dennisguse.opentracks.services.WidgetSnapshot(
+                lastTripId = last?.id ?: -1,
+                // unnamed trips are "Viagem · <date>": the date is already on the widget, so the
+                // place badge ("Destino: Casa") makes the better title
+                lastTripTitle = last?.let { t -> if (t.name.startsWith("Viagem ·")) t.commuteBadge ?: "Viagem" else t.name } ?: "",
+                lastTripBadge = last?.let { t -> if (t.name.startsWith("Viagem ·")) "" else t.commuteBadge } ?: "",
+                lastTripDate = last?.dateFormatted ?: "",
+                lastTripKm = last?.distanceKm ?: 0.0,
+                lastTripMin = last?.durationMin ?: 0,
+                lastTripAvgKmh = last?.avgSpeedKmh ?: 0.0,
+                lastTripCost = last?.fuelCost ?: 0.0,
+                monthLabel = java.time.LocalDate.now(zone).month.getDisplayName(java.time.format.TextStyle.FULL, Locale("pt", "BR")),
+                monthFuel = fills.filter { it.dateTime >= monthStart }.sumOf { it.totalCost },
+                monthOther = expenses.filter { it.dateTime >= monthStart }.sumOf { it.amount },
+                monthKm = monthTrips.sumOf { it.distanceKm },
+                monthTrips = monthTrips.size,
+                tankLiters = liters,
+                tankCapacity = tankCapacityState.value,
+                rangeKm = liters * model.baseKmL(model.currentFamily()),
+                fuelType = primaryFuelTypeState.value
+            )
+        )
+    }
+
     @Composable
     private fun MainAppNavigation() {
         var selectedTab by remember { mutableStateOf(0) }
+        var openFuelForm by remember { mutableStateOf(false) }
         var activeDetailTrip by remember { mutableStateOf<TripItem?>(null) }
         var isPeriodMapOpen by remember { mutableStateOf(false) }
         var periodMapTrips by remember { mutableStateOf<List<TripItem>>(emptyList()) }
@@ -920,6 +970,21 @@ class CarMainActivity : ComponentActivity() {
         val vehiclePlate by vehiclePlateState
         val tankCapacity by tankCapacityState
         val primaryFuelType by primaryFuelTypeState
+
+        val widgetNav by widgetNavState
+        LaunchedEffect(widgetNav, trips) {
+            val (tab, tripId) = widgetNav ?: return@LaunchedEffect
+            selectedTab = tab
+            if (tripId >= 0) {
+                // wait for the trip list to load before opening the trip
+                activeDetailTrip = trips.firstOrNull { it.id == tripId } ?: return@LaunchedEffect
+            }
+            widgetNavState.value = null
+        }
+        val expenses by expensesState
+        LaunchedEffect(trips, fuelEntries, expenses, tankCapacity, consumptionState.value) {
+            publishWidgetSnapshot(trips, fuelEntries, expenses)
+        }
 
         // System Back Gesture Handlers - Never accidentally closes the app!
         BackHandler(enabled = isCockpitFullscreen) {

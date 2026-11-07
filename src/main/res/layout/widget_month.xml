@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Gastos do mês: total in display type, fuel vs other costs, km and cost per km. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/wm_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <View
+            android:layout_width="14dp"
+            android:layout_height="3dp"
+            android:layout_marginEnd="6dp"
+            android:background="#F478D9" />
+
+        <TextView
+            android:id="@+id/wm_month"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="@font/ibm_plex_mono_semibold"
+            android:letterSpacing="0.12"
+            android:maxLines="1"
+            android:text="GASTOS DO MÊS"
+            android:textColor="#F478D9"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/wm_total"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/bebas_neue_regular"
+        android:maxLines="1"
+        android:text="R$ 0,00"
+        android:textColor="#E8FF3A"
+        android:textSize="34sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="@font/ibm_plex_mono_semibold"
+            android:letterSpacing="0.1"
+            android:text="COMBUSTÍVEL"
+            android:textColor="#E3881E"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/wm_fuel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/ibm_plex_mono_bold"
+            android:textColor="#F3F5E6"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:fontFamily="@font/ibm_plex_mono_semibold"
+            android:letterSpacing="0.1"
+            android:text="OUTROS"
+            android:textColor="#F478D9"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/wm_other"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/ibm_plex_mono_bold"
+            android:textColor="#F3F5E6"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/wm_km"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:fontFamily="@font/ibm_plex_mono_regular"
+        android:maxLines="1"
+        android:textColor="#BDC1A3"
+        android:textSize="10sp" />
+</LinearLayout>

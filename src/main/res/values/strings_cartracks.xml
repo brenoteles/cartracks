@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widget_record_description">Inicia ou encerra a gravação da viagem com um toque</string>
+    <string name="widget_record_description">Tanque, autonomia e botão para iniciar ou encerrar a viagem</string>
     <string name="tile_record_label">Viagem CarTracks</string>
+    <string name="widget_record_label">Painel CarTracks</string>
+    <string name="widget_last_trip_label">Última viagem</string>
+    <string name="widget_last_trip_description">Distância, tempo, velocidade média e custo da última viagem</string>
+    <string name="widget_month_label">Gastos do mês</string>
+    <string name="widget_month_description">Combustível, outros custos e custo por km do mês atual</string>
 </resources>

@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.view.View
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.widget.RemoteViews
@@ -24,14 +25,22 @@ object QuickControls {
     const val ACTION_START = "de.dennisguse.cartracks.action.START_RECORDING"
     private const val PREFS = "CarTracksPrefs"
     private const val KEY = "quick_is_recording"
+    private const val KEY_SINCE = "quick_recording_since"
 
     fun isRecording(context: Context) =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, false)
 
+    /** Wall-clock start of the running trip, for the widget's timer. */
+    fun recordingSince(context: Context) =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(KEY_SINCE, 0L)
+
     /** Called by the recording service whenever a trip starts or ends. */
     @JvmStatic
     fun setRecording(context: Context, recording: Boolean) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY, recording).apply()
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        // keep the first start time when the service resumes a trip after being restarted
+        val since = if (recording) prefs.getLong(KEY_SINCE, 0L).takeIf { isRecording(context) && it > 0 } ?: System.currentTimeMillis() else 0L
+        prefs.edit().putBoolean(KEY, recording).putLong(KEY_SINCE, since).apply()
         RecordWidget.refresh(context)
         TileService.requestListeningState(context, ComponentName(context, RecordTileService::class.java))
     }
@@ -55,15 +64,31 @@ class RecordWidget : AppWidgetProvider() {
     }
 
     companion object {
+        /** Painel: trip state with a running timer, tank level and range, and the start/stop band. */
         fun views(context: Context): RemoteViews {
             val recording = QuickControls.isRecording(context)
+            val s = WidgetSnapshot.read(context)
             return RemoteViews(context.packageName, R.layout.widget_record).apply {
-                setTextViewText(R.id.widget_state, if (recording) "● GRAVANDO" else "PARADO")
+                setTextViewText(R.id.widget_state, if (recording) "● GRAVANDO" else "ESTACIONADO")
                 setTextColor(R.id.widget_state, if (recording) 0xFFE14822.toInt() else 0xFFBDC1A3.toInt())
+                if (recording) {
+                    val elapsed = System.currentTimeMillis() - QuickControls.recordingSince(context)
+                    setChronometer(R.id.widget_timer, android.os.SystemClock.elapsedRealtime() - elapsed.coerceAtLeast(0), null, true)
+                    setViewVisibility(R.id.widget_timer_row, View.VISIBLE)
+                    setViewVisibility(R.id.widget_tank_row, View.GONE)
+                } else {
+                    setChronometer(R.id.widget_timer, android.os.SystemClock.elapsedRealtime(), null, false)
+                    setViewVisibility(R.id.widget_timer_row, View.GONE)
+                    setViewVisibility(R.id.widget_tank_row, if (s.tankCapacity > 0) View.VISIBLE else View.GONE)
+                    setTextViewText(R.id.widget_tank_label, ("TANQUE · " + s.fuelType).uppercase(java.util.Locale("pt", "BR")))
+                    setTextViewText(R.id.widget_tank_value, "${s.tankPercent}% · ~${s.rangeKm.toInt()} km")
+                    setProgressBar(R.id.widget_tank_bar, 100, s.tankPercent, false)
+                }
                 setTextViewText(R.id.widget_action, if (recording) "■  ENCERRAR VIAGEM" else "▶  INICIAR VIAGEM")
                 setInt(R.id.widget_action, "setBackgroundColor", if (recording) 0xFFE14822.toInt() else 0xFFE8FF3A.toInt())
                 setTextColor(R.id.widget_action, if (recording) 0xFFFFFFFF.toInt() else 0xFF0C0C14.toInt())
-                setOnClickPendingIntent(R.id.widget_root, QuickControls.toggleIntent(context))
+                setOnClickPendingIntent(R.id.widget_action, QuickControls.toggleIntent(context))
+                setOnClickPendingIntent(R.id.widget_root, CarWidgets.openApp(context, 46, Intent.ACTION_MAIN))
             }
         }
 
