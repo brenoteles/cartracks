@@ -27,7 +27,6 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.ViewGroupCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import de.dennisguse.opentracks.services.announcement.TTSManager;
 import de.dennisguse.opentracks.settings.PreferencesUtils;
 
 /**
@@ -42,9 +41,6 @@ public abstract class AbstractActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
 
         super.onCreate(savedInstanceState);
-
-        // Set volume control stream for text to speech
-        setVolumeControlStream(TTSManager.AUDIO_STREAM);
 
         View rootView = createRootView();
         setContentView(rootView);

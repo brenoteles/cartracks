@@ -40,7 +40,6 @@ import de.dennisguse.opentracks.data.models.Marker;
 import de.dennisguse.opentracks.data.models.Track;
 import de.dennisguse.opentracks.data.models.TrackPoint;
 import de.dennisguse.opentracks.sensors.GpsStatusValue;
-import de.dennisguse.opentracks.services.announcement.VoiceAnnouncementManager;
 import de.dennisguse.opentracks.services.handlers.TrackPointCreator;
 import de.dennisguse.opentracks.settings.PreferencesUtils;
 
@@ -118,7 +117,6 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
         return false;
     }
 
-    private VoiceAnnouncementManager voiceAnnouncementManager;
     private TrackRecordingServiceNotificationManager notificationManager;
 
     @Override
@@ -136,7 +134,6 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
         trackPointCreator = new TrackPointCreator(this);
         trackRecordingManager = new TrackRecordingManager(this, trackPointCreator, this, handler);
 
-        voiceAnnouncementManager = new VoiceAnnouncementManager(this);
         notificationManager = new TrackRecordingServiceNotificationManager(this);
 
         PreferencesUtils.registerOnSharedPreferenceChangeListener(this);
@@ -160,8 +157,6 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
 
         // Reverse order from onCreate
         notificationManager = null;
-
-        voiceAnnouncementManager = null;
 
         recordingStatusObservable = null;
         gpsStatusObservable = null;
@@ -226,8 +221,6 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
 
         startSensors();
 
-        voiceAnnouncementManager.start(trackRecordingManager.getTrackStatistics());
-
         notificationManager.onRecordingStarted(this, recordingStatus.trackId());
 
         // Update instance variables
@@ -271,8 +264,6 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
         TrackIdStorage.unset(this);
 
         stopUpdateRecordingData();
-
-        voiceAnnouncementManager.stop();
 
         stopSensors();
     }
@@ -417,8 +408,6 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
         // Compute temporary track statistics using sensorData and update time.
         RecordingData data = trackRecordingManager.getDataForUI();
 
-        voiceAnnouncementManager.announceStatisticsIfNeeded(data);
-
         recordingDataObservable.postValue(data);
     }
 
@@ -449,7 +438,6 @@ public class TrackRecordingService extends Service implements TrackPointCreator.
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, @Nullable String key) {
-        voiceAnnouncementManager.onSharedPreferenceChanged(sharedPreferences, key);
         trackRecordingManager.onSharedPreferenceChanged(sharedPreferences, key);
         trackPointCreator.onSharedPreferenceChanged(sharedPreferences, key);
         notificationManager.onSharedPreferenceChanged(sharedPreferences, key);

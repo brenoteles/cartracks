@@ -169,7 +169,6 @@ dependencies {
     implementation 'androidx.documentfile:documentfile:1.1.0'
     implementation 'com.google.android.material:material:1.14.0'
     implementation 'androidx.core:core:1.19.1'
-    implementation 'androidx.mediarouter:mediarouter:1.8.1'
     implementation 'androidx.core:core-location-altitude:1.0.1'
     implementation 'org.maplibre.gl:android-sdk:11.13.5'
     // 16 KB page-size aligned native lib (Android 15+ devices warn about older builds)
