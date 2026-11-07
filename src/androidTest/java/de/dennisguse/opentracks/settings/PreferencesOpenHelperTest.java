@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import androidx.preference.PreferenceManager;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -21,7 +20,7 @@ public class PreferencesOpenHelperTest {
 
     @Test
     public void test_check_updatesLastVersion() {
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences sharedPreferences = PreferencesUtils.getDefaultSharedPreferences(context);
         sharedPreferences.edit().putInt(context.getString(R.string.prefs_last_version_key), 0).commit();
 
         PreferencesOpenHelper.newInstance(2).check();

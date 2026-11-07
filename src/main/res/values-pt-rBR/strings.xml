@@ -64,24 +64,14 @@
     <string name="activity_type_walking">caminhada</string>
     <string name="activity_type_water_skiing">esqui aquático</string>
     <string name="activity_type_wind_surfing">windsurfe</string>
-    <string name="description_average_pace_in_minute">Ritmo médio: %1$s min/km (%2$s min/mi)</string>
-    <string name="description_average_speed">Velocidade média: %1$.2f km/h (%2$.1f milhas/h)</string>
-    <string name="description_altitude_imperial">Elevação (pés)</string>
-    <string name="description_altitude_metric">Elevação (m)</string>
-    <string name="description_min_altitude">Elevação mín.: %1$d m (%2$d pés)</string>
     <string name="description_sensor_cadence">Cadência (rpm)</string>
     <string name="description_sensor_heart_rate">Frequência cardíaca (bpm)</string>
     <string name="description_sensor_power">Potência (W)</string>
-    <string name="description_total_distance">Distância total: %1$.2f km (%2$.1f milhas)</string>
-    <string name="description_total_time">Tempo total: %1$s</string>
     <string name="generic_tracks">Trilhas</string>
     <string name="gps_starting">Iniciando GPS</string>
     <string name="gps_wait_for_better_signal">Aguardando sinal de GPS melhor</string>
     <string name="gps_wait_for_signal">Aguardando sinal de GPS</string>
-    <string name="menu_delete">Excluir</string>
-    <string name="menu_edit">Editar</string>
     <string name="recording_service">Serviço de gravação</string>
-    <string name="sensor_state_heart_rate_value">%1$d bom</string>
     <string name="track_name_format">Trilha %1$d</string>
     <string name="track_markers">Marcadores de %1$s</string>
     <string name="unit_feet">pés</string>
@@ -92,16 +82,7 @@
     <string name="unit_mile_per_hour">mph</string>
     <string name="unit_minute_per_kilometer">min/km</string>
     <string name="unit_minute_per_mile">min/milhas</string>
-    <string name="value_integer_feet_excellent_gps">%1$d pés (GPS excelente)</string>
-    <string name="value_integer_feet_recommended">%1$d pés (recomendado)</string>
-    <string name="value_integer_meter_excellent_gps">%1$d m (GPS excelente)</string>
-    <string name="value_integer_meter_poor_gps">%1$d m (GPS com sinal baixo)</string>
-    <string name="value_integer_meter_recommended">%1$d m (recomendado)</string>
-    <string name="value_integer_minute">%1$d min</string>
-    <string name="value_integer_second">%1$d s</string>
     <string name="value_none">Nenhuma</string>
-    <string name="value_off">Desativar</string>
-    <string name="value_smallest_recommended">Menor (recomendado)</string>
     <string name="waypoint_type_atm">caixa eletrônico</string>
     <string name="waypoint_type_bank">banco</string>
     <string name="waypoint_type_bar">bar</string>
@@ -162,25 +143,14 @@
     <string name="gps_fixed_and_ready">GPS corrigido e pronto</string>
     <string name="track_distance_notification">Distância: %1$s</string>
     <string name="track_speed_notification">Velocidade: %1$s</string>
-    <string name="stats_custom_layout_default_layout">Layout padrão</string>
     <string name="generic_yesterday">Ontem</string>
     <string name="generic_today">Hoje</string>
     <string name="activity_type_swimming">natação</string>
     <string name="activity_type_swimming_open">nadando em águas abertas</string>
     <string name="activity_type_workout">treino</string>
-    <string name="lap_time">Tempo da volta</string>
-    <string name="pace">Ritmo</string>
-    <string name="speed">Velocidade</string>
-    <string name="average_heart_rate">Frequência cardíaca média</string>
-    <string name="voice_per_kilometer">por quilômetro</string>
-    <string name="voice_per_mile">por milha</string>
-    <string name="lap_speed">Velocidade da volta</string>
-    <string name="total_distance">Distância total</string>
-    <string name="current_heart_rate">Frequência cardíaca atual</string>
     <string name="report_bug">Relatório de problema</string>
     <string name="unit_knots">kn</string>
     <string name="unit_minute_per_nautical_mile">min/NM</string>
-    <string name="voice_per_nautical_mile">por milha náutica</string>
     <string name="show_on_dashboard_not_installed">Nenhum aplicativo compatível com o painel API do OpenTracks instalado.</string>
     <string name="unit_nautical_mile">NM</string>
     <string name="error_crash_title">%1$s falharam</string>
@@ -188,20 +158,4 @@
     <string name="activity_type_gravel_biking">ciclismo de gravel</string>
     <string name="activity_type_kickscooter">patinete</string>
     <string name="description_sensor_temperature">Temperatura (Celsius)</string>
-    <string name="value_int_seconds">%1$d s (recomendado)</string>
-    <string name="voiceIdle">Ficando inativo.</string>
-    <string name="voiceHoursPlural">{n, plural, =1 {1 hora} other {{n,number} horas} }</string>
-    <string name="voiceMinutesPlural">{n, plural, =1 {1 minuto} other {{n,number} minutos} }</string>
-    <string name="voiceSecondsPlural">{n, plural, =1 {1 segundo} other {{n,number} segundos} }</string>
-    <string name="voiceSpeedKilometersPerHourPlural">{n, plural, =1 {1 quilômetro por hora} other {{n,number,#.0} quilômetros por hora} }</string>
-    <string name="voiceSpeedMilesPerHourPlural">{n, plural, =1 {1 milha por hora} other {{n,number,#.0} milhas por hora} }</string>
-    <string name="voiceSpeedMKnotsPlural">{n, plural, =1 {1 nó} other {{n,number,#.0} nós} }</string>
-    <string name="voiceSpeed">{n, plural, =1 {1} other {{n,number,#.0}} }</string>
-    <string name="voiceDistanceKilometersPlural">{n, plural, =1 {1 quilômetro} other {{n,number,#.0} quilômetros} }</string>
-    <string name="voiceDistanceMilesPlural">{n, plural, =1 {1 milha} other {{n,number,#.0} milhas} }</string>
-    <string name="voiceDistanceNauticalMilesPlural">{n, plural, =1 {1 milha náutica} other {{n,number,#.0} milhas náuticas} }</string>
-    <string name="voiceDistance">{n, plural, =1 {1 } other {{n,number,#.0}} }</string>
-    <string name="lap_heart_rate">Frequência cardíaca na volta</string>
-    <string name="power_x_watt">Potência {x, plural, =1 {1 watt} other {# watts} }</string>
-    <string name="power">Potência</string>
 </resources>

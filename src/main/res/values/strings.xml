@@ -87,18 +87,11 @@ limitations under the License.
     <string name="activity_type_swimming_open">swimming in open water</string>
     <string name="activity_type_workout">workout</string>
     <!-- Description -->
-    <string name="description_average_pace_in_minute">Average pace: %1$s min/km (%2$s min/mi)</string>
-    <string name="description_average_speed">Average speed: %1$.2f km/h (%2$.1f mi/h)</string>
-    <string name="description_altitude_imperial">Elevation (ft)</string>
-    <string name="description_altitude_metric">Elevation (m)</string>
-    <string name="description_min_altitude">Min elevation: %1$d m (%2$d ft)</string>
     <string name="description_speed_ms">Speed (m/s)</string>
     <string name="description_sensor_cadence">Cadence (rpm)</string>
     <string name="description_sensor_heart_rate">Heart rate (bpm)</string>
     <string name="description_sensor_temperature">Temperature (Celsius)</string>
     <string name="description_sensor_power">Power (W)</string>
-    <string name="description_total_distance">Total distance: %1$.2f km (%2$.1f mi)</string>
-    <string name="description_total_time">Total time: %1$s</string>
     <!-- Export -->
     <string name="export_with_photos">with photos</string>
     <string name="export_without_photos">without photos</string>
@@ -120,21 +113,16 @@ limitations under the License.
     <!-- Marker Edit -->
     <!-- Marker List -->
     <!-- Menu -->
-    <string name="menu_delete">Delete</string>
-    <string name="menu_edit">Edit</string>
     <!-- OpenTracks -->
     <string name="recording_service">Recording service</string>
     <!-- Permission -->
     <!-- Search -->
     <!-- Sensor State -->
-    <string name="sensor_state_heart_rate_value">%1$d bpm</string>
     <!-- Settings Advanced -->
     <!-- Settings Chart -->
     <!-- Settings Recording -->
     <!-- Custom Layout -->
 
-
-    <string name="stats_custom_layout_default_layout">Default Layout</string>
     <!-- Custom Layout Reset -->
     <!-- Settings Reset -->
     <!-- Settings Sensor -->
@@ -169,95 +157,7 @@ limitations under the License.
     <string name="unit_minute_per_nautical_mile">min/NM</string>
     <!-- Value -->
 
-    <string name="value_integer_feet_excellent_gps">%1$d ft (excellent GPS)</string>
-    <string name="value_integer_feet_recommended">%1$d ft (recommended)</string>
-    <string name="value_integer_meter_excellent_gps">%1$d m (excellent GPS)</string>
-    <string name="value_integer_meter_poor_gps">%1$d m (poor GPS)</string>
-    <string name="value_integer_meter_recommended">%1$d m (recommended)</string>
-    <string name="value_integer_minute">%1$d min</string>
-    <string name="value_integer_second">%1$d s</string>
     <string name="value_none">None</string>
-    <string name="value_off">Off</string>
-    <string name="value_smallest_recommended">Smallest (recommended)</string>
-    <string name="value_int_seconds">%1$d s (recommended)</string>
-    <string name="voiceIdle">Becoming idle.</string>
-    <string name="voiceHoursPlural">
-        {n, plural,
-        =1 {1 hour}
-        other {{n,number} hours}
-        }
-    </string>
-    <string name="voiceMinutesPlural">
-        {n, plural,
-        =1 {1 minute}
-        other {{n,number} minutes}
-        }
-    </string>
-    <string name="voiceSecondsPlural">
-        {n, plural,
-        =1 {1 second}
-        other {{n,number} seconds}
-        }
-    </string>
-    <string name="voiceSpeedKilometersPerHourPlural">
-        {n, plural,
-        =1 {1 kilometer per hour}
-        other {{n,number,#.0} kilometers per hour}
-        }
-    </string>
-    <string name="voiceSpeedMilesPerHourPlural">
-        {n, plural,
-        =1 {1 mile per hour}
-        other {{n,number,#.0} miles per hour}
-        }
-    </string>
-    <string name="voiceSpeedMKnotsPlural">
-        {n, plural,
-        =1 {1 knot}
-        other {{n,number,#.0} knots}
-        }
-    </string>
-    <string name="voiceSpeed">
-        {n, plural,
-        =1 {1}
-        other {{n,number,#.0}}
-        }
-    </string>
-    <string name="voice_per_kilometer">per kilometer</string>
-    <string name="voice_per_mile">per mile</string>
-    <string name="voice_per_nautical_mile">per nautical mile</string>
-    <string name="lap_time">Lap time</string>
-    <string name="pace">Pace</string>
-    <string name="lap_speed">Lap speed</string>
-    <string name="speed">Average moving speed</string>
-    <string name="total_distance">Total distance</string>
-    <string name="voiceDistanceKilometersPlural">
-        {n, plural,
-        =1 {1 kilometer}
-        other {{n,number,#.0} kilometers}
-        }
-    </string>
-    <string name="voiceDistanceMilesPlural">
-        {n, plural,
-        =1 {1 mile}
-        other {{n,number,#.0} miles}
-        }
-    </string>
-    <string name="voiceDistanceNauticalMilesPlural">
-        {n, plural,
-        =1 {1 nautical mile}
-        other {{n,number,#.0} nautical miles}
-        }
-    </string>
-    <string name="voiceDistance">
-        {n, plural,
-        =1 {1 }
-        other {{n,number,#.0}}
-        }
-    </string>
-    <string name="average_heart_rate">Average heart rate</string>
-    <string name="current_heart_rate">Current heart rate</string>
-    <string name="lap_heart_rate">Lap heart rate</string>
     <!-- Waypoint Type -->
     <string name="waypoint_type_atm">ATM</string>
     <string name="waypoint_type_bank">bank</string>
@@ -316,6 +216,4 @@ limitations under the License.
     <string name="share_crash_report">Share crash report</string>
     <string name="report_bug">Report bug</string>
     <string name="show_on_dashboard_not_installed">No application supporting OpenTracks Dashboard API installed.</string>
-    <string name="power_x_watt">Power {x, plural,  =1 {1 watt} other {# watts} }</string>
-    <string name="power">Power</string>
 </resources>

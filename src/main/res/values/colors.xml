@@ -17,21 +17,4 @@ limitations under the License.
     <color name="oled_friendly">@android:color/black</color>
     <!-- Brand colors -->
     <color name="opentracks">#FF6D00</color>
-
-
-    <!-- Chart colors -->
-    <color name="chart_altitude_border">#FF339933</color> <!-- green -->
-    <color name="chart_altitude_fill">#40B3CFB3</color> <!-- transparent green -->
-
-    <!-- Generic colors -->
-
-
-
-
-
-    <color name="heart_rate_zone_textcolor_5">#FF0000</color>
-    <color name="heart_rate_zone_textcolor_4">#FFBD04</color>
-    <color name="heart_rate_zone_textcolor_3">#6ACC2B</color>
-    <color name="heart_rate_zone_textcolor_2">#64D1FD</color>
-    <color name="light_gray">#aaaaaa</color> <!-- used by type.xml text styles -->
 </resources>

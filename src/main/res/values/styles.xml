@@ -15,29 +15,6 @@ limitations under the License.
 -->
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- bottom buttons bar -->
-
-
-
-    <!-- scroll view -->
-
-    <!-- scroll view with bottom buttons -->
-    <!-- implicit parent of ScrollView.WithBottomButtons (lint reports it unused) -->
-    <style name="ScrollView">
-        <item name="android:layout_height">match_parent</item>
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:scrollbarStyle">outsideInset</item>
-    </style>
-
-    <style name="ScrollView.WithBottomButtons">
-        <item name="android:layout_height">0dp</item>
-        <item name="android:layout_weight">1</item>
-    </style>
-
-    <!-- horizontal line -->
-
-    <!-- card view -->
-
     <!-- Snackbar -->
     <style name="MaterialSnackbarTheme" parent="@style/Widget.Material3.Snackbar">
         <item name="materialThemeOverlay">@style/ThemeOverlay.OpenTracks.Snackbar</item>

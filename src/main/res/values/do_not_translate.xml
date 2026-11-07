@@ -20,7 +20,6 @@ limitations under the License.
     <string name="egm2008" translatable="false">EGM2008</string>
     <string name="wgs84" translatable="false">WGS84</string>
 
-
     <!-- If the order depends on the language, we might need to make this translatable -->
     <string name="distance_with_unit" translatable="false">%1$s %2$s</string>
     <string name="speed_with_unit" translatable="false">%1$s %2$s</string>
@@ -37,7 +36,6 @@ limitations under the License.
     <string name="sensor_unit_temperature" translatable="false">C</string>
 
     <string name="value_unknown" translatable="false">-</string>
-    <string name="empty" translatable="false" />
     <string name="report_issue_link" translatable="false">https://codeberg.org/OpenTracksApp/OpenTracks/issues/new?labels=bug&amp;template=bug_report.md&amp;body=%1$s</string>
 
     <string-array name="marker_types">

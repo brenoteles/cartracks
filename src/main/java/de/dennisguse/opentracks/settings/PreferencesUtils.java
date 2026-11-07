@@ -21,12 +21,9 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.content.res.Resources;
-import android.net.Uri;
-import android.util.Log;
 
 import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.preference.PreferenceManager;
 
 import com.google.android.material.color.DynamicColors;
 
@@ -38,12 +35,7 @@ import java.util.Locale;
 import de.dennisguse.opentracks.R;
 import de.dennisguse.opentracks.data.models.ActivityType;
 import de.dennisguse.opentracks.data.models.Distance;
-import de.dennisguse.opentracks.data.models.DistanceFormatter;
-import de.dennisguse.opentracks.data.models.HeartRate;
-import de.dennisguse.opentracks.data.models.HeartRateZones;
 import de.dennisguse.opentracks.data.models.Track;
-import de.dennisguse.opentracks.io.file.TrackFileFormat;
-import de.dennisguse.opentracks.io.file.TrackFilenameGenerator;
 import de.dennisguse.opentracks.sensors.driver.SensorType;
 
 /**
@@ -52,8 +44,6 @@ import de.dennisguse.opentracks.sensors.driver.SensorType;
  * @author Jimmy Shih
  */
 public class PreferencesUtils {
-
-    private final static String TAG = PreferencesUtils.class.getSimpleName();
 
     private static final int PREFERENCES_VERSION = 2;
 
@@ -69,18 +59,21 @@ public class PreferencesUtils {
      */
     public static void initPreferences(final Context context) {
         PreferencesUtils.resources = context.getResources();
-        PreferencesUtils.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+        PreferencesUtils.sharedPreferences = getDefaultSharedPreferences(context);
 
         PreferencesOpenHelper.newInstance(PREFERENCES_VERSION).check();
+    }
+
+    /**
+     * Same file androidx.preference's PreferenceManager.getDefaultSharedPreferences() used, so installed settings are kept.
+     */
+    public static SharedPreferences getDefaultSharedPreferences(Context context) {
+        return context.getSharedPreferences(context.getPackageName() + "_preferences", Context.MODE_PRIVATE);
     }
 
     public static void registerOnSharedPreferenceChangeListener(SharedPreferences.OnSharedPreferenceChangeListener changeListener) {
         sharedPreferences.registerOnSharedPreferenceChangeListener(changeListener);
         changeListener.onSharedPreferenceChanged(sharedPreferences, null);
-    }
-
-    public static void registerOnSharedPreferenceChangeListenerSilent(SharedPreferences.OnSharedPreferenceChangeListener changeListener) {
-        sharedPreferences.registerOnSharedPreferenceChangeListener(changeListener);
     }
 
     public static void unregisterOnSharedPreferenceChangeListener(SharedPreferences.OnSharedPreferenceChangeListener changeListener) {
@@ -89,10 +82,6 @@ public class PreferencesUtils {
 
     public static String getDefaultActivityTypeLocalized() {
         return getString(R.string.default_activity_key, resources.getString(R.string.default_activity_default));
-    }
-
-    public static void setDefaultActivityLocalized(String newDefaultActivity) {
-        setString(R.string.default_activity_key, newDefaultActivity);
     }
 
     /**
@@ -191,39 +180,10 @@ public class PreferencesUtils {
         setString(keyId, resources.getString(valueId));
     }
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
-    public static void setBoolean(int keyId, Boolean value) {
-        Editor editor = sharedPreferences.edit();
-        editor.putBoolean(getKey(keyId), value);
-        editor.apply();
-    }
-
     static void setInt(int keyId, int value) {
         Editor editor = sharedPreferences.edit();
         editor.putInt(getKey(keyId), value);
         editor.apply();
-    }
-
-    private static void setLong(int keyId, long value) {
-        Editor editor = sharedPreferences.edit();
-        editor.putLong(getKey(keyId), value);
-        editor.apply();
-    }
-
-    public static boolean isPublicAPIenabled() {
-        return getBoolean(R.string.publicapi_enabled_key, resources.getBoolean(R.bool.publicapi_enabled_default));
-    }
-
-    public static boolean isPublicAPIDashboardEnabled() {
-        return getBoolean(R.string.publicapi_dashboard_enabled_key, resources.getBoolean(R.bool.publicapi_dashboard_enabled_default));
-    }
-
-    public static boolean shouldShowIntroduction() {
-        return getBoolean(R.string.show_introduction_screen_key, resources.getBoolean(R.bool.show_introduction_screen_default));
-    }
-
-    public static void setShowIntroduction(boolean introduction) {
-        setBoolean(R.string.show_introduction_screen_key, introduction);
     }
 
     public static UnitSystem getUnitSystem() {
@@ -273,22 +233,6 @@ public class PreferencesUtils {
                 .orElse(SensorType.REMOTE);
     }
 
-    public static Distance getWheelCircumference() {
-        final int DEFAULT = Integer.parseInt(resources.getString(R.string.settings_sensor_bluetooth_cycling_speed_wheel_circumference_default));
-        return Distance.ofMM(getInt(R.string.settings_sensor_bluetooth_cycling_speed_wheel_circumference_key, DEFAULT));
-    }
-
-    public static boolean getBluetoothFilterEnabled() {
-        final boolean DEFAULT = resources.getBoolean(R.bool.settings_sensor_bluetooth_service_filter_enabled_default);
-        return getBoolean(R.string.settings_sensor_bluetooth_service_filter_enabled_key, DEFAULT);
-    }
-
-    public static HeartRateZones getHeartRateZones() {
-        final int DEFAULT = Integer.parseInt(resources.getString(R.string.settings_sensor_heart_rate_max_default));
-        int value = getInt(R.string.settings_sensor_heart_rate_max_key, DEFAULT);
-        return new HeartRateZones(HeartRate.of(value));
-    }
-
     public static boolean shouldShowStatsOnLockscreen() {
         final boolean STATS_SHOW_ON_LOCKSCREEN_DEFAULT = resources.getBoolean(R.bool.stats_show_on_lockscreen_while_recording_default);
         return getBoolean(R.string.stats_show_on_lockscreen_while_recording_key, STATS_SHOW_ON_LOCKSCREEN_DEFAULT);
@@ -304,272 +248,17 @@ public class PreferencesUtils {
         return getBoolean(R.string.stats_fullscreen_while_recording_key, DEFAULT);
     }
 
-    public static boolean shouldShowGpsDisabledWarning() {
-        final boolean DEFAULT = resources.getBoolean(R.bool.stats_show_gps_disabled_warnings_default);
-        return getBoolean(R.string.stats_show_gps_disabled_warnings_key, DEFAULT);
-    }
-
-    public static boolean shouldShowElevation() {
-        final boolean DEFAULT = resources.getBoolean(R.bool.chart_display_elevation_default);
-        return getBoolean(R.string.chart_display_elevation_key, DEFAULT);
-    }
-
-    public static boolean shouldShowPaceOrSpeed() {
-        final boolean DEFAULT = resources.getBoolean(R.bool.chart_display_pace_or_speed_default);
-        return getBoolean(R.string.chart_display_pace_or_speed_key, DEFAULT);
-    }
-
-    public static boolean shouldShowHeartRate() {
-        final boolean DEFAULT = resources.getBoolean(R.bool.chart_display_heart_rate_default);
-        return getBoolean(R.string.chart_display_heart_rate_key, DEFAULT);
-    }
-
-    public static boolean shouldVoiceAnnouncementOnDeviceSpeaker() {
-        final boolean DEFAULT = resources.getBoolean(R.bool.voice_on_device_speaker_default);
-        return getBoolean(R.string.voice_on_device_speaker_key, DEFAULT);
-    }
-
-    public static boolean shouldVoiceAnnouncementIdle() {
-        return getBoolean(R.string.voice_announce_idle_key, true);
-    }
-
-    public static boolean shouldVoiceAnnounceTime() {
-        return getBoolean(R.string.voice_announce_time_key, true);
-    }
-
-    public static boolean shouldVoiceAnnounceUnit() {
-        return getBoolean(R.string.voice_announce_unit_key, true);
-    }
-
-    @VisibleForTesting
-    public static void setVoiceAnnounceUnit(boolean value) {
-        setBoolean(R.string.voice_announce_unit_key, value);
-    }
-
-    public static Duration getVoiceAnnouncementFrequency() {
-        final int DEFAULT = Integer.parseInt(resources.getString(R.string.voice_announcement_frequency_default));
-        int value = getInt(R.string.voice_announcement_frequency_key, DEFAULT);
-        return Duration.ofSeconds(value);
-    }
-
-    static String[] getVoiceAnnouncementFrequencyEntries() {
-        String[] entryValues = resources.getStringArray(R.array.voice_announcement_frequency_values);
-        String[] entries = new String[entryValues.length];
-        for (int i = 0; i < entryValues.length; i++) {
-            if (resources.getString(R.string.announcement_off).equals(entryValues[i])) {
-                entries[i] = resources.getString(R.string.value_off);
-            } else {
-                int value = Integer.parseInt(entryValues[i]);
-                entries[i] = resources.getString(R.string.value_integer_minute, Duration.ofSeconds(value).toMinutes());
-            }
-        }
-        return entries;
-    }
-
-    /**
-     * @return Result depends on getUnitSystem
-     */
-    public static Distance getVoiceAnnouncementDistance() {
-        final float DEFAULT = Integer.parseInt(resources.getString(R.string.voice_announcement_distance_default));
-        float value = getFloat(R.string.voice_announcement_distance_key, DEFAULT);
-        return Distance.one(getUnitSystem()).multipliedBy(value);
-    }
-
-    /**
-     * @return Result depends on getUnitSystem
-     */
-    static String[] getVoiceAnnouncementDistanceEntries() {
-        String[] entryValues = resources.getStringArray(R.array.voice_announcement_distance_values);
-        String[] entries = new String[entryValues.length];
-        UnitSystem unitSystem = getUnitSystem();
-
-        DistanceFormatter formatter = DistanceFormatter.Builder()
-                .setDecimalPlaces(0)
-                .setUnit(unitSystem)
-                .build(resources);
-        for (int i = 0; i < entryValues.length; i++) {
-            if (resources.getString(R.string.announcement_off).equals(entryValues[i])) {
-                entries[i] = resources.getString(R.string.value_off);
-            } else {
-                Distance distance = Distance.one(unitSystem).multipliedBy(Double.parseDouble(entryValues[i]));
-                entries[i] = formatter.formatDistance(distance);
-            }
-        }
-        return entries;
-    }
-
-    public static float getVoiceSpeedRate() {
-        final float DEFAULT = Float.parseFloat(resources.getString(R.string.voice_speed_rate_default));
-        return getFloat(R.string.voice_speed_rate_key, DEFAULT);
-    }
-
-    public static boolean shouldVoiceAnnounceTotalDistance() {
-        return getBoolean(R.string.voice_announce_total_distance_key, true);
-    }
-
-    @VisibleForTesting
-    public static void setVoiceAnnounceTotalDistance(boolean value) {
-        setBoolean(R.string.voice_announce_total_distance_key, value);
-    }
-
-    public static boolean shouldVoiceAnnounceMovingTime() {
-        return getBoolean(R.string.voice_announce_moving_time_key, true);
-    }
-
-    @VisibleForTesting
-    public static void setVoiceAnnounceMovingTime(boolean value) {
-        setBoolean(R.string.voice_announce_moving_time_key, value);
-    }
-
-    public static boolean shouldVoiceAnnounceAverageSpeedPace() {
-        return getBoolean(R.string.voice_announce_average_speed_pace_key, true);
-    }
-
-    @VisibleForTesting
-    public static void setVoiceAnnounceAverageSpeedPace(boolean value) {
-        setBoolean(R.string.voice_announce_average_speed_pace_key, value);
-    }
-
-    public static boolean shouldVoiceAnnounceLapSpeedPace() {
-        return getBoolean(R.string.voice_announce_lap_speed_pace_key, true);
-    }
-
-    @VisibleForTesting
-    public static void setVoiceAnnounceLapSpeedPace(boolean value) {
-        setBoolean(R.string.voice_announce_lap_speed_pace_key, value);
-    }
-
-    public static boolean shouldVoiceAnnounceLapPower() {
-        return getBoolean(R.string.voice_announce_lap_power_key, getBoolean(R.bool.voice_announce_lap_power_default, false));
-    }
-
-    public static boolean shouldVoiceAnnounceHeartRateCurrent() {
-        return getBoolean(R.string.voice_announce_heart_rate_current_key, false);
-    }
-
-    @VisibleForTesting
-    public static void setVoiceAnnounceHeartRateCurrent(boolean value) {
-        setBoolean(R.string.voice_announce_heart_rate_current_key, value);
-    }
-
-    public static boolean shouldVoiceAnnounceLapHeartRate() {
-        return getBoolean(R.string.voice_announce_lap_heart_rate_key, false);
-    }
-
-    @VisibleForTesting
-    public static void setVoiceAnnounceLapHeartRate(boolean value) {
-        setBoolean(R.string.voice_announce_lap_heart_rate_key, value);
-    }
-
-    public static boolean shouldVoiceAnnounceAverageHeartRate() {
-        return getBoolean(R.string.voice_announce_average_heart_rate_key, false);
-    }
-
-    @VisibleForTesting
-    public static void setVoiceAnnounceAverageHeartRate(boolean value) {
-        setBoolean(R.string.voice_announce_average_heart_rate_key, value);
-    }
-
     public static Distance getRecordingDistanceInterval() {
         return Distance.of(getInt(R.string.recording_distance_interval_key, getRecordingDistanceIntervalDefaultInternal()));
-    }
-
-    public static Distance getRecordingDistanceIntervalDefault() {
-        return Distance.of(getRecordingDistanceIntervalDefaultInternal());
     }
 
     private static int getRecordingDistanceIntervalDefaultInternal() {
         return Integer.parseInt(resources.getString(R.string.recording_distance_interval_default));
     }
 
-    static String[] getRecordingDistanceIntervalEntries() {
-        String[] entryValues = resources.getStringArray(R.array.recording_distance_interval_values);
-        String[] entries = new String[entryValues.length];
-
-        final int recordingDistanceIntervalDefault = (int) getRecordingDistanceIntervalDefault().toM();
-        UnitSystem unitSystem = getUnitSystem();
-
-        DistanceFormatter formatter = DistanceFormatter.Builder()
-                .setUnit(unitSystem)
-                .setDecimalPlaces(0)
-                .setThreshold(Double.MAX_VALUE)
-                .build(resources);
-        for (int i = 0; i < entryValues.length; i++) {
-            int value = Integer.parseInt(entryValues[i]);
-            Distance distance = Distance.of(1).multipliedBy(value);
-
-            String displayValue = formatter.formatDistance(distance);
-            switch (unitSystem) {
-                case METRIC, IMPERIAL_METER -> {
-                    if (value == recordingDistanceIntervalDefault) {
-                        entries[i] = resources.getString(R.string.value_integer_meter_recommended, value);
-                    } else {
-                        entries[i] = displayValue;
-                    }
-                }
-                case IMPERIAL_FEET, NAUTICAL_IMPERIAL -> {
-                    if (value == recordingDistanceIntervalDefault) {
-                        entries[i] = resources.getString(R.string.value_integer_feet_recommended, (int) distance.toFT());
-                    } else {
-                        entries[i] = displayValue;
-                    }
-                }
-                default -> throw new RuntimeException("Not implemented");
-            }
-        }
-
-        return entries;
-    }
-
     public static Distance getMaxRecordingDistance() {
         final int MAX_RECORDING_DISTANCE = Integer.parseInt(resources.getString(R.string.max_recording_distance_default));
         return Distance.of(getInt(R.string.max_recording_distance_key, MAX_RECORDING_DISTANCE));
-    }
-
-    static String[] getMaxRecordingDistanceEntries() {
-        String[] entryValues = resources.getStringArray(R.array.max_recording_distance_values);
-        String[] entries = new String[entryValues.length];
-
-        final int maxRecordingDistanceDefault = Integer.parseInt(resources.getString(R.string.max_recording_distance_default));
-        final int maxRecordingDistanceOff = Integer.parseInt(resources.getString(R.string.max_recording_distance_off));
-        UnitSystem unitSystem = getUnitSystem();
-
-        DistanceFormatter formatter = DistanceFormatter.Builder()
-                .setDecimalPlaces(0)
-                .setThreshold(Double.MAX_VALUE)
-                .setUnit(unitSystem)
-                .build(resources);
-        for (int i = 0; i < entryValues.length; i++) {
-            int value = Integer.parseInt(entryValues[i]);
-            Distance distance = Distance.of(1).multipliedBy(value);
-
-            String displayValue = formatter.formatDistance(distance);
-            switch (unitSystem) {
-                case METRIC, IMPERIAL_METER -> {
-                    if (value == maxRecordingDistanceDefault) {
-                        entries[i] = resources.getString(R.string.value_integer_meter_recommended, value);
-                    }
-                    if (value == maxRecordingDistanceOff) {
-                        entries[i] = resources.getString(R.string.value_off);
-                    } else {
-                        entries[i] = displayValue;
-                    }
-                }
-                case IMPERIAL_FEET, NAUTICAL_IMPERIAL -> {
-                    if (value == maxRecordingDistanceDefault) {
-                        entries[i] = resources.getString(R.string.value_integer_feet_recommended, (int) distance.toFT());
-                    }
-                    if (value == maxRecordingDistanceOff) {
-                        entries[i] = resources.getString(R.string.value_off);
-                    } else {
-                        entries[i] = displayValue;
-                    }
-                }
-                default -> throw new RuntimeException("Not implemented");
-            }
-        }
-
-        return entries;
     }
 
     //TODO Rename to getGpsMinSamplingInterval
@@ -582,135 +271,15 @@ public class PreferencesUtils {
         return Duration.ofSeconds(Integer.parseInt(resources.getString(R.string.min_sampling_interval_default)));
     }
 
-    static String[] getMinSamplingIntervalEntries() {
-        String[] entryValues = resources.getStringArray(R.array.min_sampling_interval_values);
-        long recommended = PreferencesUtils.getMinSamplingIntervalDefault().getSeconds();
-        String[] entries = new String[entryValues.length];
-        for (int i = 0; i < entryValues.length; i++) {
-            int value = Integer.parseInt(entryValues[i]);
-
-            if (value == recommended) {
-                entries[i] = resources.getString(R.string.value_smallest_recommended);
-            } else {
-                entries[i] = value < 60 ? resources.getString(R.string.value_integer_second, value) : resources.getString(R.string.value_integer_minute, value / 60);
-            }
-        }
-
-        return entries;
-    }
-
     public static Distance getThresholdHorizontalAccuracy() {
         final int RECORDING_GPS_ACCURACY = Integer.parseInt(resources.getString(R.string.recording_gps_accuracy_default));
         return Distance.of(getInt(R.string.recording_gps_accuracy_key, RECORDING_GPS_ACCURACY));
-    }
-
-    static String[] getThresholdHorizontalAccuracyEntries() {
-        String[] entryValues = resources.getStringArray(R.array.recording_gps_accuracy_values);
-        String[] entries = new String[entryValues.length];
-
-        final int recordingGPSAccuracyDefault = Integer.parseInt(resources.getString(R.string.recording_gps_accuracy_default));
-        final int recordingGPSAccuracyExcellent = Integer.parseInt(resources.getString(R.string.recording_gps_accuracy_excellent));
-        final int recordingGPSAccuracyPoor = Integer.parseInt(resources.getString(R.string.recording_gps_accuracy_poor));
-
-        UnitSystem unitSystem = getUnitSystem();
-
-        DistanceFormatter formatter = DistanceFormatter.Builder()
-                .setDecimalPlaces(0)
-                .setThreshold(Double.MAX_VALUE)
-                .setUnit(unitSystem)
-                .build(resources);
-
-        for (int i = 0; i < entryValues.length; i++) {
-            int value = Integer.parseInt(entryValues[i]);
-            Distance distance = Distance.of(1).multipliedBy(value);
-
-            String displayValue = formatter.formatDistance(distance);
-            switch (unitSystem) {
-                case METRIC, IMPERIAL_METER -> {
-                    if (value == recordingGPSAccuracyDefault) {
-                        entries[i] = resources.getString(R.string.value_integer_meter_recommended, value);
-                    } else if (value == recordingGPSAccuracyExcellent) {
-                        entries[i] = resources.getString(R.string.value_integer_meter_excellent_gps, value);
-                    } else if (value == recordingGPSAccuracyPoor) {
-                        entries[i] = resources.getString(R.string.value_integer_meter_poor_gps, value);
-                    } else {
-                        entries[i] = displayValue;
-                    }
-                }
-                case IMPERIAL_FEET, NAUTICAL_IMPERIAL -> {
-                    if (value == recordingGPSAccuracyDefault) {
-                        entries[i] = resources.getString(R.string.value_integer_feet_recommended, (int) distance.toFT());
-                    } else if (value == recordingGPSAccuracyExcellent) {
-                        entries[i] = resources.getString(R.string.value_integer_feet_excellent_gps, (int) distance.toFT());
-                    } else {
-                        entries[i] = displayValue;
-                    }
-                }
-                default -> throw new RuntimeException("Not implemented");
-            }
-        }
-
-        return entries;
     }
 
     public static Duration getIdleDurationTimeout() {
         final int DEFAULT = Integer.parseInt(resources.getString(R.string.idle_duration_default));
         int value = getInt(R.string.idle_duration_key, DEFAULT);
         return Duration.ofSeconds(value);
-    }
-
-    static String[] getIdleDurationEntries() {
-        String[] entryValues = resources.getStringArray(R.array.idle_duration_values);
-        String[] entries = new String[entryValues.length];
-
-        final int idleDurationDefault = Integer.parseInt(resources.getString(R.string.idle_duration_default));
-
-        for (int i = 0; i < entryValues.length; i++) {
-            int value = Integer.parseInt(entryValues[i]);
-
-            if (resources.getString(R.string.announcement_off).equals(entryValues[i])) {
-                entries[i] = resources.getString(R.string.value_off);
-            } else if (value == idleDurationDefault) {
-                entries[i] = resources.getString(R.string.value_int_seconds, value);
-            } else {
-                entries[i] = value < 60 ? resources.getString(R.string.value_integer_second, value) : resources.getString(R.string.value_integer_minute, value / 60);
-            }
-        }
-
-        return entries;
-    }
-
-    public static boolean shouldInstantExportToFile() {
-        final boolean INSTANT_POST_WORKOUT_EXPORT_DEFAULT = resources.getBoolean(R.bool.post_workout_export_enabled_default);
-        return getBoolean(R.string.post_workout_export_enabled_key, INSTANT_POST_WORKOUT_EXPORT_DEFAULT) && isDefaultExportDirectoryUri();
-    }
-
-    public static boolean shouldInstantExportToHealthConnect() {
-        final boolean DEFAULT = resources.getBoolean(R.bool.post_workout_export_health_connect_enabled_default);
-        return getBoolean(R.string.post_workout_export_health_connect_enabled_key, DEFAULT);
-    }
-
-    public static TrackFilenameGenerator getTrackFileformatGenerator() {
-        String DEFAULT = resources.getString(R.string.export_filename_format_default);
-        TrackFilenameGenerator generator = new TrackFilenameGenerator(getString(R.string.export_filename_format_key, DEFAULT));
-        if (generator.isValid()) {
-            return generator;
-        } else {
-            return new TrackFilenameGenerator(DEFAULT);
-        }
-    }
-
-    public static TrackFileFormat getExportTrackFileFormat() {
-        final String TRACKFILEFORMAT_NAME_DEFAULT = getString(R.string.export_trackfileformat_default, null);
-        String trackFileFormatName = getString(R.string.export_trackfileformat_key, TRACKFILEFORMAT_NAME_DEFAULT);
-        return Arrays.stream(TrackFileFormat.values())
-                .filter(format -> format.getPreferenceId().equals(trackFileFormatName))
-                .findFirst().orElse(TrackFileFormat.KMZ_WITH_TRACKDETAIL_AND_SENSORDATA_AND_PICTURES);
-    }
-
-    public static boolean getPreventReimportTracks() {
-        final boolean defaultValue = getBoolean(R.bool.import_prevent_reimport_default, false);
-        return getBoolean(R.string.import_prevent_reimport_key, defaultValue);
     }
 
     record ThemeConfig(int themeResourceId, int dayNight, boolean dynamicColor) {
@@ -780,31 +349,6 @@ public class PreferencesUtils {
         if (readAgain) {
             sharedPreferences.edit().clear().commit();
         }
-    }
-
-    public static Uri getDefaultExportDirectoryUri() {
-        String singleExportDirectory = getString(R.string.settings_default_export_directory_key, null);
-        if (singleExportDirectory == null) {
-            return null;
-        }
-        try {
-            Log.d(TAG, "DefaultExportDirectoryUri: " + singleExportDirectory);
-            return Uri.parse(singleExportDirectory);
-        } catch (Exception e) {
-            Log.w(TAG, "Could not parse default export directory Uri: " + e.getMessage());
-        }
-        return null;
-    }
-
-    public static void setDefaultExportDirectoryUri(Uri directoryUri) {
-        String value = directoryUri != null ? directoryUri.toString() : null;
-        Log.d(TAG, "Set ExportDirectoryUri: " + directoryUri);
-
-        setString(R.string.settings_default_export_directory_key, value);
-    }
-
-    public static boolean isDefaultExportDirectoryUri() {
-        return getDefaultExportDirectoryUri() != null;
     }
 
     public static int getTotalRowsDeleted() {
